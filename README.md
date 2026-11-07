@@ -13,6 +13,7 @@ Danach ist die Seite unter `https://<benutzer>.github.io/<repo>/` erreichbar.
 - Maße aus dem Werkplan der Zimmerei (08/2025), Wohnung 3 = Spiegelbild von Wohnung 2.
 - Annahmen: Balkon OG tiefer Teil 2,55 m / flacher Teil ca. 0,98 m, Balkon DG 2,55 m unter Zwerchgiebel, Giebelüberstand ca. 1,0 m (Foto), EG-Fenster Garten/Straße schematisch.
 - Fassade, Dach, Laubengang und Außentreppe nach Außenfotos.
-- Wohnfläche nach WoFlV rechnerisch: lichte Höhe ≥ 2 m voll, 1–2 m halb, < 1 m nicht; Balkone ¼; Treppe nicht angerechnet.
+- Wohnfläche laut Ausschreibung 94 m² (inkl. anteiligem Balkon). Nachrechnung im Modell: WoFlV, Balkone ¼, Treppe nicht angerechnet.
+- DG-Höhen an Ausführung angepasst: Schräge 0,49 m höher als im Werkplan-Schnitt (Kniestock innen ca. 1,14 m, First innen ca. 3,31 m); damit ergibt die Nachrechnung 94,0 m².
 
 Keine Adresse, keine Koordinaten, keine Namen im Repo.

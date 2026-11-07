@@ -124,8 +124,11 @@ if(!window.THREE){document.getElementById('hintTxt').textContent='3D-Bibliothek 
 const D2R=Math.PI/180, K=Math.tan(26*D2R);
 const L=13.54, B=9.60, T=0.347, MID=L/2;
 const Z_OG=2.78, Z_DG=5.54, H_OG=2.40, RIDGE=9.04, ROOF_T=0.68, YR=B/2;
-const HR=RIDGE-ROOF_T-Z_DG;
-const RT=0.36;                         // sichtbare Dachstärke außen (Ortgang/Traufe)            // lichte Firsthöhe DG ≈ 2,82
+// DG-Höhen: Der Werkplan-Schnitt ergibt Kniestock innen ≈ 0,65 m / First innen ≈ 2,82 m.
+// Angepasst an die Ausführung (Fotos) und die ausgeschriebene Wohnfläche: Schräge um DG_LIFT höher.
+const DG_LIFT=0.49;
+const HR=RIDGE-ROOF_T-Z_DG+DG_LIFT;      // lichte Firsthöhe DG ≈ 3,32 m, Kniestock innen ≈ 1,15 m
+const RT=0.16;                         // sichtbare Dachstärke außen
 const CX0=3.455, CX1=L-CX0;            // Zwerchgiebel über Balkonen
 const EAVE=1.40, GOV=1.00;             // Dachüberstand Traufe / Giebel (Giebel nach Foto geschätzt)
 const LB_X0=4.10, LB_X1=12.6, LB_D=1.5;  // Laubengang Straßenseite (nach Fotos)
@@ -173,7 +176,7 @@ const W2={
     {id:'flurOG',lvl:'OG',name:'Flur / Diele',poly:rect(3.517,5.723,6.545,9.253),excl:[rect(5.235,5.723,6.545,9.253)],lab:[4.37,7.25],sp:[4.4,8.55],look:-80},
     {id:'bad',lvl:'OG',name:'Bad',poly:rect(T,5.723,3.327,9.253),lab:[1.9,7.35],sp:[2.75,7.3],look:200},
     {id:'balkonOG',lvl:'OG',name:'Balkon OG',f:0.25,poly:[[T,0],[SEP0,0],[SEP0,-BAL_D],[CX0,-BAL_D],[CX0,-BAL_S],[T,-BAL_S]],lab:[5.0,-1.5],sp:[4.6,-1.0],look:-90},
-    {id:'schlafen',lvl:'DG',name:'Schlafzimmer',poly:[[T,T],[6.545,T],[6.545,5.283],[5.447,5.283],[5.447,4.913],[3.825,4.913],[3.825,5.103],[1.347,5.103],[1.347,4.705],[T,4.705]],lab:[1.5,2.2],sp:[4.65,3.6],look:-90},
+    {id:'schlafen',lvl:'DG',name:'Schlafzimmer',poly:[[T,T],[6.545,T],[6.545,5.283],[5.447,5.283],[5.447,4.913],[3.825,4.913],[3.825,5.103],[1.347,5.103],[1.347,4.705],[T,4.705]],lab:[1.7,1.3],sp:[4.65,3.6],look:-90},
     {id:'kind',lvl:'DG',name:'Kind / Büro',poly:[[T,4.895],[1.157,4.895],[1.157,5.293],[3.825,5.293],[3.825,9.253],[T,9.253]],lab:[2.2,7.25],sp:[2.9,6.0],look:175},
     {id:'galerie',lvl:'DG',name:'Galerie / Flur',fs:0.19,poly:[[4.015,5.103],[5.257,5.103],[5.257,5.473],[6.545,5.473],[6.545,9.253],[4.015,9.253]],holes:[rect(...STAIR_OPEN)],lab:[4.62,8.2],sp:[4.62,6.1],look:70},
     {id:'balkonDG',lvl:'DG',name:'Balkon DG',f:0.25,poly:rect(CX0,-BAL_D,SEP0,0),lab:[5.0,-1.4],sp:[5.3,-0.7],look:-90}
@@ -502,8 +505,12 @@ function buildRoof(){
   roofSlab([[MID,YR],[MID,ye],[CX0-ov,ye],[CX0-ov,YR-(MID-CX0+ov)]],zC,RT,G.roof,uvC);
   roofSlab([[CX1+ov,YR-(MID-CX0+ov)],[CX1+ov,ye],[MID,ye],[MID,YR]],zC,RT,G.roof,uvC);
   // Firstpfette Zwerchgiebel + Ortgangbretter
-  beam(G.roof,[MID,YR,RIDGE-RT-0.12],[MID,ye,RIDGE-RT-0.12],0.16,0.24,M.larch);
+  beam(G.roof,[MID,0,RIDGE-RT-0.12],[MID,ye,RIDGE-RT-0.12],0.16,0.24,M.larch);
   for(let y=-0.3;y>ye;y-=0.9){[[CX0-ov+0.05,MID],[CX1+ov-0.05,MID]].forEach(([xa,xb])=>beam(G.roof,[xa,y,zCross(xa)-RT-0.07],[xb,y,zCross(xb)-RT-0.07],0.1,0.14,M.larch));}
+  // Stirnbretter an Traufe und Ortgang
+  [[-GOV,-EAVE,L+GOV,-EAVE],[-GOV,B+EAVE,L+GOV,B+EAVE]].forEach(([x0,y0,x1,y1])=>{const z=zOut(y0)-RT-0.1;
+    if(y0<0){beam(G.roof,[x0,y0,z],[CX0,y0,z],0.05,0.22,M.roofSide);beam(G.roof,[CX1,y0,z],[x1,y0,z],0.05,0.22,M.roofSide);}else beam(G.roof,[x0,y0,z],[x1,y0,z],0.05,0.22,M.roofSide);});
+  [-GOV,L+GOV].forEach(x=>{[[-EAVE,YR],[YR,B+EAVE]].forEach(([ya,yb])=>beam(G.roof,[x,ya,zOut(ya)-RT-0.1],[x,yb,zOut(yb)-RT-0.1],0.05,0.22,M.roofSide));});
   // Sparren im Traufüberstand, Pfettenköpfe am Giebel
   const zb=y=>zOut(y)-RT-0.07;
   for(let x=0.25;x<L;x+=0.9){
@@ -832,7 +839,7 @@ function planSVG(unit,lvl,furn,mini){
     const m=unit===2?(p=>p):(p=>mPoly(p).reverse());
     const y2=YR-(HR-2)/K,y1=YR-(HR-1)/K, x2=MID-(HR-2)/K;
     const lines=[[[T,y2],[x2,y2],[x2,T],'2,0 m'],[[T,y1],[CX0,y1],[CX0,T],'1,0 m'],[[T,B-y2],[6.545,B-y2],null,'2,0 m'],[[T,B-y1],[3.825,B-y1],null,'1,0 m']];
-    lines.forEach(l=>{const pts=m(l.slice(0,3).filter(Boolean));s+='<polyline points="'+ptsAttr(pts)+'" fill="none" stroke="var(--hl)" stroke-width="0.025" stroke-dasharray="0.18 0.1"/>';
+    lines.filter(l=>l[0][1]>T+0.05&&l[0][1]<B-T-0.05).forEach(l=>{const pts=m(l.slice(0,3).filter(Boolean));s+='<polyline points="'+ptsAttr(pts)+'" fill="none" stroke="var(--hl)" stroke-width="0.025" stroke-dasharray="0.18 0.1"/>';
       const p0=pts[0];s+='<text x="'+(p0[0]+(unit===2?0.08:-0.08))+'" y="'+(svgY(p0[1])-0.07)+'" font-size="0.2" fill="var(--hl)" text-anchor="'+(unit===2?'start':'end')+'">'+l[3]+'</text>';});
   }
   // Möbel
@@ -892,7 +899,7 @@ function renderPanel(){
    '<h2>Wohnung '+state.unit+' · Maisonette OG + DG</h2>'+
    '<div class="sub">'+(state.unit===2?'Nordwestliche Haushälfte':'Südöstliche Haushälfte')+', Spiegelbild von Wohnung '+(state.unit===2?3:2)+'</div>'+
    '<div class="big">'+AD_AREA+' m² Wohnfläche</div><div class="sub">laut Ausschreibung, inkl. anteiligem Balkon</div>'+
-   '<p class="note">Die Raumflächen unten sind aus dem Werkplan nachgerechnet (WoFlV, Balkone ¼, Treppe nicht angerechnet) und ergeben ca. '+fmt(tot)+' m². Die Differenz zur Ausschreibung entsteht durch abweichende Berechnungsansätze; maßgeblich ist die Angabe in der Ausschreibung.</p>'+
+   '<p class="note">Nachrechnung der Raumflächen im Modell (WoFlV, Balkone ¼, Treppe nicht angerechnet): ca. '+fmt(tot)+' m².</p>'+
    '<h3>Räume</h3><table><tr><th>Obergeschoss</th><th class="n">Grundfl.</th><th class="n">WoFlV</th></tr>'+og.map(row).join('')+
    '<tr class="sum"><td>Summe OG</td><td></td><td class="n">'+fmt(sumW(u,'OG'))+'</td></tr>'+
    '<tr><th>Dachgeschoss</th><th class="n"></th><th class="n"></th></tr>'+dg.map(row).join('')+
@@ -904,7 +911,7 @@ function renderPanel(){
    '<li><b>Rundgang am Computer:</b> W A S D oder Pfeiltasten, Maus ziehen = umsehen, Umschalt = schneller.</li></ul>'+
    '<h3>Hinweise</h3>'+
    '<ul class="note"><li>Maße aus dem Werkplan der Zimmerei (Stand 08/2025). Kleinere Abweichungen zur Ausführung sind möglich.</li>'+
-   '<li><b>Raumflächen (Nachrechnung):</b> lichte Höhe ab 2 m voll, 1 bis 2 m zur Hälfte, unter 1 m nicht; Balkone zu einem Viertel; Treppe nicht angerechnet. Rechnerische Werte ohne Gewähr. Maßgeblich ist die Wohnfläche laut Ausschreibung ('+AD_AREA+' m²).</li>'+
+   '<li><b>Raumflächen (Nachrechnung):</b> lichte Höhe ab 2 m voll, 1 bis 2 m zur Hälfte, unter 1 m nicht; Balkone zu einem Viertel; Treppe nicht angerechnet. Rechnerische Werte ohne Gewähr. Maßgeblich ist die Wohnfläche laut Ausschreibung ('+AD_AREA+' m²).</li><li><b>Dachgeschoss:</b> Kniestock innen ca. 1,15 m, lichte Firsthöhe ca. 3,30 m (an die Ausführung angepasst).</li>'+
    '<li>Die Möblierung ist ein <b>Beispiel</b> (in Wohnung 2 und 3 unterschiedlich) und lässt sich oben ausblenden. Die Bad-Ausstattung ist schematisch nach Fotos dargestellt.</li>'+
    '<li>Das Erdgeschoss (Wohnung 1) ist nicht Teil der Besichtigung und nur als Hülle gezeigt. Fenster im EG schematisch. Laubengang und Außentreppe an der Straßenseite nach Fotos.</li></ul>';
   panel.querySelectorAll('tr.room').forEach(tr=>tr.addEventListener('click',()=>{const r=u.rooms.find(x=>x.id===tr.dataset.room);
@@ -914,7 +921,7 @@ function renderPanel(){
 const HINTS={aussen:'Ziehen = drehen · Zoomen mit zwei Fingern oder Mausrad',
   puppe:'Blick von oben in die Räume · Etage oben wählen · ziehen = drehen',
   walk:'Wischen = umsehen · auf den Boden tippen = hingehen · am Computer W A S D',
-  plan:'Grundriss mit Wohnflächen nach WoFlV · gestrichelt: lichte Höhe 1 m und 2 m'};
+  plan:'Grundriss mit Wohnflächen nach WoFlV · gestrichelt: Linie lichte Höhe 2 m (Kniestock innen ca. 1,15 m)'};
 function syncChips(){
   document.querySelectorAll('.chip[data-k]').forEach(b=>b.setAttribute('aria-pressed',String(String(state[b.dataset.k])===b.dataset.v)));
   document.getElementById('furnBtn').setAttribute('aria-pressed',String(state.furn));
