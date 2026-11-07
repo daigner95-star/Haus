@@ -110,12 +110,12 @@ ul.note{padding-left:18px}
   <aside id="panel"></aside>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
 <script>
 (function(){
 'use strict';
-if(!window.THREE){document.getElementById('hintTxt').textContent='3D-Bibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen.';return;}
+if(!window.THREE){document.getElementById('hintTxt').textContent='3D-Bibliothek konnte nicht geladen werden.';return;}
 
 /* ================= Geometrie aus dem Werkplan (Meter) =================
    x: entlang Längsseite, 0 = Außenkante NW-Giebel
@@ -338,7 +338,7 @@ const P=(x,y,z)=>new THREE.Vector3(x,z,-y);
 const hemi=new THREE.HemisphereLight(0xf2f6ff,0xa8977a,0.85); scene.add(hemi);
 scene.add(new THREE.AmbientLight(0xffffff,0.26));
 const sun=new THREE.DirectionalLight(0xfff3e0,0.95);
-(function(){ // Sonne aus SSW, ca. 40° Höhe (Oberbayern, Sommernachmittag)
+(function(){ // Sonne aus SSW, ca. 40° Höhe (Sommernachmittag)
   const az=210*D2R, el=40*D2R, E=Math.sin(az), N=Math.cos(az);
   const px=E*0.829-N*0.559, py=E*0.559+N*0.829, d=40;
   sun.position.copy(P(MID+px*d*Math.cos(el),B/2+py*d*Math.cos(el),d*Math.sin(el)));

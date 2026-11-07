@@ -1,7 +1,7 @@
 # Digitale Wohnungsbesichtigung
 
 3D-Rundgang durch die Maisonette-Wohnungen 2 und 3 (OG + DG) im Holz-Neubau.
-Alles steckt in einer Datei: `index.html` (three.js 0.147 von jsDelivr).
+Seite: `index.html`; three.js 0.147 (MIT-Lizenz) liegt lokal in `vendor/`, es werden keine externen Dienste geladen.
 
 **Ansichten:** Außen, Puppenhaus (Dach/Geschoss ausgeblendet), Rundgang auf Augenhöhe (Handy: wischen + auf den Boden tippen; Computer: W A S D), Grundriss mit Wohnflächen nach WoFlV. Beispielmöblierung ein-/ausblendbar.
 
