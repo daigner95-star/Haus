@@ -616,7 +616,9 @@ const ortho = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 400);
 ortho.up.set(0, 0, -1);
 let cam = persp;
 const ctlP = new THREE.OrbitControls(persp, canvas);
-ctlP.enableDamping = false; ctlP.maxPolarAngle = Math.PI * 0.495; ctlP.minDistance = 0.5; ctlP.maxDistance = 140;
+ctlP.enableDamping = false; ctlP.maxPolarAngle = Math.PI * 0.88; ctlP.minDistance = 0.5; ctlP.maxDistance = 140;
+// Blick nach oben erlauben (Augenhöhe), Kamera aber nie unter den Boden
+ctlP.addEventListener('change', () => { if (persp.position.y < 0.3) { persp.position.y = 0.3; } });
 const ctlO = new THREE.OrbitControls(ortho, canvas);
 ctlO.enableRotate = false; ctlO.screenSpacePanning = true; ctlO.minZoom = 0.3; ctlO.maxZoom = 12;
 ctlO.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
@@ -1455,7 +1457,7 @@ const P0 = viewPose('overview'); persp.position.copy(P0.pos); ctlP.target.copy(P
 setView('overview');
 requestAnimationFrame(loop);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawGround(); buildHouse27(); buildHouse25(); rebuildPlants(); });
-window.__app = { ST, CFG, setView, loadVariant, coverage, setSeason };
+window.__app = { ST, CFG, setView, loadVariant, coverage, setSeason, persp, ctlP };
 })();
 </script>
 
