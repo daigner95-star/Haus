@@ -140,6 +140,7 @@ const hDG=(x,y)=>Math.max(hMain(y), y<=YR?hCross(x):-9);
 const mx=x=>L-x;
 const rect=(x0,y0,x1,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
 const STAIR_OPEN=[5.235,5.636,6.545,9.253];
+const AD_AREA=94;                      // Wohnfläche laut Ausschreibung inkl. anteiligem Balkon
 
 const HEAD={cross:(x,y)=>hCross(x)-0.10, roof:(x,y)=>hMain(y)-0.15};
 
@@ -222,10 +223,10 @@ const W2={
     {lvl:'OG',t:'sofa',x:1.4,y:4.95,w:0.85,d:0.85,rot:180,c:0xc9a27a},
     {lvl:'OG',t:'plant',x:0.6,y:4.6},
     {lvl:'OG',t:'cab',x:3.717,y:8.1,w:0.45,d:0.40,h:2.0,rot:-90,c:0xc49a6c},
-    {lvl:'DG',t:'bed',x:5.48,y:3.2,w:1.8,d:2.1,rot:90},
-    {lvl:'DG',t:'cab',x:6.3,y:1.98,w:0.4,d:0.4,h:0.5,rot:90,c:0xe9e6df},
-    {lvl:'DG',t:'cab',x:6.3,y:4.42,w:0.4,d:0.4,h:0.5,rot:90,c:0xe9e6df},
-    {lvl:'DG',t:'cab',x:2.4,y:4.8,w:2.0,d:0.58,h:2.05,rot:180,c:0xc49a6c},
+    {lvl:'DG',t:'bed',x:2.45,y:4.0,w:1.8,d:2.1,rot:180},
+    {lvl:'DG',t:'cab',x:1.3,y:4.85,w:0.4,d:0.4,h:0.5,rot:180,c:0xe9e6df},
+    {lvl:'DG',t:'cab',x:3.6,y:4.85,w:0.4,d:0.4,h:0.5,rot:180,c:0xe9e6df},
+    {lvl:'DG',t:'cab',x:6.25,y:3.1,w:2.2,d:0.58,h:2.05,rot:90,c:0xc49a6c},
     {lvl:'DG',t:'desk',x:3.48,y:7.0,w:1.4,d:0.7,rot:90},
     {lvl:'DG',t:'chair',x:2.85,y:7.0,rot:-90},
     {lvl:'DG',t:'sofa',x:2.0,y:8.75,w:2.0,d:0.85,rot:180,c:0x7d8a99}
@@ -890,7 +891,8 @@ function renderPanel(){
   panel.innerHTML=
    '<h2>Wohnung '+state.unit+' · Maisonette OG + DG</h2>'+
    '<div class="sub">'+(state.unit===2?'Nordwestliche Haushälfte':'Südöstliche Haushälfte')+', Spiegelbild von Wohnung '+(state.unit===2?3:2)+'</div>'+
-   '<div class="big">ca. '+fmt(tot)+' m²</div><div class="sub">Wohnfläche nach WoFlV, aus dem Werkplan berechnet</div>'+
+   '<div class="big">'+AD_AREA+' m² Wohnfläche</div><div class="sub">laut Ausschreibung, inkl. anteiligem Balkon</div>'+
+   '<p class="note">Die Raumflächen unten sind aus dem Werkplan nachgerechnet (WoFlV, Balkone ¼, Treppe nicht angerechnet) und ergeben ca. '+fmt(tot)+' m². Die Differenz zur Ausschreibung entsteht durch abweichende Berechnungsansätze; maßgeblich ist die Angabe in der Ausschreibung.</p>'+
    '<h3>Räume</h3><table><tr><th>Obergeschoss</th><th class="n">Grundfl.</th><th class="n">WoFlV</th></tr>'+og.map(row).join('')+
    '<tr class="sum"><td>Summe OG</td><td></td><td class="n">'+fmt(sumW(u,'OG'))+'</td></tr>'+
    '<tr><th>Dachgeschoss</th><th class="n"></th><th class="n"></th></tr>'+dg.map(row).join('')+
@@ -902,7 +904,7 @@ function renderPanel(){
    '<li><b>Rundgang am Computer:</b> W A S D oder Pfeiltasten, Maus ziehen = umsehen, Umschalt = schneller.</li></ul>'+
    '<h3>Hinweise</h3>'+
    '<ul class="note"><li>Maße aus dem Werkplan der Zimmerei (Stand 08/2025). Kleinere Abweichungen zur Ausführung sind möglich.</li>'+
-   '<li><b>Wohnfläche nach WoFlV:</b> lichte Höhe ab 2 m voll, 1 bis 2 m zur Hälfte, unter 1 m nicht; Balkone zu einem Viertel; Treppe nicht angerechnet. Rechnerischer Wert ohne Gewähr.</li>'+
+   '<li><b>Raumflächen (Nachrechnung):</b> lichte Höhe ab 2 m voll, 1 bis 2 m zur Hälfte, unter 1 m nicht; Balkone zu einem Viertel; Treppe nicht angerechnet. Rechnerische Werte ohne Gewähr. Maßgeblich ist die Wohnfläche laut Ausschreibung ('+AD_AREA+' m²).</li>'+
    '<li>Die Möblierung ist ein <b>Beispiel</b> (in Wohnung 2 und 3 unterschiedlich) und lässt sich oben ausblenden. Die Bad-Ausstattung ist schematisch nach Fotos dargestellt.</li>'+
    '<li>Das Erdgeschoss (Wohnung 1) ist nicht Teil der Besichtigung und nur als Hülle gezeigt. Fenster im EG schematisch. Laubengang und Außentreppe an der Straßenseite nach Fotos.</li></ul>';
   panel.querySelectorAll('tr.room').forEach(tr=>tr.addEventListener('click',()=>{const r=u.rooms.find(x=>x.id===tr.dataset.room);
