@@ -149,6 +149,7 @@ const W2={
     {lvl:'OG',r:[3.327,5.723,3.517,9.253],op:[{a:5.823,b:6.833,s:0,h:2.01,k:'door'}]},
     {lvl:'OG',r:[T,5.533,6.545,5.723],op:[{a:4.095,b:5.105,s:0,h:2.01,k:'door'}]},
     {lvl:'OG',r:[5.205,3.653,6.545,3.843]},
+    {lvl:'OG',r:[1.447,8.2,1.547,9.253]},
     {lvl:'OG',r:[5.205,3.843,5.395,5.533],op:[{a:4.70,b:5.45,s:0,h:2.01,k:'door'}]},
     {lvl:'DG',r:[T,4.705,1.157,4.895]},
     {lvl:'DG',r:[1.157,4.705,1.347,5.293]},
@@ -169,7 +170,7 @@ const W2={
     {id:'wohnen',lvl:'OG',name:'Wohnen / Essen / Kochen',poly:[[T,T],[6.545,T],[6.545,3.653],[5.205,3.653],[5.205,5.533],[T,5.533]],lab:[2.6,2.45],sp:[4.6,5.05],look:-115},
     {id:'abst',lvl:'OG',name:'Abstellraum',fs:0.17,poly:rect(5.395,3.843,6.545,5.533),lab:[5.97,4.4],sp:[4.75,4.6],look:0},
     {id:'flurOG',lvl:'OG',name:'Flur / Diele',poly:rect(3.517,5.723,6.545,9.253),excl:[rect(5.235,5.723,6.545,9.253)],lab:[4.37,7.25],sp:[4.4,8.55],look:-80},
-    {id:'bad',lvl:'OG',name:'Bad',poly:rect(T,5.723,3.327,9.253),lab:[1.9,7.35],sp:[2.3,6.5],look:110},
+    {id:'bad',lvl:'OG',name:'Bad',poly:rect(T,5.723,3.327,9.253),lab:[1.9,7.35],sp:[2.75,7.3],look:200},
     {id:'balkonOG',lvl:'OG',name:'Balkon OG',f:0.25,poly:[[T,0],[SEP0,0],[SEP0,-BAL_D],[CX0,-BAL_D],[CX0,-BAL_S],[T,-BAL_S]],lab:[5.0,-1.5],sp:[4.6,-1.0],look:-90},
     {id:'schlafen',lvl:'DG',name:'Schlafzimmer',poly:[[T,T],[6.545,T],[6.545,5.283],[5.447,5.283],[5.447,4.913],[3.825,4.913],[3.825,5.103],[1.347,5.103],[1.347,4.705],[T,4.705]],lab:[1.5,2.2],sp:[4.65,3.6],look:-90},
     {id:'kind',lvl:'DG',name:'Kind / Büro',poly:[[T,4.895],[1.157,4.895],[1.157,5.293],[3.825,5.293],[3.825,9.253],[T,9.253]],lab:[2.2,7.25],sp:[2.9,6.0],look:175},
@@ -178,10 +179,10 @@ const W2={
   ],
   /* Sanitär (fest, nach Fotos schematisch) */
   fixed:[
-    {lvl:'OG',t:'tub',x:0.722,y:7.62,w:0.75,d:1.70,rot:0},
-    {lvl:'OG',t:'shower',x:0.80,y:6.22,w:0.90,d:1.0,rot:0},
+    {lvl:'OG',t:'tub',x:1.197,y:6.098,w:1.70,d:0.75,rot:0},
+    {lvl:'OG',t:'shower',x:0.897,y:8.703,w:1.10,d:1.10,rot:0},
     {lvl:'OG',t:'wc',x:2.86,y:9.13,w:0.95,d:0.25,rot:0},
-    {lvl:'OG',t:'basin',x:3.10,y:7.95,w:0.60,d:0.46,rot:90}
+    {lvl:'OG',t:'basin',x:3.10,y:7.4,w:0.60,d:0.46,rot:90}
   ],
   /* Beispielmöblierung Wohnung 2: Wohnen am TV (Flurwand), Essen bei der Küche, Weg Flur → Balkon frei */
   furn:[
@@ -632,7 +633,7 @@ function buildFurniture(u,which){
       case 'kitchen':{part(0,0,w,d,0,0.86,fmat(0xe9e6df));part(0,0.01,w+0.02,d+0.02,0.86,0.04,fmat(0x8a7a66));part(0,-d/2+0.18,w,0.35,1.45,0.7,fmat(0xe9e6df));part(-w/2+0.9,0,0.6,d*0.8,0.9,0.02,fmat(0xb8bcc0));hh=0.9;break;}
       case 'plant':{const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.12,0.32,16),fmat(0xeeeeee));pot.position.y=0.16;g.add(pot);const lf=new THREE.Mesh(new THREE.SphereGeometry(0.32,14,10),fmat(0x5f8a4e));lf.position.y=0.62;lf.scale.set(1,1.3,1);lf.castShadow=true;g.add(lf);f.w=0.4;f.d=0.4;hh=0.9;break;}
       case 'tub':{part(0,0,w,d,0,0.58,fmat(0xc7bfb2));part(0,0,w-0.14,d-0.14,0.5,0.09,fmat(0xffffff));hh=0.58;break;}
-      case 'shower':{part(0,0,w,d,0,0.02,fmat(0xc7bfb2));const gl=new THREE.Mesh(BOXG,M.glassShower);gl.scale.set(0.01,2.0,d*0.8);gl.position.set(w/2,1.02,d*0.1);g.add(gl);hh=0;break;}
+      case 'shower':{part(0,0,w,d,0,0.012,fmat(0xc7bfb2));part(0,-d/2+0.1,0.6,0.02,0.01,0.02,fmat(0x9aa0a6));part(-w/2+0.03,0.15,0.04,0.04,0.9,1.3,fmat(0xc0c4c8));part(-w/2+0.12,0.15,0.25,0.25,2.15,0.02,fmat(0xd0d4d8));hh=0;break;}
       case 'wc':{part(0,0,w,d,0,1.2,fmat(0xc7bfb2));part(0,-0.4,0.38,0.55,0.28,0.14,fmat(0xffffff));part(0,-0.4,0.3,0.45,0.18,0.12,fmat(0xffffff));hh=1.2;break;}
       case 'basin':{part(0,0,w,d,0.8,0.15,fmat(0xffffff));part(0,-d/2+0.01,0.02,0.02,0.95,0.15,fmat(0xc0c4c8));hh=0.95;break;}
     }
@@ -641,7 +642,6 @@ function buildFurniture(u,which){
       const ex=(ww*cw+dd*sw)/2,ey=(ww*sw+dd*cw)/2;
       COLL.push({x0:f.x-ex,x1:f.x+ex,y0:f.y-ey,y1:f.y+ey,z0:z0,z1:z0+hh,furn:which!=='fixed'});}
     if(f.t==='wc'){COLL.push({x0:f.x-0.2,x1:f.x+0.2,y0:f.y-0.7,y1:f.y,z0:z0,z1:z0+0.45});}
-    if(f.t==='shower'){const sx=f.x+(f.rot?-1:1)*0.45;COLL.push({x0:sx-0.03,x1:sx+0.03,y0:f.y-0.3,y1:f.y+0.5,z0:z0,z1:z0+2});}
   });
 }
 
