@@ -187,16 +187,14 @@ const W2={
   furn:[
     {lvl:'OG',t:'kitchen',x:6.245,y:1.9,w:2.3,d:0.6,rot:90},
     {lvl:'OG',t:'cab',x:6.245,y:3.35,w:0.6,d:0.6,h:2.1,rot:90,c:0xe9e6df},
-    {lvl:'OG',t:'dtable',x:4.0,y:2.3,w:0.9,d:1.6,rot:0},
-    {lvl:'OG',t:'chair',x:3.32,y:1.85,rot:-90},{lvl:'OG',t:'chair',x:3.32,y:2.75,rot:-90},
-    {lvl:'OG',t:'chair',x:4.68,y:1.85,rot:90},{lvl:'OG',t:'chair',x:4.68,y:2.75,rot:90},
-    {lvl:'OG',t:'cab',x:2.6,y:0.6,w:1.45,d:0.48,h:1.95,rot:0,c:0x5a3d2b},
+    {lvl:'OG',t:'bench',x:0.575,y:1.27,w:1.85,d:0.45,rot:-90},
+    {lvl:'OG',t:'bench',x:1.5,y:0.575,w:1.4,d:0.45,rot:0},
+    {lvl:'OG',t:'dtable',x:1.45,y:1.45,w:1.2,d:0.8,rot:0},
+    {lvl:'OG',t:'chair',x:2.35,y:1.45,rot:90},{lvl:'OG',t:'chair',x:1.45,y:2.15,rot:180},
     {lvl:'OG',t:'rug',x:1.85,y:4.0,w:2.4,d:1.7,c:0xd9d2c3},
     {lvl:'OG',t:'sofa',x:1.85,y:3.08,w:2.0,d:0.92,rot:0,c:0x9fb3a2},
     {lvl:'OG',t:'otable',x:1.85,y:4.05,w:1.0,d:0.55},
     {lvl:'OG',t:'tv',x:1.85,y:5.29,w:1.6,d:0.45,rot:180},
-    {lvl:'OG',t:'sofa',x:0.9,y:0.95,w:0.85,d:0.85,rot:-45,c:0x8a9c8d},
-    {lvl:'OG',t:'cab',x:3.55,y:5.31,w:0.65,d:0.42,h:1.95,rot:180,c:0x5a3d2b},
     {lvl:'OG',t:'plant',x:0.62,y:4.6},
     {lvl:'OG',t:'cab',x:3.75,y:7.55,w:1.2,d:0.42,h:0.46,rot:-90,c:0xc49a6c},
     {lvl:'OG',t:'cab',x:3.82,y:8.55,w:0.55,d:0.55,h:2.0,rot:-90,c:0xe9e6df},
@@ -206,8 +204,7 @@ const W2={
     {lvl:'DG',t:'cab',x:6.245,y:2.6,w:2.0,d:0.6,h:2.05,rot:90,c:0xe9e6df},
     {lvl:'DG',t:'desk',x:0.72,y:5.9,w:1.4,d:0.7,rot:-90},
     {lvl:'DG',t:'chair',x:1.35,y:5.9,rot:90},
-    {lvl:'DG',t:'bed',x:2.55,y:8.75,w:0.9,d:2.0,rot:90},
-    {lvl:'DG',t:'cab',x:3.6,y:6.9,w:0.9,d:0.4,h:0.9,rot:90,c:0xc49a6c}
+    {lvl:'DG',t:'bed',x:2.55,y:8.75,w:0.9,d:2.0,rot:90}
   ],
   /* Beispielmöblierung Wohnung 3 (hier in Koordinaten von Wohnung 2, wird gespiegelt):
      TV am Giebel zwischen den Fenstern, Esstisch am Gartenfenster, Schlafzimmer mit Bett an der Trennwand, Büro statt Kinderzimmer */
@@ -224,15 +221,13 @@ const W2={
     {lvl:'OG',t:'sofa',x:1.4,y:4.95,w:0.85,d:0.85,rot:180,c:0xc9a27a},
     {lvl:'OG',t:'plant',x:0.6,y:4.6},
     {lvl:'OG',t:'cab',x:3.82,y:8.55,w:0.55,d:0.55,h:2.0,rot:-90,c:0xc49a6c},
-    {lvl:'OG',t:'cab',x:3.72,y:7.4,w:0.8,d:0.32,h:1.0,rot:-90,c:0xe9e6df},
     {lvl:'DG',t:'bed',x:5.48,y:3.2,w:1.8,d:2.1,rot:90},
     {lvl:'DG',t:'cab',x:6.3,y:1.98,w:0.4,d:0.4,h:0.5,rot:90,c:0xe9e6df},
     {lvl:'DG',t:'cab',x:6.3,y:4.42,w:0.4,d:0.4,h:0.5,rot:90,c:0xe9e6df},
     {lvl:'DG',t:'cab',x:2.4,y:4.8,w:2.0,d:0.58,h:2.05,rot:180,c:0xc49a6c},
     {lvl:'DG',t:'desk',x:3.48,y:7.0,w:1.4,d:0.7,rot:90},
     {lvl:'DG',t:'chair',x:2.85,y:7.0,rot:-90},
-    {lvl:'DG',t:'sofa',x:2.0,y:8.75,w:2.0,d:0.85,rot:180,c:0x7d8a99},
-    {lvl:'DG',t:'cab',x:0.55,y:5.8,w:1.2,d:0.35,h:0.8,rot:-90,c:0xe9e6df}
+    {lvl:'DG',t:'sofa',x:2.0,y:8.75,w:2.0,d:0.85,rot:180,c:0x7d8a99}
   ]
 };
 
@@ -627,6 +622,7 @@ function buildFurniture(u,which){
       case 'sofa':{const m=fmat(f.c||0x9fb3a2);part(0,0,w,d,0.08,0.36,m);part(0,-d/2+0.11,w,0.22,0.08,0.78,m);part(-w/2+0.1,0,0.2,d,0.08,0.58,m);part(w/2-0.1,0,0.2,d,0.08,0.58,m);part(0,0.05,w-0.4,d-0.3,0.44,0.12,fmat(0xb3c4b5));hh=0.86;break;}
       case 'otable':{const c=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.04,40),fmat(0xc8a475));c.scale.set(w,1,d);c.position.y=0.45;c.castShadow=true;g.add(c);part(0,0,0.06,0.06,0,0.45,fmat(0xc8a475));hh=0.47;break;}
       case 'tv':{part(0,0,w,d,0,0.55,fmat(f.c||0x4a3324));part(0,-0.05,w*0.9,0.05,0.62,0.75,fmat(0x15171a));hh=1.6;break;}
+      case 'bench':{const m=fmat(0xc49a6c);part(0,0,w,d,0,0.45,m);part(0,-d/2+0.04,w,0.08,0.45,0.45,m);hh=0.9;break;}
       case 'rug':{part(0,0,w,d,0.002,0.012,fmat(f.c||0xd9d2c3));hh=0;break;}
       case 'cab':{part(0,0,w,d,0,f.h||1.0,fmat(f.c||0xc49a6c));hh=f.h||1.0;break;}
       case 'dtable':{const m=fmat(f.c||0x4b3324);part(0,0,w,d,0.72,0.05,m);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>part(a*(w/2-0.08),b*(d/2-0.12),0.06,0.06,0,0.72,fmat(0x222222)));hh=0.77;break;}
