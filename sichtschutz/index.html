@@ -117,6 +117,7 @@ p { margin: 0; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn.danger { color: var(--bad); }
 .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.addbox { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px dashed var(--line); border-radius: var(--r); }
 .checks { font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
 .checks .ok { color: var(--ok); } .checks .warn { color: var(--warn); } .checks .bad { color: var(--bad); }
 
@@ -206,13 +207,22 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     </section>
 
     <section class="tabpane" id="p-pl" role="tabpanel" aria-labelledby="t-pl" hidden>
-      <div class="row">
-        <select id="addSp" aria-label="Pflanzenart zum Hinzufügen"></select>
-        <button class="btn primary" id="addBtn">Pflanze hinzufügen</button>
+      <div>
+        <h2>Pflanzen dieser Variante</h2>
+        <p class="small muted">Pflanze antippen, um Art, Lage und Größe zu ändern. Im Modell lässt sie sich auch mit dem Finger oder der Maus verschieben.</p>
       </div>
-      <p class="small muted">Lage: <b>vor Giebel</b> = Abstand von der Südost-Hauswand Richtung Nr. 25. <b>ab Gartenecke</b> = Abstand von der Hausecke Süd (Gartenseite) Richtung Straße. Im Modell sind beide als 1-m-Raster auf dem Boden.</p>
       <div class="plist" id="plist"></div>
       <div id="editorWrap"></div>
+      <div class="addbox">
+        <h3>Neue Pflanze hinzufügen</h3>
+        <div class="row">
+          <label class="lbl" for="addSp">Art</label>
+          <select id="addSp"></select>
+          <button class="btn primary" id="addBtn">Hinzufügen</button>
+        </div>
+        <p class="small muted">Fügt eine weitere Pflanze ein. Die vorhandenen bleiben, wie sie sind.</p>
+      </div>
+      <p class="small muted">Lage: <b>vor Giebel</b> = Abstand von der Südost-Hauswand Richtung Nr. 25. <b>ab Gartenecke</b> = Abstand von der Hausecke Süd (Gartenseite) Richtung Straße. Im Modell sind beide als 1-m-Raster auf dem Boden.</p>
       <div>
         <h3>Einkaufsliste dieser Variante</h3>
         <div class="tablewrap"><table id="shop"></table></div>
@@ -1292,7 +1302,7 @@ function renderCoverage() {
 function posText(p) { return `${fmt(p.u)} m vor Giebel · ${fmt(p.v)} m ab Gartenecke`; }
 function renderPlants(keepEditor) {
   const el = $('plist');
-  if (!ST.plants.length) { el.innerHTML = '<p class="small muted">Noch keine Pflanzen. Wähle oben eine Art und tippe auf „Pflanze hinzufügen“, oder wähle eine Variante.</p>'; }
+  if (!ST.plants.length) { el.innerHTML = '<p class="small muted">Noch keine Pflanzen. Wähle unten eine Art und tippe auf „Hinzufügen“, oder wähle oben eine Variante.</p>'; }
   else el.innerHTML = ST.plants.map((p, i) => {
     const S = SPECIES[p.sp], c = plantChecks(p);
     const pill = !c.own ? '<span class="pill bad">Nachbargrund</span>' : (c.ok ? '<span class="pill ok">Abstand ok</span>' : '<span class="pill warn">Zustimmung</span>');
