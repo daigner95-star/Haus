@@ -6,7 +6,9 @@ Interaktives 3D-Modell: `sichtschutz/index.html` im Browser öffnen (braucht Int
 
 - Haus Nr. 27 nach Werkplan (13,54 × 9,60 m, OG +2,78 m, Fenster lt. Fensterplan), Grenze und Versatz nach BayernAtlas/Lageplan.
 - Nachbarhaus Nr. 25 mit Balkon als Schätzung aus Fotos (im Tab „Annahmen“ anpassbar).
-- Varianten A–D (Spalier-Hainbuchen, Säulen-Hainbuchen, Kombination, natürlich), Pflanzen per Ziehen verschiebbar.
-- Berechnet, wie viel der Blickachsen OG-Fenster → Balkon verdeckt sind (Sommer/Winter, Wuchsstadium) und prüft den Grenzabstand (Art. 47 AGBGB).
+- Varianten mit 2 m Grenzabstand (A, B, D) und unter 2 m, nur mit Zustimmung Nr. 25 (C, E, F, G). Pflanzen per Ziehen verschiebbar.
+- Arten u. a. Hainbuche (Spalier, Säule, Hecke), Eibe, Felsenbirne, Liguster ‚Atrovirens‘ (Hecke und freiwachsend), Schmalblättrige und Wintergrüne Ölweide, jeweils mit Endgröße.
+- Ansichten: Übersicht, Draufsicht, Garten, Blick aus EG 1 und OG 1–3, vom Balkon und von der Terrasse Nr. 25.
+- Berechnet, wie viel der Blickachsen Fenster → Balkon bzw. Terrasse Nr. 25 verdeckt sind (Sommer/Winter, Wuchsstadium bis Endgröße) und prüft Grenzabstand (Art. 47 AGBGB), Überhang und Abstand zur Hauswand.
 
 Koordinaten: „vor Giebel“ = Abstand von der Südost-Hauswand Richtung Nr. 25, „ab Gartenecke“ = Abstand von der Hausecke Süd Richtung Straße.
