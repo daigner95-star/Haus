@@ -574,6 +574,8 @@ const VARIANTS = [
     plants: () => [mk('liguster', 4.5, 3.7, { w: 7.4, top: 4.5 }), mk('liguster', 2.85, 7.35, { rot: 90, w: 3.3, top: 4.5 })] },
   { id: 'G', name: 'G · Ölweiden und Liguster', near: true, desc: 'Zwei Schmalblättrige Ölweiden als kleine Bäume, ein freiwachsender Liguster vor dem Badfenster und eine 2-m-Ligusterhecke an der Grenze. Im Sommer der dichteste Schutz, im Winter bleibt vor allem der Liguster. Achtung Endgröße: Ölweiden werden 5–7 m hoch und 4–6 m breit. Im 4,9 m breiten Streifen ragen sie bis zu 2 m zu Nr. 25 hinüber. Geht nur mit Zustimmung und jährlichem Rückschnitt.',
     plants: () => [mk('oelweide', 3.9, 1.8), mk('oelweide', 3.7, 5.8), mk('ligusterfrei', 2.0, 7.3, { top: 4.5 }), mk('liguster', 4.35, 3.7, { w: 7.0, top: 2.0, d: 0.7 })] },
+  { id: 'H', name: 'H · Eine Ölweide am Versatz', near: true, desc: 'Dein Entwurf: eine Schmalblättrige Ölweide 3,7 m vor dem Giebel und 5,8 m ab der Gartenecke, durch Schnitt auf 5,0 m Höhe und 3,5 m Kronenbreite gehalten, Stamm 1,4 m. Deckt im Sommer OG 1 und OG 2 gut ab, im Winter nur etwa ein Drittel. OG 3 bleibt frei. Sie steht 1,3 m von der Grenze: nur mit Zustimmung von Nr. 25. Schon in Zielgröße ragt die Krone ca. 0,4 m hinüber; ohne Schnitt würde sie 8 m hoch und 6 m breit.',
+    plants: () => [mk('oelweide', 3.7, 5.8, { top: 5.0, w: 3.5, d: 3.5, stem: 1.4 })] },
 ];
 
 // ---------- Zustand ----------
@@ -1243,7 +1245,7 @@ canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointerc
 // ---------- Panel ----------
 function renderVariantSelect() {
   const s = $('variant'); s.innerHTML = '';
-  const groups = [['', VARIANTS.filter(v => v.id === 'ist')], ['Mit 2 m Grenzabstand', VARIANTS.filter(v => ['A', 'B', 'D'].includes(v.id))], ['Unter 2 m: nur mit Zustimmung Nr. 25', VARIANTS.filter(v => ['C', 'E', 'F', 'G'].includes(v.id))]];
+  const groups = [['', VARIANTS.filter(v => v.id === 'ist')], ['Mit 2 m Grenzabstand', VARIANTS.filter(v => ['A', 'B', 'D'].includes(v.id))], ['Unter 2 m: nur mit Zustimmung Nr. 25', VARIANTS.filter(v => ['C', 'E', 'F', 'G', 'H'].includes(v.id))]];
   for (const [gl, vs] of groups) {
     const parent = gl ? document.createElement('optgroup') : s; if (gl) { parent.label = gl; s.appendChild(parent); }
     for (const v of vs) { const o = document.createElement('option'); o.value = v.id; o.textContent = v.name + (v.rec ? ' (Empfehlung)' : ''); parent.appendChild(o); }
