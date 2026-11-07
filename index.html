@@ -124,9 +124,11 @@ if(!window.THREE){document.getElementById('hintTxt').textContent='3D-Bibliothek 
 const D2R=Math.PI/180, K=Math.tan(26*D2R);
 const L=13.54, B=9.60, T=0.347, MID=L/2;
 const Z_OG=2.78, Z_DG=5.54, H_OG=2.40, RIDGE=9.04, ROOF_T=0.68, YR=B/2;
-const HR=RIDGE-ROOF_T-Z_DG;            // lichte Firsthöhe DG ≈ 2,82
+const HR=RIDGE-ROOF_T-Z_DG;
+const RT=0.36;                         // sichtbare Dachstärke außen (Ortgang/Traufe)            // lichte Firsthöhe DG ≈ 2,82
 const CX0=3.455, CX1=L-CX0;            // Zwerchgiebel über Balkonen
-const EAVE=1.40, GOV=0.60;             // Dachüberstand Traufe / Giebel (Giebel angenommen)
+const EAVE=1.40, GOV=1.00;             // Dachüberstand Traufe / Giebel (Giebel nach Foto geschätzt)
+const LB_X0=3.55, LB_X1=12.6, LB_D=1.5;  // Laubengang Straßenseite (nach Fotos)
 const BAL_D=2.55, BAL_S=0.98, SEP0=6.67, SEP1=6.87;
 const RISE=(Z_DG-Z_OG)/15;
 const zOut=y=>RIDGE-K*Math.abs(y-YR);
@@ -252,8 +254,11 @@ function extWallSpecs(){
   const S=0.025, list=[];
   const add=(lvl,r,skin,z0,top,op)=>list.push({lvl,r,skin,z0,top,op,ext:true});
   // EG (nicht Teil der Besichtigung, nur Hülle)
-  add('EG',[0,0,L,T],'y0',0,Z_OG); add('EG',[0,B-T,L,B],'y1',0,Z_OG);
-  add('EG',[0,T,T,B-T],'x0',0,Z_OG); add('EG',[L-T,T,L,B-T],'x1',0,Z_OG);
+  const egG=both([{a:0.785,b:1.800,s:0.9,h:2.165,k:'win'},{a:3.415,b:5.205,s:0,h:2.2,k:'gdoor'}]);
+  const egS=[...both([{a:2.547,b:3.177,s:1.2,h:2.165,k:'win'},{a:5.515,b:6.145,s:0.9,h:2.165,k:'win'}]),{a:8.863,b:9.873,s:0,h:2.2,k:'solid'}];
+  add('EG',[0,0,L,T],'y0',0,Z_OG,egG); add('EG',[0,B-T,L,B],'y1',0,Z_OG,egS);
+  const egW=e.gableOG.map(o=>Object.assign({},o,{s:0.9,h:2.165}));
+  add('EG',[0,T,T,B-T],'x0',0,Z_OG,egW); add('EG',[L-T,T,L,B-T],'x1',0,Z_OG,egW);
   // OG
   add('OG',[0,0,L,T],'y0',Z_OG,Z_DG,both(e.gardenOG)); add('OG',[0,B-T,L,B],'y1',Z_OG,Z_DG,both(e.streetOG));
   add('OG',[0,T,T,B-T],'x0',Z_OG,Z_DG,e.gableOG); add('OG',[L-T,T,L,B-T],'x1',Z_OG,Z_DG,e.gableOG);
@@ -322,11 +327,27 @@ Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15,near:5,far:
 sun.shadow.bias=-0.0006; sun.shadow.normalBias=0.02; scene.add(sun);
 
 const lam=(c,o)=>new THREE.MeshLambertMaterial(Object.assign({color:c,side:THREE.DoubleSide},o||{}));
+/* Prozedurale Texturen, 1 Kachel = 1 m (UV in Metern) */
+function canvasTex(draw){const c=document.createElement('canvas');c.width=c.height=256;draw(c.getContext('2d'),256);
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+const wood=(g,x,y,w,h,base)=>{const v=0.86+rnd()*0.22;g.fillStyle='rgb('+[base[0]*v,base[1]*v,base[2]*v].map(Math.round).join(',')+')';g.fillRect(x,y,w,h);
+  g.strokeStyle='rgba(90,55,25,0.18)';g.lineWidth=1;for(let i=0;i<5;i++){g.beginPath();const o=rnd();if(w>h){g.moveTo(x,y+o*h);g.bezierCurveTo(x+w*0.3,y+(o+0.1)*h,x+w*0.7,y+(o-0.1)*h,x+w,y+o*h);}else{g.moveTo(x+o*w,y);g.bezierCurveTo(x+(o+0.1)*w,y+h*0.3,x+(o-0.1)*w,y+h*0.7,x+o*w,y+h);}g.stroke();}};
+const TX={
+  boardsH:canvasTex((g,n)=>{const k=7,bh=n/k;for(let i=0;i<k;i++){wood(g,0,i*bh,n,bh,[206,146,88]);g.fillStyle='rgba(70,40,15,0.55)';g.fillRect(0,i*bh,n,2);}}),
+  boardsV:canvasTex((g,n)=>{const k=5,bw=n/k;for(let i=0;i<k;i++){wood(g,i*bw,0,bw,n,[200,140,84]);g.fillStyle='rgba(70,40,15,0.5)';g.fillRect(i*bw,0,3,n);
+     const lx=i*bw-6;g.fillStyle='rgba(255,230,190,0.25)';g.fillRect(lx+3,0,4,n);g.fillStyle='rgba(60,35,12,0.35)';g.fillRect(lx+10,0,2,n);}}),
+  plaster:canvasTex((g,n)=>{g.fillStyle='#f2f1ec';g.fillRect(0,0,n,n);for(let i=0;i<2500;i++){const v=225+rnd()*30;g.fillStyle='rgba('+v+','+v+','+(v-4)+',0.5)';g.fillRect(rnd()*n,rnd()*n,2,2);}}),
+  tiles:canvasTex((g,n)=>{const rows=3,rh=n/rows,cols=3,cw=n/cols;for(let r=0;r<rows;r++)for(let c=0;c<cols+1;c++){const x=c*cw-(r%2?cw/2:0);const v=0.85+rnd()*0.2;
+     g.fillStyle='rgb('+[150*v,72*v,50*v].map(Math.round).join(',')+')';g.fillRect(x,r*rh,cw,rh);g.fillStyle='rgba(40,15,8,0.45)';g.fillRect(x,r*rh+rh-5,cw,5);g.fillStyle='rgba(40,15,8,0.3)';g.fillRect(x,r*rh,2,rh);}}),
+  soffit:canvasTex((g,n)=>{const k=8,bh=n/k;for(let i=0;i<k;i++){wood(g,0,i*bh,n,bh,[222,184,132]);g.fillStyle='rgba(90,60,30,0.35)';g.fillRect(0,i*bh,n,1);}})
+};
 const M={
   wall:lam(0xf3f1ec), skin:lam(0xbf8a55), floor:lam(0xa8845c), tile:lam(0xbdb4a6), ceilOG:lam(0xe4cfa3), ceilDG:lam(0xf6f5f1),
-  roof:lam(0x4a4d52), soffit:lam(0xd6b483), roofSide:lam(0x80603f), frame:lam(0xcfa676), door:lam(0xb98250),
+  roof:lam(0xffffff,{map:TX.tiles}), soffit:lam(0xffffff,{map:TX.soffit}), roofSide:lam(0x8a6440), frame:lam(0xcfa676), frameDark:lam(0x4b4b49), door:lam(0xb98250),
+  skinOG:lam(0xffffff,{map:TX.boardsH}), skinDG:lam(0xffffff,{map:TX.boardsV}), plaster:lam(0xffffff,{map:TX.plaster}), grating:lam(0x8d9196),
   glass:new THREE.MeshLambertMaterial({color:0xbcd6e6,transparent:true,opacity:0.25,depthWrite:false,side:THREE.DoubleSide}),
-  larch:lam(0xc9935a), tread:lam(0xc7a072), steel:lam(0x2a2a2a), ground:lam(0x8db06a), white:lam(0xf5f5f3), eg:lam(0xb07c4a),
+  larch:lam(0xbd8650), tread:lam(0xc7a072), steel:lam(0x2a2a2a), ground:lam(0x8db06a), white:lam(0xf5f5f3), eg:lam(0xb07c4a),
   slab:lam(0xd8d2c6), glassShower:new THREE.MeshLambertMaterial({color:0xd8ecf2,transparent:true,opacity:0.3,depthWrite:false,side:THREE.DoubleSide})
 };
 const G={}; ['EG','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
@@ -385,6 +406,7 @@ function buildWall(w,mat,grp,opts){
     const outer=openPoly(o,0), inner=openPoly(o,0.065);
     const fs=new THREE.Shape(outer.map(p=>new THREE.Vector2(p[0],p[1])));fs.holes.push(new THREE.Path(inner.map(p=>new THREE.Vector2(p[0],p[1]))));
     const fg=new THREE.ExtrudeGeometry(fs,{depth:0.08,bevelEnabled:false});fg.translate(0,0,(t-0.08)/2);wallGeomPlace(fg,ax,r);addMesh(fg,M.frame,grp);
+    if(w.skin){const outT=w.skin==='y0'||w.skin==='x1';const dg=new THREE.ExtrudeGeometry(fs,{depth:0.05,bevelEnabled:false});dg.translate(0,0,outT?t-0.06:0.01);wallGeomPlace(dg,ax,r);addMesh(dg,M.frameDark,grp);}
     // Mittelpfosten bei breiten Elementen
     if(o.b-o.a>0.9){const um=(o.a+o.b)/2;const mp=[[um-0.035,w.z0+o.s+0.06],[um+0.035,w.z0+o.s+0.06],[um+0.035,w.z0+o.hf(um+0.035)-0.06],[um-0.035,w.z0+o.hf(um-0.035)-0.06]];
       const mg=new THREE.ExtrudeGeometry(new THREE.Shape(mp.map(p=>new THREE.Vector2(p[0],p[1]))),{depth:0.08,bevelEnabled:false});mg.translate(0,0,(t-0.08)/2);wallGeomPlace(mg,ax,r);addMesh(mg,M.frame,grp);}
@@ -409,7 +431,7 @@ function buildAllWalls(){
       if(w.skin==='x0'){core[0]=r[0]+S;skin=[r[0]-0.003,r[1]-T-0.003,r[0]+S,r[3]+T+0.003];}
       if(w.skin==='x1'){core[2]=r[2]-S;skin=[r[2]-S,r[1]-T-0.003,r[2]+0.003,r[3]+T+0.003];}
       buildWall(Object.assign({},w,{r:core}),M.wall,grp);
-      buildWall(Object.assign({},w,{r:skin}),w.lvl==='EG'?M.eg:M.skin,grp,{noColl:true,noFrames:true});
+      buildWall(Object.assign({},w,{r:skin}),w.lvl==='EG'?M.plaster:w.lvl==='OG'?M.skinOG:M.skinDG,grp,{noColl:true,noFrames:true});
     } else buildWall(w,M.wall,grp);
   });
 }
@@ -436,26 +458,36 @@ function buildFloors(){
 }
 
 /* ---------- Dach mit Zwerchgiebel ---------- */
-function roofSlab(poly,zf,th,grp){
+function roofSlab(poly,zf,th,grp,uvf){
+  uvf=uvf||((x,y)=>[x,y/Math.cos(26*D2R)]);const uvT=[];
   const contour=poly.map(p=>new THREE.Vector2(p[0],p[1]));
   const tris=THREE.ShapeUtils.triangulateShape(contour,[]);
   const top=[],bot=[],side=[],sideIn=[];
   const inH=p=>p[0]>=-1e-6&&p[0]<=L+1e-6&&p[1]>=-1e-6&&p[1]<=B+1e-6;
-  tris.forEach(tr=>tr.forEach(i=>{const[x,y]=poly[i];const z=zf(x,y);top.push(x,z,-y);bot.push(x,z-th,-y);}));
+  tris.forEach(tr=>tr.forEach(i=>{const[x,y]=poly[i];const z=zf(x,y);top.push(x,z,-y);bot.push(x,z-th,-y);uvT.push(...uvf(x,y));}));
   for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];const za=zf(...a),zb=zf(...b);
     (inH(a)&&inH(b)?sideIn:side).push(a[0],za,-a[1], b[0],zb,-b[1], b[0],zb-th,-b[1],  a[0],za,-a[1], b[0],zb-th,-b[1], a[0],za-th,-a[1]);}
-  [[top,M.roof],[bot,M.soffit],[side,M.roofSide],[sideIn,M.ceilDG]].filter(a=>a[0].length).forEach(([arr,mat])=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));g.computeVertexNormals();addMesh(g,mat,grp);});
+  [[top,M.roof],[bot,M.soffit],[side,M.roofSide],[sideIn,M.ceilDG]].filter(a=>a[0].length).forEach(([arr,mat])=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));if(arr===top||arr===bot)g.setAttribute('uv',new THREE.Float32BufferAttribute(uvT,2));g.computeVertexNormals();addMesh(g,mat,grp);});
 }
 function buildRoof(){
   const zM=(x,y)=>zOut(y), zC=(x,y)=>zCross(x);
   const vy=YR-(MID-CX0);
-  roofSlab([[-GOV,-EAVE],[CX0,-EAVE],[CX0,0],[CX0,vy],[MID,YR],[CX1,vy],[CX1,0],[CX1,-EAVE],[L+GOV,-EAVE],[L+GOV,YR],[-GOV,YR]],zM,ROOF_T,G.roof);
-  roofSlab([[-GOV,YR],[L+GOV,YR],[L+GOV,B+EAVE],[-GOV,B+EAVE]],zM,ROOF_T,G.roof);
+  roofSlab([[-GOV,-EAVE],[CX0,-EAVE],[CX0,0],[CX0,vy],[MID,YR],[CX1,vy],[CX1,0],[CX1,-EAVE],[L+GOV,-EAVE],[L+GOV,YR],[-GOV,YR]],zM,RT,G.roof);
+  roofSlab([[-GOV,YR],[L+GOV,YR],[L+GOV,B+EAVE],[-GOV,B+EAVE]],zM,RT,G.roof);
   const ov=0.30,ye=-BAL_D-ov;
-  roofSlab([[MID,YR],[MID,ye],[CX0-ov,ye],[CX0-ov,YR-(MID-CX0+ov)]],zC,ROOF_T,G.roof);
-  roofSlab([[CX1+ov,YR-(MID-CX0+ov)],[CX1+ov,ye],[MID,ye],[MID,YR]],zC,ROOF_T,G.roof);
+  const uvC=(x,y)=>[y,x/Math.cos(26*D2R)];
+  roofSlab([[MID,YR],[MID,ye],[CX0-ov,ye],[CX0-ov,YR-(MID-CX0+ov)]],zC,RT,G.roof,uvC);
+  roofSlab([[CX1+ov,YR-(MID-CX0+ov)],[CX1+ov,ye],[MID,ye],[MID,YR]],zC,RT,G.roof,uvC);
   // Firstpfette Zwerchgiebel + Ortgangbretter
-  beam(G.roof,[MID,YR,RIDGE-ROOF_T-0.12],[MID,ye,RIDGE-ROOF_T-0.12],0.16,0.24,M.larch);
+  beam(G.roof,[MID,YR,RIDGE-RT-0.12],[MID,ye,RIDGE-RT-0.12],0.16,0.24,M.larch);
+  for(let y=-0.3;y>ye;y-=0.9){[[CX0-ov+0.05,MID],[CX1+ov-0.05,MID]].forEach(([xa,xb])=>beam(G.roof,[xa,y,zCross(xa)-RT-0.07],[xb,y,zCross(xb)-RT-0.07],0.1,0.14,M.larch));}
+  // Sparren im Traufüberstand, Pfettenköpfe am Giebel
+  const zb=y=>zOut(y)-RT-0.07;
+  for(let x=0.25;x<L;x+=0.9){
+    if(!(x>CX0-0.35&&x<CX1+0.35))beam(G.roof,[x,0,zb(0)],[x,-EAVE+0.03,zb(-EAVE+0.03)],0.1,0.14,M.larch);
+    beam(G.roof,[x,B,zb(B)],[x,B+EAVE-0.03,zb(B+EAVE-0.03)],0.1,0.14,M.larch);}
+  [0.15,2.4,YR,B-2.4,B-0.15].forEach(y=>{const z=zOut(y)-RT-0.13;
+    beam(G.roof,[-GOV+0.05,y,z],[0,y,z],0.16,0.24,M.larch);beam(G.roof,[L,y,z],[L+GOV-0.05,y,z],0.16,0.24,M.larch);});
   // Dachschrägen DG innen (weiß verputzt)
   const xs=new Set(),ys=new Set();
   for(let x=T;x<=L-T+1e-6;x+=0.05)xs.add(+x.toFixed(4)); [CX0-1e-3,CX0+1e-3,MID,CX1-1e-3,CX1+1e-3,L-T].forEach(v=>xs.add(v));
@@ -468,27 +500,28 @@ function buildRoof(){
   addMesh(g,M.ceilDG,G.roof,{noCast:true});
 }
 
-/* ---------- Geländer (Lärche, senkrechte Latten) ---------- */
-const SLATS={larchOG:[],larchDG:[],steelOG:[],steelDG:[]};
+/* ---------- Geländer ---------- */
+// boards: dicht gesetzte senkrechte Bretter (OG-Balkon, Laubengang) · lattice: Latten mit Abstand (DG) · steel: Treppe
+const SLATS={};
+const RK={boards:{w:0.10,d:0.024,sp:0.118,mat:'larch'},lattice:{w:0.045,d:0.045,sp:0.115,mat:'larch'},steel:{w:0.018,d:0.018,sp:0.12,mat:'steel'}};
 function railing(grp,pts,z,h,kind,collide){
-  kind=kind||'larch';const mat=kind==='larch'?M.larch:M.steel;
-  const tw=kind==='larch'?0.12:0.06;
+  kind=kind||'boards';const K_=RK[kind];const wood=K_.mat==='larch';
+  const gname=Object.keys(G).find(k=>G[k]===grp);
   for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];
-    beam(grp,[a[0],a[1],z+h],[b[0],b[1],z+h],tw,kind==='larch'?0.06:0.05,kind==='larch'?M.larch:M.tread);
-    if(kind==='larch')beam(grp,[a[0],a[1],z+0.12],[b[0],b[1],z+0.12],0.06,0.05,M.larch);
-    const len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.round(len/(kind==='larch'?0.11:0.12)));
-    for(let k=0;k<=n;k++){const t=k/n;SLATS[kind+(grp===G.DG?'DG':'OG')].push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,z,h]);}
+    beam(grp,[a[0],a[1],z+h],[b[0],b[1],z+h],wood?0.12:0.06,wood?0.06:0.05,wood?M.larch:M.tread);
+    if(wood)beam(grp,[a[0],a[1],z+0.1],[b[0],b[1],z+0.1],0.06,0.05,M.larch);
+    if(kind==='lattice')beam(grp,[a[0],a[1],z+h-0.16],[b[0],b[1],z+h-0.16],0.06,0.05,M.larch);
+    const len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.round(len/K_.sp)),ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
+    const key=kind+'|'+gname;(SLATS[key]=SLATS[key]||[]);
+    for(let k=0;k<=n;k++){const t=k/n;SLATS[key].push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,z,h,ang]);}
     if(collide){const pad=0.04;COLL.push({x0:Math.min(a[0],b[0])-pad,x1:Math.max(a[0],b[0])+pad,y0:Math.min(a[1],b[1])-pad,y1:Math.max(a[1],b[1])+pad,z0:z,z1:z+h});}
   }
 }
 function flushSlats(){
-  [['larchOG',M.larch,0.045,0.045,G.balOG],['larchDG',M.larch,0.045,0.045,G.DG],['steelOG',M.steel,0.018,0.018,G.OG],['steelDG',M.steel,0.018,0.018,G.DG]].forEach(([k,mat,w,d,grp])=>{
-    const arr=SLATS[k];if(!arr.length)return;
-    const im=new THREE.InstancedMesh(BOXG,mat,arr.length);const m=new THREE.Matrix4(),q=new THREE.Quaternion(),s=new THREE.Vector3();
-    arr.forEach((a,i)=>{s.set(w,a[3],d);m.compose(P(a[0],a[1],a[2]+a[3]/2),q,s);im.setMatrixAt(i,m);});
-    im.castShadow=true;im.receiveShadow=true;
-    grp.add(im);
-  });
+  Object.keys(SLATS).forEach(key=>{const [kind,gname]=key.split('|');const K_=RK[kind],arr=SLATS[key];
+    const im=new THREE.InstancedMesh(BOXG,K_.mat==='larch'?M.larch:M.steel,arr.length);const m=new THREE.Matrix4(),q=new THREE.Quaternion(),s=new THREE.Vector3(),Y=new THREE.Vector3(0,1,0);
+    arr.forEach((a,i)=>{s.set(K_.w,a[3],K_.d);q.setFromAxisAngle(Y,a[4]);m.compose(P(a[0],a[1],a[2]+a[3]/2),q,s);im.setMatrixAt(i,m);});
+    im.castShadow=true;im.receiveShadow=true;G[gname].add(im);});
 }
 
 /* ---------- Balkone, Laubengang ---------- */
@@ -497,15 +530,15 @@ function buildBalconies(){
   const og=[[T,0],[L-T,0],[L-T,-BAL_S],[CX1,-BAL_S],[CX1,-BAL_D],[CX0,-BAL_D],[CX0,-BAL_S],[T,-BAL_S]];
   const zO=Z_OG-0.04;
   hslab(og,[],zO-0.22,zO,M.larch,G.balOG);
-  railing(G.balOG,[[T,0],[T,-BAL_S],[CX0,-BAL_S],[CX0,-BAL_D],[CX1,-BAL_D],[CX1,-BAL_S],[L-T,-BAL_S],[L-T,0]],zO,1.0,'larch',true);
+  railing(G.balOG,[[T,0],[T,-BAL_S],[CX0,-BAL_S],[CX0,-BAL_D],[CX1,-BAL_D],[CX1,-BAL_S],[L-T,-BAL_S],[L-T,0]],zO,1.0,'boards',true);
   box(G.balOG,SEP0,-BAL_D,SEP1,0,zO,Z_DG-0.27,M.larch);COLL.push({x0:SEP0,x1:SEP1,y0:-BAL_D,y1:0,z0:zO,z1:Z_DG});
   // DG unter dem Zwerchgiebel
   const zD=Z_DG-0.02;
   hslab(rect(CX0,-BAL_D,CX1,0),[],zD-0.25,zD,M.larch,G.DG);
-  railing(G.DG,[[CX0,0],[CX0,-BAL_D],[CX1,-BAL_D],[CX1,0]],zD,1.0,'larch',true);
-  box(G.DG,SEP0,-BAL_D,SEP1,0,zD,RIDGE-ROOF_T-0.24,M.larch);COLL.push({x0:SEP0,x1:SEP1,y0:-BAL_D,y1:0,z0:zD,z1:RIDGE});
+  railing(G.DG,[[CX0,0],[CX0,-BAL_D],[CX1,-BAL_D],[CX1,0]],zD,1.0,'lattice',true);
+  box(G.DG,SEP0,-BAL_D,SEP1,0,zD,RIDGE-RT-0.24,M.larch);COLL.push({x0:SEP0,x1:SEP1,y0:-BAL_D,y1:0,z0:zD,z1:RIDGE});
   // Stützen
-  [[CX0,-BAL_D],[CX1,-BAL_D]].forEach(([x,y])=>box(G.DG,x-0.08,y-0.08,x+0.08,y+0.08,0,zCross(x)-ROOF_T,M.larch));
+  [[CX0,-BAL_D],[CX1,-BAL_D]].forEach(([x,y])=>box(G.DG,x-0.08,y-0.08,x+0.08,y+0.08,0,zCross(x)-RT,M.larch));
   [[T+0.06,-BAL_S],[L-T-0.06,-BAL_S]].forEach(([x,y])=>box(G.balOG,x-0.07,y-0.07,x+0.07,y+0.07,0,zO-0.22,M.larch));
   [[CX0,-BAL_D],[CX1,-BAL_D]].forEach(([x,y])=>box(G.balOG,x-0.08,y-0.08,x+0.08,y+0.08,0,zO,M.larch));
   // Begehbar
@@ -513,10 +546,18 @@ function buildBalconies(){
   SURF.push({poly:mPoly([[T,0],[SEP0,0],[SEP0,-BAL_D],[CX0,-BAL_D],[CX0,-BAL_S],[T,-BAL_S]]),z:zO,lvl:'OG'});
   SURF.push({poly:rect(CX0,-BAL_D,SEP0,0),z:zD,lvl:'DG'});
   SURF.push({poly:rect(SEP1,-BAL_D,CX1,0),z:zD,lvl:'DG'});
-  // Laubengang Straßenseite (Lage der Außentreppe offen → schematisch)
-  hslab(rect(3.3,B,L-3.3,B+1.5),[],Z_OG-0.2,Z_OG-0.04,M.larch,G.OG);
-  railing(G.balOG,[[3.3,B],[3.3,B+1.5],[L-3.3,B+1.5],[L-3.3,B]],Z_OG-0.04,1.0,'larch');
-  [[3.36,B+1.44],[L-3.36,B+1.44]].forEach(([x,y])=>box(G.OG,x-0.07,y-0.07,x+0.07,y+0.07,0,Z_OG-0.2,M.larch));
+  // Laubengang Straßenseite + Außentreppe Richtung NW-Giebel (nach Fotos)
+  const zL=Z_OG-0.04;
+  hslab(rect(LB_X0,B,LB_X1,B+LB_D),[],zL-0.18,zL,M.larch,G.OG);
+  for(let x=LB_X0+0.3;x<LB_X1;x+=0.8)box(G.OG,x-0.06,B,x+0.06,B+LB_D,zL-0.38,zL-0.18,M.larch);
+  railing(G.OG,[[LB_X0,B+LB_D],[LB_X1,B+LB_D],[LB_X1,B]],zL,1.0,'boards');
+  railing(G.OG,[[LB_X0,B],[LB_X0,B+LB_D-1.0]],zL,1.0,'boards');
+  const n=15,rs=zL/n,gw=0.25,sy0=B+LB_D-1.0,sy1=B+LB_D;
+  for(let k=1;k<n;k++){const x1=LB_X0-(k-1)*gw,x0=x1-gw-0.03,zt=zL-k*rs;box(G.OG,x0,sy0+0.06,x1,sy1-0.06,zt-0.04,zt,M.grating);}
+  const xb=LB_X0-(n-1)*gw;
+  [sy0+0.03,sy1-0.03].forEach(y=>{beam(G.OG,[LB_X0+0.05,y,zL-0.12],[xb,y,0.05],0.06,0.28,M.larch);
+    beam(G.OG,[LB_X0,y,zL+0.95],[xb+0.25,y,0.95],0.06,0.06,M.larch);
+    [LB_X0,LB_X0-1.5,LB_X0-3.0].forEach(x=>{const zz=Math.max(0,zL*(x-xb)/(LB_X0-xb));box(G.OG,x-0.04,y-0.04,x+0.04,y+0.04,zz-0.1,zz+0.95,M.larch);});});
 }
 
 /* ---------- Treppe ---------- */
@@ -530,7 +571,7 @@ function buildStairs(u){
   box(G.OG,Math.min(X0,X0+(u===W3?0.06:-0.06)),7.033,Math.max(X0,X0+(u===W3?0.06:-0.06)),7.943,zb-0.35,zt+0.05,M.white);
   [7.943,7.033].forEach(y=>box(G.OG,X0-0.05,y-0.05,X0+0.05,y+0.05,y>7.5?Z_OG:zt-0.4,y>7.5?zb+1.0:Z_DG+1.0,M.white));
   beam(G.OG,[X0,7.943,zb+0.92],[X0,7.033,zt+0.92],0.06,0.05,M.tread);
-  for(let k=1;k<7;k++){const y=7.943-k*(0.91/7),zz=zb+(zt-zb)*(k/7);SLATS.steelOG.push([X0,y,zz,0.9]);}
+  for(let k=1;k<7;k++){const y=7.943-k*(0.91/7),zz=zb+(zt-zb)*(k/7);(SLATS['steel|OG']=SLATS['steel|OG']||[]).push([X0,y,zz,0.9,0]);}
   COLL.push({x0:X0-0.06,x1:X0+0.06,y0:7.033,y1:7.943,z0:Z_OG,z1:Z_DG-0.15});
   COLL.push({x0:X0-0.06,x1:X0+0.06,y0:7.89,y1:8.0,z0:Z_OG,z1:Z_DG-0.15});
   // Galerie-Geländer DG
@@ -622,7 +663,7 @@ function groundAt(x,y,zRef){let best=-Infinity;for(const s of SURF){if(s.z<=zRef
 function headBlocked(x,y,g){for(const s of SURF){if(s.z>g+0.42&&s.z<g+1.85&&surfContains(s,x,y))return true;}return false;}
 function inStairOpen(x,y){const a=STAIR_OPEN,b=mRect(STAIR_OPEN);return (x>=a[0]&&x<=a[2]&&y>=a[1]&&y<=a[3])||(x>=b[0]&&x<=b[2]&&y>=b[1]&&y<=b[3]);}
 function ceilAt(x,y,feet){
-  if(feet>Z_DG-0.4){if(y<0)return inCross(x)?Z_DG+hCross(x):99;return Z_DG+hDG(x,y);}
+  if(feet>Z_DG-0.4){if(y<0)return inCross(x)?zCross(x)-RT-0.15:99;return Z_DG+hDG(x,y);}
   if(y<0)return y<-BAL_S&&!inCross(x)?99:Z_DG-0.27;
   if(inStairOpen(x,y))return Z_DG+hDG(x,y);
   return Z_OG+H_OG;
@@ -743,7 +784,7 @@ function wallPieces(w){
 function planSVG(unit,lvl,furn,mini){
   const u=UNITS[unit];
   const clipX=unit===2?[-1.2,6.995]:[6.545,L+1.2];
-  const vb=[clipX[0]-0.3,-0.8,clipX[1]-clipX[0]+0.6,B+BAL_D+2.1];
+  const vb=[clipX[0]-0.3,-2.1,clipX[1]-clipX[0]+0.6,B+BAL_D+3.4];
   let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+vb.join(' ')+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Grundriss Wohnung '+unit+' '+lvl+'">';
   s+='<defs><clipPath id="cp'+(mini?'m':'')+'"><rect x="'+clipX[0]+'" y="-3" width="'+(clipX[1]-clipX[0])+'" height="20"/></clipPath></defs>';
   s+='<g clip-path="url(#cp'+(mini?'m':'')+')" font-family="system-ui,sans-serif">';
@@ -751,6 +792,9 @@ function planSVG(unit,lvl,furn,mini){
   const bal=u.rooms.find(r=>r.id===(lvl==='OG'?'balkonOG':'balkonDG'));
   s+='<path d="'+pathD(bal.poly)+'" fill="var(--balc)" stroke="var(--muted)" stroke-width="0.03"/>';
   if(lvl==='DG'){const roofLn=[[unit===2?-0.3:MID,-BAL_D-0.3],[unit===2?MID:L+0.3,-BAL_D-0.3]];s+='<polyline points="'+ptsAttr(roofLn)+'" stroke="var(--muted)" stroke-width="0.02" stroke-dasharray="0.15 0.1" fill="none"/>';}
+  if(lvl==='OG'){s+='<polygon points="'+ptsAttr(rect(LB_X0,B,LB_X1,B+LB_D))+'" fill="var(--balc)" stroke="var(--muted)" stroke-width="0.03"/>';
+    for(let k=0;k<15;k++){const x=LB_X0-k*0.25;s+='<line x1="'+x+'" x2="'+x+'" y1="'+svgY(B+LB_D-1.0)+'" y2="'+svgY(B+LB_D)+'" stroke="var(--muted)" stroke-width="0.015"/>';}
+    s+='<polyline points="'+ptsAttr([[LB_X0-3.5,B+LB_D-1.0],[LB_X0,B+LB_D-1.0],[LB_X0,B],[LB_X0,B+LB_D],[LB_X0-3.5,B+LB_D]])+'" fill="none" stroke="var(--muted)" stroke-width="0.02"/>';}
   // Räume
   u.rooms.filter(r=>r.lvl===lvl&&!r.f).forEach(r=>{let d=pathD(r.poly);(r.holes||[]).forEach(h=>d+=pathD(h));
     s+='<path d="'+d+'" fill-rule="evenodd" fill="'+(r.id==='bad'?'var(--room-wet)':'var(--room)')+'"/>';});
@@ -790,12 +834,13 @@ function planSVG(unit,lvl,furn,mini){
     u.rooms.filter(r=>r.lvl===lvl).forEach(r=>{const[x,y]=r.lab;
       const fs=r.fs||0.26;s+='<text x="'+x+'" y="'+svgY(y)+'" font-size="'+fs+'" font-weight="600" fill="var(--text)" text-anchor="middle">'+r.name+'</text>';
       s+='<text x="'+x+'" y="'+(svgY(y)+0.32)+'" font-size="0.22" fill="var(--muted)" text-anchor="middle">'+fmt(r.wfl)+' m²'+(r.f?' (¼ v. '+fmt(r.base)+')':'')+'</text>';});
-    if(lvl==='OG'){const hx=unit===2?4.17:mx(4.17);s+='<text x="'+hx+'" y="'+(svgY(B)-0.12)+'" font-size="0.2" fill="var(--muted)" text-anchor="middle">Eingang (Laubengang)</text>';}
+    if(lvl==='OG'){const hx=unit===2?5.3:mx(4.17);s+='<text x="'+hx+'" y="'+(svgY(B+LB_D/2)+0.08)+'" font-size="0.22" fill="var(--muted)" text-anchor="middle">Laubengang</text>';
+      if(unit===2)s+='<text x="'+(LB_X0-1.75)+'" y="'+(svgY(B+LB_D-0.5)+0.07)+'" font-size="0.18" fill="var(--muted)" text-anchor="middle">Außentreppe ↓</text>';}
   }
   s+='</g>';
   if(!mini){
     // Nordpfeil + Maßstab
-    const nx=-0.559,ny=0.829, ax=unit===2?clipX[0]+0.4:clipX[1]-0.4, ay=-0.1;
+    const nx=-0.559,ny=0.829, ax=unit===2?clipX[0]+0.45:clipX[1]-0.45, ay=-1.6;
     s+='<g transform="translate('+ax+' '+(ay+0.35)+')"><circle r="0.32" fill="var(--panel)" stroke="var(--muted)" stroke-width="0.02"/>'+
        '<line x1="'+(-nx*0.25)+'" y1="'+(ny*0.25)+'" x2="'+(nx*0.25)+'" y2="'+(-ny*0.25)+'" stroke="var(--text)" stroke-width="0.04"/>'+
        '<polygon points="'+(nx*0.3)+','+(-ny*0.3)+' '+(nx*0.12-ny*0.08)+','+(-ny*0.12-nx*0.08)+' '+(nx*0.12+ny*0.08)+','+(-ny*0.12+nx*0.08)+'" fill="var(--text)"/>'+
@@ -836,7 +881,7 @@ function renderPanel(){
    '<ul class="note"><li>Maße aus dem Werkplan der Zimmerei (Stand 08/2025). Kleinere Abweichungen zur Ausführung sind möglich.</li>'+
    '<li><b>Wohnfläche nach WoFlV:</b> lichte Höhe ab 2 m voll, 1 bis 2 m zur Hälfte, unter 1 m nicht; Balkone zu einem Viertel; Treppe nicht angerechnet. Rechnerischer Wert ohne Gewähr.</li>'+
    '<li>Die Möblierung ist ein <b>Beispiel</b> und lässt sich oben ausblenden. Die Bad-Ausstattung ist schematisch nach Fotos dargestellt.</li>'+
-   '<li>Das Erdgeschoss (Wohnung 1) ist nicht Teil der Besichtigung und nur als Hülle gezeigt. Laubengang an der Straßenseite schematisch.</li></ul>';
+   '<li>Das Erdgeschoss (Wohnung 1) ist nicht Teil der Besichtigung und nur als Hülle gezeigt. Fenster im EG schematisch. Laubengang und Außentreppe an der Straßenseite nach Fotos.</li></ul>';
   panel.querySelectorAll('tr.room').forEach(tr=>tr.addEventListener('click',()=>{const r=u.rooms.find(x=>x.id===tr.dataset.room);
     state.lvl=r.lvl;setView('walk',true);placePlayer(r.sp[0],r.sp[1],r.lvl,r.look);syncChips();applyVisibility();requestRender();
     if(window.innerWidth<=820)document.getElementById('view').scrollIntoView({behavior:'smooth'});}));
@@ -878,7 +923,7 @@ document.getElementById('furnBtn').addEventListener('click',()=>{state.furn=!sta
 
 /* Start */
 renderPanel();resize();setView('puppe');resize();
-window.__tour={state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove};
+window.__tour={cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove};
 })();
 </script>
 </body>
