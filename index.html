@@ -128,7 +128,7 @@ const HR=RIDGE-ROOF_T-Z_DG;
 const RT=0.36;                         // sichtbare Dachstärke außen (Ortgang/Traufe)            // lichte Firsthöhe DG ≈ 2,82
 const CX0=3.455, CX1=L-CX0;            // Zwerchgiebel über Balkonen
 const EAVE=1.40, GOV=1.00;             // Dachüberstand Traufe / Giebel (Giebel nach Foto geschätzt)
-const LB_X0=3.55, LB_X1=12.6, LB_D=1.5;  // Laubengang Straßenseite (nach Fotos)
+const LB_X0=4.10, LB_X1=12.6, LB_D=1.5;  // Laubengang Straßenseite (nach Fotos)
 const BAL_D=2.55, BAL_S=0.98, SEP0=6.67, SEP1=6.87;
 const RISE=(Z_DG-Z_OG)/15;
 const zOut=y=>RIDGE-K*Math.abs(y-YR);
@@ -162,7 +162,7 @@ const W2={
   ext:{
     gardenOG:[{a:0.785,b:1.800,s:0.87,h:2.135,k:'win'},{a:3.415,b:5.205,s:0,h:2.135,k:'gdoor'}],
     gardenDG:[{a:3.715,b:6.545,s:0,h:'cross',k:'gdoor'}],
-    streetOG:[{a:2.547,b:3.177,s:1.25,h:2.135,k:'win'},{a:3.667,b:4.677,s:0,h:2.135,k:'solid'},{a:5.515,b:6.145,s:0.87,h:2.135,k:'win'}],
+    streetOG:[{a:2.547,b:3.177,s:1.25,h:2.135,k:'win'},{a:4.15,b:5.16,s:0,h:2.135,k:'solid'},{a:5.515,b:6.145,s:0.87,h:2.135,k:'win'}],
     gableOG:[{a:1.778,b:2.793,s:0.87,h:2.135,k:'win'},{a:4.293,b:5.308,s:0.87,h:2.135,k:'win'},{a:6.808,b:7.823,s:0.87,h:2.135,k:'win'}],
     gableDG:[{a:2.853,b:4.705,s:0.87,h:'roof',k:'win'},{a:4.895,b:6.748,s:0.87,h:'roof',k:'win'}]
   },
@@ -857,7 +857,7 @@ function planSVG(unit,lvl,furn,mini){
     u.rooms.filter(r=>r.lvl===lvl).forEach(r=>{const[x,y]=r.lab;
       const fs=r.fs||0.26;s+='<text x="'+x+'" y="'+svgY(y)+'" font-size="'+fs+'" font-weight="600" fill="var(--text)" text-anchor="middle">'+r.name+'</text>';
       s+='<text x="'+x+'" y="'+(svgY(y)+0.32)+'" font-size="0.22" fill="var(--muted)" text-anchor="middle">'+fmt(r.wfl)+' m²'+(r.f?' (¼ v. '+fmt(r.base)+')':'')+'</text>';});
-    if(lvl==='OG'){const hx=unit===2?5.3:mx(4.17);s+='<text x="'+hx+'" y="'+(svgY(B+LB_D/2)+0.08)+'" font-size="0.22" fill="var(--muted)" text-anchor="middle">Laubengang</text>';
+    if(lvl==='OG'){const hx=unit===2?5.8:mx(4.17);s+='<text x="'+hx+'" y="'+(svgY(B+LB_D/2)+0.08)+'" font-size="0.22" fill="var(--muted)" text-anchor="middle">Laubengang</text>';
       if(unit===2)s+='<text x="'+(LB_X0-1.75)+'" y="'+(svgY(B+LB_D-0.5)+0.07)+'" font-size="0.18" fill="var(--muted)" text-anchor="middle">Außentreppe ↓</text>';}
   }
   s+='</g>';
