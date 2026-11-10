@@ -1,0 +1,396 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>
+<title>Badwand mit Fallrohr</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: Werkstatt-Blatt. Kopfzeile, darunter 3D-Ansicht links und Bedienleiste rechts, darunter Maßliste. */
+:root{
+  --bg:#f3f4f2; --panel:#ffffff; --text:#1d2226; --muted:#5d666d; --line:#dcdfdc;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --scene:#e9ece9; --label-bg:rgba(255,255,255,.94);
+  --est:#9a6a12; --est-bg:#fbf1dc; --ok:#2d6a45; --ok-bg:#e3f1e7;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181a; --panel:#1d2124; --text:#e6e8e6; --muted:#9aa3a9; --line:#2f3438;
+    --accent:#6fb2e0; --accent-ink:#0d1a24; --scene:#1b1f22; --label-bg:rgba(29,33,36,.94);
+    --est:#e7b65a; --est-bg:#3a2f1a; --ok:#7fc79a; --ok-bg:#1d3326; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181a; --panel:#1d2124; --text:#e6e8e6; --muted:#9aa3a9; --line:#2f3438;
+  --accent:#6fb2e0; --accent-ink:#0d1a24; --scene:#1b1f22; --label-bg:rgba(29,33,36,.94);
+  --est:#e7b65a; --est-bg:#3a2f1a; --ok:#7fc79a; --ok-bg:#1d3326; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:18px}
+header h1{font-size:1.5rem;font-weight:600;margin:0;text-wrap:balance;letter-spacing:-.01em}
+header p{margin:.25rem 0 0;color:var(--muted);max-width:70ch}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+.viewer{position:relative;background:var(--scene);border:1px solid var(--line);border-radius:6px;overflow:hidden;height:min(74vh,700px);min-height:380px}
+.viewer canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.labels{position:absolute;inset:0;pointer-events:none}
+.lbl{position:absolute;transform:translate(-50%,-50%);background:var(--label-bg);border:1px solid var(--line);border-radius:4px;
+  padding:2px 7px;font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:opacity .2s}
+.lbl i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.hint{position:absolute;left:10px;bottom:8px;font-size:12px;color:var(--muted);pointer-events:none}
+.side{display:grid;gap:14px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px}
+.box h2{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:4px;padding:6px 8px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.layers{display:grid;gap:4px}
+.layers label{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;padding:2px 0}
+.layers i{width:12px;height:12px;border-radius:2px;flex:none}
+#info{font-size:13.5px;min-height:5.5em}
+#info b{display:block;font-size:14.5px}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:3px;margin-top:4px;font-weight:500}
+.tag.m{background:var(--ok-bg);color:var(--ok)}
+.tag.e{background:var(--est-bg);color:var(--est)}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+td.v{font-family:var(--font-mono);font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+h2.sec{font-size:1.05rem;margin:6px 0 0;font-weight:600}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Badwand mit Fallrohr</h1>
+    <p>Trennwand zwischen Dusche und Badewanne, Holzständer 6×6 cm, Fermacell 15 mm. Mit dem Regler ziehst du die Schichten von der Duschseite zur Badseite auseinander. Ein Klick auf ein Bauteil zeigt Maße und Herkunft.</p>
+  </header>
+
+  <div class="main">
+    <div class="viewer" id="viewer">
+      <canvas id="c" aria-label="3D-Modell der Badwand"></canvas>
+      <div class="labels" id="labels"></div>
+      <div class="hint">Ziehen: drehen · Rechts/zwei Finger: verschieben · Scrollen: zoomen</div>
+    </div>
+
+    <div class="side">
+      <div class="box">
+        <h2>Explosion</h2>
+        <input type="range" id="explode" min="0" max="100" value="70" aria-label="Explosionsgrad">
+        <div class="row"><span style="color:var(--muted);font-size:13px">eingebaut</span><span style="color:var(--muted);font-size:13px">auseinander</span></div>
+        <div class="btns">
+          <button data-view="iso">Schräg (Dusche)</button>
+          <button data-view="bath">Schräg (Bad)</button>
+          <button data-view="front">Duschseite</button>
+          <button data-view="top">Von oben</button>
+        </div>
+      </div>
+      <div class="box">
+        <h2>Schichten</h2>
+        <div class="layers" id="layers"></div>
+      </div>
+      <div class="box">
+        <h2>Bauteil</h2>
+        <div id="info"><span style="color:var(--muted)">Klicke im Modell auf ein Bauteil.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec">Maße und Annahmen</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Maß</th><th>Wert</th><th>Quelle</th></tr></thead>
+      <tbody id="dims"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script>
+(function(){
+"use strict";
+// Koordinaten in cm. x = Wandlänge (0 = Duschrückwand, 135 = freie Stirnseite),
+// y = Höhe (0 = Rohboden), z = Wandstärke (0 = Duschseite außen, 24 = Badseite außen).
+const M = 'm', E = 'e';
+const DIMS = [
+  ['Raumhöhe', '250 cm', M],
+  ['Wandstärke (ohne Fliesen)', '24 cm', M],
+  ['Wandlänge Duschseite', '135 cm', M],
+  ['Wandlänge Badseite bis Wannen-Vorwand', '78 cm', M],
+  ['Holzständer', '6 × 6 cm', M],
+  ['Fermacell-Beplankung', '15 mm je Seite', M],
+  ['Ständerwerk', '2 Ständerreihen (Dusch-/Badseite), 9 cm Luft dazwischen; ergibt sich aus 24 − 2×1,5 − 2×6', E],
+  ['Ständerabstände', 'nach Fotos verteilt, nicht gemessen', E],
+  ['Fallrohr', 'Achse 60 cm hinter Stirnseite (x = 75), Ø ca. 11 cm + Dämmung = Ø 16 cm', E],
+  ['Rohrschellen', 'auf ca. 40 cm und 205 cm Höhe, Gewindestange zum Ständer Badseite', E],
+  ['Nische', '30 × 55 cm, Unterkante 100 cm, ca. 10 cm tief, Hinterkante 12 cm hinter Stirnseite', E],
+  ['Traverse Duschanschluss', 'Anschlüsse auf 115 cm Höhe, Abstand 15 cm (Standard für Aufputz-Thermostat)', E],
+  ['Zuleitung K/W', 'Verlauf im Boden und Eintritt durch die Schwelle angenommen', E],
+  ['Abwasser Dusche', 'Abzweig DN50 am Fallrohrfuß zur Duschrinne, Verlauf angenommen', E],
+  ['Leerrohr Licht', 'von der Decke zur Nischenoberkante', E],
+  ['Fliesen', 'nicht modelliert', E],
+];
+
+const GROUPS = [
+  {id:'planShower', name:'Fermacell Duschseite', color:'#e4e1d6', off:[0,0,-78], anchor:[30,215,0]},
+  {id:'niche', name:'Nische mit LED', color:'#cfc9b8', off:[0,0,-56], anchor:[106,170,1]},
+  {id:'water', name:'Frischwasser K/W', color:'#2f6fb3', off:[0,0,-38], anchor:[44,135,2]},
+  {id:'frameShower', name:'Ständer Duschseite', color:'#d6ad6c', off:[0,0,-18], anchor:[15,232,4]},
+  {id:'drain', name:'Fallrohr + Abwasser', color:'#c8322b', off:[0,0,0], anchor:[75,262,14]},
+  {id:'conduit', name:'Leerrohr Licht', color:'#2a2a2a', off:[0,0,0], anchor:[106,238,12]},
+  {id:'frameBath', name:'Ständer Badseite', color:'#c99a55', off:[0,0,20], anchor:[110,232,20]},
+  {id:'planBath', name:'Fermacell Badseite', color:'#dcd8cc', off:[0,0,44], anchor:[110,60,24]},
+  {id:'planEnd', name:'Fermacell Stirnseite', color:'#d3cfc2', off:[42,0,0], anchor:[135,60,12]},
+  {id:'context', name:'Umgebung (Boden, Decke, Rückwand)', color:'#9aa3a9', off:[0,0,0], anchor:null, noLabel:true},
+];
+
+const canvas = document.getElementById('c');
+const viewer = document.getElementById('viewer');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 1, 5000);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.1;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f94, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 0.65); sun.position.set(-200,400,-300); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, 0.3); fill.position.set(300,150,300); scene.add(fill);
+
+function mat(color, opts){ return new THREE.MeshStandardMaterial(Object.assign({color, roughness:.75, metalness:0}, opts||{})); }
+const MAT = {
+  wood: mat(0xd6ad6c), woodB: mat(0xc99a55), woodTr: mat(0xe0bb7c),
+  ferm: mat(0xe4e1d6), fermB: mat(0xdcd8cc), fermE: mat(0xd3cfc2), nische: mat(0xcfc9b8),
+  ins: mat(0xc8322b, {roughness:.45}), tape: mat(0xe8402f, {roughness:.35}), pvc: mat(0x8d949b, {roughness:.5}),
+  ht: mat(0x7f878e, {roughness:.5}), insDrain: mat(0x5f7286, {roughness:.6}),
+  cold: mat(0x2f6fb3, {roughness:.55}), warm: mat(0xd2553f, {roughness:.55}), steel: mat(0xa9b0b8, {metalness:.6, roughness:.35}),
+  brass: mat(0xb9a27a, {metalness:.5, roughness:.4}), black: mat(0x2a2a2a, {roughness:.6}),
+  led: mat(0xfff3c4, {emissive:0xffe8a0, emissiveIntensity:.9}),
+  ghost: mat(0x9aa3a9, {transparent:true, opacity:.14, depthWrite:false}),
+  ghost2: mat(0x6b5444, {transparent:true, opacity:.22, depthWrite:false}),
+};
+
+const groups = {};
+GROUPS.forEach(g => { const o = new THREE.Group(); o.userData.def = g; scene.add(o); groups[g.id] = o; });
+const pickables = [];
+function tag(mesh, part){ mesh.userData.part = part; pickables.push(mesh); return mesh; }
+
+function box(g, x0,x1,y0,y1,z0,z1, m, part){
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1-x0, y1-y0, z1-z0), m);
+  mesh.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
+  if (part) tag(mesh, part);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), edgeMat);
+  mesh.add(edges);
+  groups[g].add(mesh); return mesh;
+}
+const edgeMat = new THREE.LineBasicMaterial({color:0x000000, transparent:true, opacity:.22});
+
+function cyl(g, a, b, r, m, part, seg){
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
+  const len = A.distanceTo(B);
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg||24), m);
+  mesh.position.copy(A).add(B).multiplyScalar(.5);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), B.clone().sub(A).normalize());
+  if (part) tag(mesh, part);
+  groups[g].add(mesh); return mesh;
+}
+function pipe(g, pts, r, m, part){
+  for (let i=0;i<pts.length-1;i++) cyl(g, pts[i], pts[i+1], r, m, part, 18);
+  for (let i=1;i<pts.length-1;i++){
+    const s = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 12), m);
+    s.position.set(...pts[i]); tag(s, part); groups[g].add(s);
+  }
+}
+
+// ---------- Ständerwerk ----------
+const H = 250, P = 6;   // Raumhöhe, Rähm/Schwelle
+const zS = [1.5, 7.5], zB = [16.5, 22.5];
+const pStud = (side, x) => ({t:`Ständer ${side}`, d:`Holz 6 × 6 cm, x = ${x} cm ab Duschrückwand`, s:'Querschnitt gemessen, Lage geschätzt'});
+[[0,6],[25,31],[59,65],[85.5,91.5],[121.5,127.5],[127.5,133.5]].forEach(([a,b]) =>
+  box('frameShower', a,b, P,H-P, zS[0],zS[1], MAT.wood, pStud('Duschseite', a)));
+[[0,6],[57,63],[85.5,91.5],[121.5,127.5],[127.5,133.5]].forEach(([a,b]) =>
+  box('frameBath', a,b, P,H-P, zB[0],zB[1], MAT.woodB, pStud('Badseite', a)));
+// Schwellen / Rähm mit Aussparung fürs Fallrohr (x 66–84)
+const plate = (side, top) => ({t:(top?'Rähm ':'Schwelle ')+side, d:'Holz 6 × 6 cm, am Fallrohr unterbrochen (x 66–84)', s:'Querschnitt gemessen, Aussparung nach Foto 5'});
+[['frameShower', zS, MAT.wood, 'Duschseite'], ['frameBath', zB, MAT.woodB, 'Badseite']].forEach(([g, z, m, side]) => {
+  [[0,66],[84,133.5]].forEach(([a,b]) => {
+    box(g, a,b, 0,P, z[0],z[1], m, plate(side,false));
+    box(g, a,b, H-P,H, z[0],z[1], m, plate(side,true));
+  });
+});
+// Riegel für Nische (Duschseite)
+const riegel = {t:'Riegel Nische', d:'Holz 6 × 6 cm zwischen Ständern, fasst Nische oben und unten', s:'Höhen geschätzt nach Foto 6'};
+box('frameShower', 91.5,121.5, 94,100, zS[0],zS[1], MAT.wood, riegel);
+box('frameShower', 91.5,121.5, 155,161, zS[0],zS[1], MAT.wood, riegel);
+box('frameShower', 91.5,121.5, 200,206, zS[0],zS[1], MAT.wood, {t:'Riegel', d:'Aussteifung oberhalb der Nische', s:'Höhe geschätzt nach Foto 6'});
+// Traverse für Duscharmatur
+box('frameShower', 31,59, 107,123, 3.5,7.5, MAT.woodTr, {t:'Traverse Duscharmatur', d:'Brett zwischen den Ständern, trägt die beiden Wandscheiben', s:'Lage geschätzt nach Foto 3'});
+
+// ---------- Fermacell ----------
+function plateWithHole(g, x0,x1,y0,y1,z0, holes, m, part){
+  const s = new THREE.Shape(); s.moveTo(x0,y0); s.lineTo(x1,y0); s.lineTo(x1,y1); s.lineTo(x0,y1); s.lineTo(x0,y0);
+  holes.forEach(([a,b,c,d]) => { const h = new THREE.Path(); h.moveTo(a,c); h.lineTo(a,d); h.lineTo(b,d); h.lineTo(b,c); h.lineTo(a,c); s.holes.push(h); });
+  const geo = new THREE.ExtrudeGeometry(s, {depth:1.5, bevelEnabled:false});
+  const mesh = new THREE.Mesh(geo, m); mesh.position.z = z0; tag(mesh, part);
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
+  groups[g].add(mesh); return mesh;
+}
+plateWithHole('planShower', 0,133.5, 0,H, 0, [[91.5,121.5,100,155]], MAT.ferm,
+  {t:'Fermacell Duschseite', d:'15 mm, 133,5 × 250 cm, Ausschnitt für Nische 30 × 55 cm', s:'Stärke gemessen, Nische geschätzt'});
+plateWithHole('planBath', 57,133.5, 0,H, 22.5, [], MAT.fermB,
+  {t:'Fermacell Badseite', d:'15 mm, 76,5 × 250 cm (endet an der Wannen-Vorwand)', s:'gemessen (78 cm inkl. Stirnplatte)'});
+box('planEnd', 133.5,135, 0,H, 0,24, MAT.fermE, {t:'Fermacell Stirnseite', d:'15 mm, 24 × 250 cm', s:'gemessen'});
+
+// ---------- Nische ----------
+const pN = {t:'Nischenauskleidung', d:'Fermacell 15 mm, Lichte ca. 27 × 52 cm, ca. 10 cm tief', s:'geschätzt nach fertigem Foto'};
+box('niche', 91.5,121.5, 100,155, 9,10.5, MAT.nische, pN);
+box('niche', 91.5,121.5, 100,101.5, 1.5,9, MAT.nische, pN);
+box('niche', 91.5,121.5, 153.5,155, 1.5,9, MAT.nische, pN);
+box('niche', 91.5,93, 101.5,153.5, 1.5,9, MAT.nische, pN);
+box('niche', 120,121.5, 101.5,153.5, 1.5,9, MAT.nische, pN);
+box('niche', 94,119.5, 152.6,153.5, 2.5,8, MAT.led, {t:'LED-Leiste Nische', d:'Beleuchtung an der Nischenoberseite, gespeist über das Leerrohr', s:'nach fertigem Foto'});
+
+// ---------- Fallrohr ----------
+const FX = 75, FZ = 14.5;
+const pF = {t:'Fallrohr DN100 mit Dämmung', d:'Abwasser der Wohnung darüber, Decke bis Boden, Außen-Ø mit Dämmung ca. 16 cm', s:'Ø geschätzt, Lage geschätzt'};
+cyl('drain', [FX,-18,FZ], [FX,H+14,FZ], 8, MAT.ins, pF, 40);
+cyl('drain', [FX,-26,FZ], [FX,-18,FZ], 5.5, MAT.pvc, pF, 32);
+cyl('drain', [FX,H+14,FZ], [FX,H+22,FZ], 5.5, MAT.pvc, pF, 32);
+cyl('drain', [FX,-2,FZ], [FX,24,FZ], 8.7, MAT.tape, {t:'Rohrfuß, rot abgeklebt', d:'Übergang in den Boden, mit Klebeband umwickelt', s:'nach Foto 1 und 7'}, 40);
+const pC = {t:'Rohrschelle mit Gewindestange', d:'Schelle mit Gummieinlage, Gewindestange in den Ständer Badseite geschraubt', s:'Höhen geschätzt nach Foto 7'};
+[40,205].forEach(y => {
+  const t = new THREE.Mesh(new THREE.TorusGeometry(8.6, .9, 10, 40), MAT.steel);
+  t.rotation.x = Math.PI/2; t.position.set(FX,y,FZ); tag(t, pC); groups.drain.add(t);
+  cyl('drain', [61,y,19.5], [69,y,19.5], .5, MAT.steel, pC, 10);
+});
+// Abzweig DN50 zur Duschrinne
+const pD = {t:'Abwasser Dusche DN50', d:'Abzweig am Fallrohrfuß, unter dem Estrich zur Duschrinne an der Rückwand', s:'Verlauf angenommen'};
+pipe('drain', [[FX,10,FZ-6],[FX,5,-12],[12,5,-12],[12,5,-45]], 3.2, MAT.insDrain, pD);
+cyl('drain', [12,5,-45], [12,10,-45], 2.6, MAT.ht, pD, 18);
+
+// ---------- Frischwasser ----------
+function supply(x, zFloor, m, name){
+  const part = {t:name, d:`Mehrschichtverbund-/Edelstahlrohr gedämmt, Anschluss auf 115 cm, x = ${x} cm`, s:'Höhe und Abstand geschätzt, Bodenverlauf angenommen'};
+  pipe('water', [[-25,3,zFloor],[x,3,zFloor],[x,3,4.5],[x,115,4.5],[x,115,2.6]], 1.7, m, part);
+  box('water', x-3,x+3, 112,118, 2.6,3.5, MAT.brass, {t:'Wandscheibe '+name.split(' ')[0], d:'Anschluss ½" für Aufputz-Thermostat Dusche', s:'nach Foto 3'});
+  cyl('water', [x,115,2.6], [x,115,0.2], 1.1, MAT.brass, part, 16);
+  cyl('water', [x,115,0.2], [x,115,-1.2], 1.4, m === MAT.cold ? MAT.cold : MAT.warm, {t:'Bauschutzkappe', d:'rot = warm, blau = kalt', s:'nach Foto 6'}, 16);
+}
+supply(37, -5, MAT.cold, 'Kaltwasser (K)');
+supply(52, -9, MAT.warm, 'Warmwasser (W)');
+
+// ---------- Leerrohr ----------
+const pL = {t:'Leerrohr Licht', d:'Flexrohr schwarz, von der Decke in die Wand, endet an der Nischenoberseite', s:'Verlauf geschätzt nach Foto 6'};
+pipe('conduit', [[106,H+6,12],[106,200,12],[100,175,12],[100,160,9],[100,155.5,6]], 1.1, MAT.black, pL);
+
+// ---------- Umgebung ----------
+const ctx = {t:'Umgebung', d:'Nur zur Orientierung, nicht Teil der Wand', s:''};
+box('context', -40,175, -20,0, -110,90, MAT.ghost, ctx);
+box('context', -40,175, H,H+14, -110,90, MAT.ghost, ctx);
+box('context', -14,0, 0,H, -110,90, MAT.ghost, {t:'Rückwand Dusche', d:'Wand am Ende der Dusche', s:''});
+box('context', 0,57, 0,H, 24,60, MAT.ghost2, {t:'Wannen-Vorwand (dunkelbraun)', d:'Endet 78 cm vor der Stirnseite. Tiefe nicht bekannt, hier schematisch', s:'Tiefe angenommen'});
+box('context', 4,12, 2,8, -88,-4, MAT.steel, {t:'Duschrinne', d:'an der Rückwand der Dusche, schematisch', s:'Lage angenommen'});
+
+// ---------- Ebenen-Liste ----------
+const layersEl = document.getElementById('layers');
+GROUPS.forEach(g => {
+  const id = 'ly-'+g.id;
+  const lab = document.createElement('label');
+  lab.innerHTML = `<input type="checkbox" id="${id}" checked><i style="background:${g.color}"></i>${g.name}`;
+  layersEl.appendChild(lab);
+  lab.querySelector('input').addEventListener('change', e => { groups[g.id].visible = e.target.checked; render(); });
+});
+document.getElementById('dims').innerHTML = DIMS.map(([a,b,s]) =>
+  `<tr><td>${a}</td><td class="v">${b}</td><td><span class="tag ${s}">${s===M?'gemessen':'geschätzt / angenommen'}</span></td></tr>`).join('');
+
+// ---------- Labels ----------
+const labelsEl = document.getElementById('labels');
+const labels = GROUPS.filter(g => !g.noLabel).map(g => {
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.innerHTML = `<i style="background:${g.color}"></i>${g.name}`;
+  labelsEl.appendChild(el); return {g, el};
+});
+
+// ---------- Explosion ----------
+const slider = document.getElementById('explode');
+let ex = slider.value/100;
+function applyExplode(){
+  GROUPS.forEach(g => groups[g.id].position.set(g.off[0]*ex, g.off[1]*ex, g.off[2]*ex));
+}
+slider.addEventListener('input', () => { ex = slider.value/100; applyExplode(); render(); });
+applyExplode();
+
+// ---------- Kamera ----------
+const target = new THREE.Vector3(67,120,8);
+const VIEWS = {
+  iso:  {p:[470,270,-330], t:[70,115,-8]},
+  bath: {p:[480,260,360],  t:[70,115,20]},
+  front:{p:[67,130,-560],  t:[67,125,0]},
+  top:  {p:[67,560,-20],   t:[67,0,0]},
+};
+function setView(k){ const v = VIEWS[k]; camera.position.set(...v.p); controls.target.set(...v.t); controls.update(); render(); }
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+setView('iso');
+
+// ---------- Auswahl ----------
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const info = document.getElementById('info');
+let selected = null, downAt = null;
+canvas.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX-downAt[0], e.clientY-downAt[1]) > 5) return;
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(pickables.filter(m => { let o=m; while(o){ if(!o.visible) return false; o=o.parent;} return true; }), false)
+    .find(h => h.object.material !== MAT.ghost || true);
+  if (selected){ selected.forEach(m => m.material = m.userData.orig); selected = null; }
+  if (!hit){ info.innerHTML = '<span style="color:var(--muted)">Klicke im Modell auf ein Bauteil.</span>'; render(); return; }
+  const part = hit.object.userData.part;
+  selected = pickables.filter(m => m.userData.part === part);
+  selected.forEach(m => { m.userData.orig = m.material; const c = m.material.clone(); c.emissive = new THREE.Color(0x3a7fd0); c.emissiveIntensity = .45; m.material = c; });
+  const est = /geschätzt|angenommen/.test(part.s);
+  info.innerHTML = `<b>${part.t}</b>${part.d}${part.s ? `<br><span class="tag ${est?'e':'m'}">${part.s}</span>` : ''}`;
+  render();
+});
+
+// ---------- Theme / Render ----------
+function themeBg(){ scene.background = new THREE.Color(getComputedStyle(viewer).backgroundColor); }
+themeBg();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { themeBg(); render(); });
+new MutationObserver(() => { themeBg(); render(); }).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+function resize(){
+  const w = viewer.clientWidth, h = viewer.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); render();
+}
+new ResizeObserver(resize).observe(viewer);
+
+const v = new THREE.Vector3();
+function placeLabels(){
+  const w = viewer.clientWidth, h = viewer.clientHeight;
+  const show = ex > 0.25;
+  labels.forEach(({g, el}) => {
+    const grp = groups[g.id];
+    if (!grp.visible || !show){ el.style.opacity = 0; return; }
+    v.set(...g.anchor).add(grp.position).project(camera);
+    if (v.z > 1){ el.style.opacity = 0; return; }
+    el.style.opacity = 1;
+    el.style.left = ((v.x+1)/2*w)+'px'; el.style.top = ((1-v.y)/2*h)+'px';
+  });
+}
+var pending = false;
+function render(){ if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; renderer.render(scene, camera); placeLabels(); }); }
+controls.addEventListener('change', render);
+(function loop(){ requestAnimationFrame(loop); controls.update(); })();
+resize();
+})();
+</script>
+
+</body></html>

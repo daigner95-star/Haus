@@ -16,3 +16,6 @@ Danach ist die Seite unter `https://<benutzer>.github.io/<repo>/` erreichbar.
 - Wohnfläche laut Ausschreibung 94 m² (inkl. anteiligem Balkon). Nachrechnung im Modell wie Ausschreibung: DG-Höhen nach Werkplan (≥ 2 m voll, 1–2 m halb, < 1 m nicht), Treppe angerechnet, tiefer Balkonteil ½, übrige Balkonfläche ¼.
 
 Keine Adresse, keine Koordinaten, keine Namen im Repo.
+
+## Badwand (EG)
+`badwand.html`: 3D-Explosionsmodell der Trockenbau-Trennwand Dusche/Badewanne mit Fallrohr, Frischwasser K/W, Abwasser, Nische und Leerrohr. Gemessene und geschätzte Maße sind auf der Seite getrennt aufgeführt.
