@@ -134,6 +134,12 @@ const DIMS = [
   ['Zuleitung K/W', 'Verlauf im Boden und Eintritt durch die Schwelle angenommen', E],
   ['Abwasser Dusche', 'Abzweig DN50 am Fallrohrfuß zur Duschrinne, Verlauf angenommen', E],
   ['Leerrohr Licht', 'von der Decke zur Nischenoberkante', E],
+  ['Bodenaufbau Dämmung', '5 cm EPS (Styropor), Rohre liegen in Aussparungen', M],
+  ['Bodenaufbau Trittschalldämmung', '3 cm', M],
+  ['Estrich', '4 cm Anhydrit-Fließestrich (CAF), schwimmend; Mindestdicke nach DIN 18560-2 ohne Fußbodenheizung 3,5 cm', E],
+  ['Fußbodenaufbau gesamt', '12 cm ab Rohboden (ohne Fliesen)', E],
+  ['Randdämmstreifen', '1 cm, entkoppelt den Estrich von der Wand', E],
+  ['Gefälle zur Duschrinne', 'nicht modelliert, Estrich eben dargestellt', E],
   ['Fliesen', 'nicht modelliert', E],
 ];
 
@@ -147,6 +153,10 @@ const GROUPS = [
   {id:'frameBath', name:'Ständer Badseite', color:'#c99a55', off:[0,0,20], anchor:[110,232,20]},
   {id:'planBath', name:'Fermacell Badseite', color:'#dcd8cc', off:[0,0,44], anchor:[110,60,24]},
   {id:'planEnd', name:'Fermacell Stirnseite', color:'#d3cfc2', off:[42,0,0], anchor:[135,60,12]},
+  {id:'eps', name:'Dämmung EPS 5 cm', color:'#f1f1ec', off:[0,0,0], anchor:[15,3,-100]},
+  {id:'tsd', name:'Trittschalldämmung 3 cm', color:'#e3d79a', off:[0,14,0], anchor:[90,7,-105]},
+  {id:'screed', name:'Anhydrit-Estrich 4 cm', color:'#bdb7aa', off:[0,30,0], anchor:[170,10,-30]},
+  {id:'edge', name:'Randdämmstreifen', color:'#7fa7c4', off:[0,30,0], anchor:[136,12,12]},
   {id:'context', name:'Umgebung (Boden, Decke, Rückwand)', color:'#9aa3a9', off:[0,0,0], anchor:null, noLabel:true},
 ];
 
@@ -171,6 +181,10 @@ const MAT = {
   ht: mat(0x7f878e, {roughness:.5}), insDrain: mat(0x5f7286, {roughness:.6}),
   cold: mat(0x2f6fb3, {roughness:.55}), warm: mat(0xd2553f, {roughness:.55}), steel: mat(0xa9b0b8, {metalness:.6, roughness:.35}),
   brass: mat(0xb9a27a, {metalness:.5, roughness:.4}), black: mat(0x2a2a2a, {roughness:.6}),
+  eps: mat(0xf1f1ec, {transparent:true, opacity:.6, depthWrite:false}),
+  tsd: mat(0xe3d79a, {transparent:true, opacity:.7, depthWrite:false}),
+  screed: mat(0xbdb7aa, {transparent:true, opacity:.88, roughness:.9}),
+  edge: mat(0x7fa7c4, {roughness:.8}),
   led: mat(0xfff3c4, {emissive:0xffe8a0, emissiveIntensity:.9}),
   ghost: mat(0x9aa3a9, {transparent:true, opacity:.14, depthWrite:false}),
   ghost2: mat(0x6b5444, {transparent:true, opacity:.22, depthWrite:false}),
@@ -271,8 +285,8 @@ const pC = {t:'Rohrschelle mit Gewindestange', d:'Schelle mit Gummieinlage, Gewi
 });
 // Abzweig DN50 zur Duschrinne
 const pD = {t:'Abwasser Dusche DN50', d:'Abzweig am Fallrohrfuß, unter dem Estrich zur Duschrinne an der Rückwand', s:'Verlauf angenommen'};
-pipe('drain', [[FX,10,FZ-6],[FX,5,-12],[12,5,-12],[12,5,-45]], 3.2, MAT.insDrain, pD);
-cyl('drain', [12,5,-45], [12,10,-45], 2.6, MAT.ht, pD, 18);
+pipe('drain', [[FX,10,FZ-6],[FX,3.4,-12],[12,3.4,-12],[12,3.4,-45]], 3.2, MAT.insDrain, pD);
+cyl('drain', [12,3.4,-45], [12,6,-45], 2.6, MAT.ht, pD, 18);
 
 // ---------- Frischwasser ----------
 function supply(x, zFloor, m, name){
@@ -295,7 +309,20 @@ box('context', -40,175, -20,0, -110,90, MAT.ghost, ctx);
 box('context', -40,175, H,H+14, -110,90, MAT.ghost, ctx);
 box('context', -14,0, 0,H, -110,90, MAT.ghost, {t:'Rückwand Dusche', d:'Wand am Ende der Dusche', s:''});
 box('context', 0,57, 0,H, 24,60, MAT.ghost2, {t:'Wannen-Vorwand (dunkelbraun)', d:'Endet 78 cm vor der Stirnseite. Tiefe nicht bekannt, hier schematisch', s:'Tiefe angenommen'});
-box('context', 4,12, 2,8, -88,-4, MAT.steel, {t:'Duschrinne', d:'an der Rückwand der Dusche, schematisch', s:'Lage angenommen'});
+box('context', 4,12, 6,12, -88,-4, MAT.steel, {t:'Duschrinne', d:'an der Rückwand der Dusche, schematisch', s:'Lage angenommen'});
+
+// ---------- Fußbodenaufbau ----------
+// Flächen um die Wand herum; die Wand steht auf dem Rohboden, der Estrich ist über Randstreifen getrennt.
+const AREAS = [[0,175,-110,-1],[136,175,-1,90],[58,136,25,90],[0,58,61,90]];
+const FLOOR = [
+  ['eps', 0, 5, MAT.eps, {t:'Wärmedämmung EPS (Styropor)', d:'5 cm auf dem Rohboden, Leitungen liegen in Aussparungen der Dämmung', s:'Dicke gemessen'}],
+  ['tsd', 5, 8, MAT.tsd, {t:'Trittschalldämmung', d:'3 cm, durchgehend über der EPS-Dämmung, darauf PE-Folie', s:'Dicke gemessen'}],
+  ['screed', 8, 12, MAT.screed, {t:'Anhydrit-Fließestrich (CAF)', d:'schwimmend, 4 cm angenommen. Norm-Mindestdicke ohne Fußbodenheizung 3,5 cm (DIN 18560-2); mit Fußbodenheizung eher 4,5–5 cm', s:'Dicke angenommen (Standardmaß)'}],
+];
+FLOOR.forEach(([g, y0, y1, m, part]) => AREAS.forEach(([a,b,c,d]) => box(g, a,b, y0,y1, c,d, m, part)));
+const pR = {t:'Randdämmstreifen', d:'ca. 1 cm, vom Rohboden bis Oberkante Estrich, trennt den Estrich von Wand und Vorwand', s:'Dicke angenommen'};
+[[0,135,0,12,-1,0],[135,136,0,12,-1,25],[57,136,0,12,24,25],[0,58,0,12,60,61],[57,58,0,12,25,61]]
+  .forEach(([a,b,c,d,e,f]) => box('edge', a,b, c,d, e,f, MAT.edge, pR));
 
 // ---------- Ebenen-Liste ----------
 const layersEl = document.getElementById('layers');
