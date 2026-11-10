@@ -213,17 +213,24 @@ const W2={
   /* Beispielmöblierung Wohnung 3 (hier in Koordinaten von Wohnung 2, wird gespiegelt):
      TV am Giebel zwischen den Fenstern, Esstisch am Gartenfenster, Schlafzimmer mit Bett an der Trennwand, Büro statt Kinderzimmer */
   furnB:[
-    {lvl:'OG',t:'kitchen',x:6.245,y:2.2,w:2.9,d:0.6,rot:90},
+    // Küche: Zeile + Arbeitsinsel (Variante 4)
+    {lvl:'OG',t:'counter',x:6.245,y:1.4,w:0.6,d:2.106},
+    {lvl:'OG',t:'tall',x:6.245,y:3.053,w:0.6,d:1.2},
+    {lvl:'OG',t:'sink',x:6.25,y:1.85,w:0.5,d:0.6},{lvl:'OG',t:'hob',x:6.245,y:0.85,w:0.5,d:0.6},
+    {lvl:'OG',t:'upper',x:6.37,y:1.5,w:0.35,d:1.8},
+    {lvl:'OG',t:'counter',x:4.4,y:2.2,w:0.9,d:2.0},{lvl:'OG',t:'ctop',x:3.825,y:2.2,w:0.25,d:2.0},
+    {lvl:'OG',t:'stool',x:3.55,y:1.6},{lvl:'OG',t:'stool',x:3.55,y:2.2},{lvl:'OG',t:'stool',x:3.55,y:2.8},
+    // Essen am Gartenfenster
     {lvl:'OG',t:'dtable',x:1.75,y:1.38,w:1.5,d:0.85,rot:0,c:0xc49a6c},
     {lvl:'OG',t:'chair',x:1.38,y:0.74,rot:0,c:0xb9b2a5},{lvl:'OG',t:'chair',x:2.12,y:0.74,rot:0,c:0xb9b2a5},
     {lvl:'OG',t:'chair',x:1.38,y:2.03,rot:180,c:0xb9b2a5},{lvl:'OG',t:'chair',x:2.12,y:2.03,rot:180,c:0xb9b2a5},
-    {lvl:'OG',t:'chair',x:2.78,y:1.38,rot:90,c:0xb9b2a5},
-    {lvl:'OG',t:'rug',x:1.9,y:3.55,w:1.9,d:2.4,c:0xc9cdd2},
-    {lvl:'OG',t:'tv',x:0.58,y:3.55,w:1.4,d:0.45,rot:-90,c:0xe9e6df},
-    {lvl:'OG',t:'sofa',x:3.1,y:3.5,w:2.1,d:0.95,rot:90,c:0x7d8a99},
-    {lvl:'OG',t:'otable',x:1.85,y:3.55,w:0.6,d:1.1},
-    {lvl:'OG',t:'sofa',x:1.4,y:4.95,w:0.85,d:0.85,rot:180,c:0xc9a27a},
-    {lvl:'OG',t:'plant',x:0.6,y:4.6},
+    // Wohnen: TV an der Wand zum Bad, Sofa gegenüber
+    {lvl:'OG',t:'rug',x:1.8,y:4.0,w:2.4,d:1.6,c:0xc9cdd2},
+    {lvl:'OG',t:'tv',x:1.8,y:5.29,w:1.6,d:0.45,rot:180,c:0xe9e6df},
+    {lvl:'OG',t:'sofa',x:1.8,y:3.15,w:2.1,d:0.95,rot:0,c:0x7d8a99},
+    {lvl:'OG',t:'otable',x:1.8,y:4.25,w:1.0,d:0.55},
+    {lvl:'OG',t:'sofa',x:0.85,y:4.15,w:0.85,d:0.85,rot:-90,c:0xc9a27a},
+    {lvl:'OG',t:'plant',x:0.6,y:5.2},
     {lvl:'OG',t:'cab',x:3.717,y:8.1,w:0.45,d:0.40,h:2.0,rot:-90,c:0xc49a6c},
     {lvl:'DG',t:'bed',x:2.45,y:4.0,w:1.8,d:2.1,rot:180},
     {lvl:'DG',t:'cab',x:1.3,y:4.85,w:0.4,d:0.4,h:0.5,rot:180,c:0xe9e6df},
@@ -368,7 +375,7 @@ const TX={
   soffit:canvasTex((g,n)=>{const k=8,bh=n/k;for(let i=0;i<k;i++){wood(g,0,i*bh,n,bh,[222,184,132]);g.fillStyle='rgba(90,60,30,0.35)';g.fillRect(0,i*bh,n,1);}})
 };
 const M={
-  wall:lam(0xf3f1ec), skin:lam(0xbf8a55), floor:lam(0xa8845c), tile:lam(0xbdb4a6), ceilOG:lam(0xe4cfa3), ceilDG:lam(0xf6f5f1),
+  wall:lam(0xf3f1ec), skin:lam(0xbf8a55), floor:lam(0xa8845c), tile:lam(0x9e9384), ceilOG:lam(0xe4cfa3), ceilDG:lam(0xf6f5f1),
   roof:lam(0xffffff,{map:TX.tiles}), soffit:lam(0xffffff,{map:TX.soffit}), roofSide:lam(0x8a6440), frame:lam(0xcfa676), frameDark:lam(0x4b4b49), door:lam(0xb98250),
   skinOG:lam(0xffffff,{map:TX.boardsH}), skinDG:lam(0xffffff,{map:TX.boardsV}), plaster:lam(0xffffff,{map:TX.plaster}), grating:lam(0x8d9196),
   glass:new THREE.MeshLambertMaterial({color:0xbcd6e6,transparent:true,opacity:0.25,depthWrite:false,side:THREE.DoubleSide}),
@@ -631,6 +638,13 @@ function buildFurniture(u,which){
       case 'otable':{const c=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.04,40),fmat(0xc8a475));c.scale.set(w,1,d);c.position.y=0.45;c.castShadow=true;g.add(c);part(0,0,0.06,0.06,0,0.45,fmat(0xc8a475));hh=0.47;break;}
       case 'tv':{part(0,0,w,d,0,0.55,fmat(f.c||0x4a3324));part(0,-0.05,w*0.9,0.05,0.62,0.75,fmat(0x15171a));hh=1.6;break;}
       case 'bench':{const m=fmat(0xc49a6c);part(0,0,w,d,0,0.45,m);part(0,-d/2+0.04,w,0.08,0.45,0.45,m);hh=0.9;break;}
+      case 'counter':{part(0,0,w-0.02,d-0.02,0.1,0.76,fmat(0xeeece6));part(0,0,w,d,0,0.1,fmat(0xcfcac0));part(0,0,w,d,0.86,0.04,fmat(0xa77a4c));hh=0.9;break;}
+      case 'ctop':{part(0,0,w,d,0.86,0.04,fmat(0xa77a4c));hh=0;break;}
+      case 'tall':{part(0,0,w-0.01,d-0.01,0,2.1,fmat(0xeeece6));hh=2.1;break;}
+      case 'upper':{part(0,0,w,d,1.45,0.7,fmat(0xeeece6));hh=0;break;}
+      case 'sink':{part(0,0,w,d,0.9,0.006,fmat(0x9aa1a8));part(0.18,0,0.03,0.03,0.9,0.28,fmat(0xc0c4c8));hh=0;break;}
+      case 'hob':{part(0,0,w,d,0.9,0.006,fmat(0x18191b));hh=0;break;}
+      case 'stool':{const c=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,0.05,20),fmat(0x3b3f45));c.position.y=0.75;c.castShadow=true;g.add(c);part(0,0,0.04,0.04,0,0.75,fmat(0x222222));f.w=0.36;f.d=0.36;hh=0.78;break;}
       case 'rug':{part(0,0,w,d,0.002,0.012,fmat(f.c||0xd9d2c3));hh=0;break;}
       case 'cab':{part(0,0,w,d,0,f.h||1.0,fmat(f.c||0xc49a6c));hh=f.h||1.0;break;}
       case 'dtable':{const m=fmat(f.c||0x4b3324);part(0,0,w,d,0.72,0.05,m);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>part(a*(w/2-0.08),b*(d/2-0.12),0.06,0.06,0,0.72,fmat(0x222222)));hh=0.77;break;}
@@ -639,9 +653,9 @@ function buildFurniture(u,which){
       case 'bed':{part(0,0,w,d,0,0.3,fmat(0xc49a6c));part(0,0.02,w-0.06,d-0.06,0.3,0.2,fmat(0xefebe3));part(0,-d/2+0.04,w,0.08,0,0.9,fmat(0xc49a6c));part(0,-d/2+0.35,w-0.2,0.35,0.5,0.1,fmat(0xfafafa));hh=0.5;break;}
       case 'kitchen':{part(0,0,w,d,0,0.86,fmat(0xe9e6df));part(0,0.01,w+0.02,d+0.02,0.86,0.04,fmat(0x8a7a66));part(0,-d/2+0.18,w,0.35,1.45,0.7,fmat(0xe9e6df));part(-w/2+0.9,0,0.6,d*0.8,0.9,0.02,fmat(0xb8bcc0));hh=0.9;break;}
       case 'plant':{const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.12,0.32,16),fmat(0xeeeeee));pot.position.y=0.16;g.add(pot);const lf=new THREE.Mesh(new THREE.SphereGeometry(0.32,14,10),fmat(0x5f8a4e));lf.position.y=0.62;lf.scale.set(1,1.3,1);lf.castShadow=true;g.add(lf);f.w=0.4;f.d=0.4;hh=0.9;break;}
-      case 'tub':{part(0,0,w,d,0,0.58,fmat(0xc7bfb2));part(0,0,w-0.14,d-0.14,0.5,0.09,fmat(0xffffff));hh=0.58;break;}
-      case 'shower':{part(0,0,w,d,0,0.012,fmat(0xc7bfb2));part(0,-d/2+0.1,0.6,0.02,0.01,0.02,fmat(0x9aa0a6));part(-w/2+0.03,0.15,0.04,0.04,0.9,1.3,fmat(0xc0c4c8));part(-w/2+0.12,0.15,0.25,0.25,2.15,0.02,fmat(0xd0d4d8));hh=0;break;}
-      case 'wc':{part(0,0,w,d,0,1.2,fmat(0xc7bfb2));part(0,-0.4,0.38,0.55,0.28,0.14,fmat(0xffffff));part(0,-0.4,0.3,0.45,0.18,0.12,fmat(0xffffff));hh=1.2;break;}
+      case 'tub':{part(0,0,w,d,0,0.58,fmat(0xa89e8f));part(0,0,w-0.14,d-0.14,0.5,0.09,fmat(0xffffff));hh=0.58;break;}
+      case 'shower':{part(0,0,w,d,0,0.012,fmat(0xa89e8f));part(0,-d/2+0.1,0.6,0.02,0.01,0.02,fmat(0x9aa0a6));part(-w/2+0.03,0.15,0.04,0.04,0.9,1.3,fmat(0xc0c4c8));part(-w/2+0.12,0.15,0.25,0.25,2.15,0.02,fmat(0xd0d4d8));hh=0;break;}
+      case 'wc':{part(0,0,w,d,0,1.2,fmat(0xa89e8f));part(0,-0.4,0.38,0.55,0.28,0.14,fmat(0xffffff));part(0,-0.4,0.3,0.45,0.18,0.12,fmat(0xffffff));hh=1.2;break;}
       case 'basin':{part(0,0,w,d,0.8,0.15,fmat(0xffffff));part(0,-d/2+0.01,0.02,0.02,0.95,0.15,fmat(0xc0c4c8));hh=0.95;break;}
     }
     // Kollision (achsparallele Hülle)
