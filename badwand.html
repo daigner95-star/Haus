@@ -89,6 +89,7 @@ h2.sec{font-size:1.05rem;margin:6px 0 0;font-weight:600}
           <button data-view="front">Duschseite</button>
           <button data-view="top">Von oben</button>
         </div>
+        <label class="row" style="justify-content:flex-start;cursor:pointer;font-size:13.5px"><input type="checkbox" id="showLabels" checked> Beschriftung anzeigen</label>
       </div>
       <div class="box">
         <h2>Schichten</h2>
@@ -154,11 +155,11 @@ const GROUPS = [
   {id:'frameBath', name:'Ständer Badseite', color:'#c99a55', off:[0,0,20], anchor:[110,232,20]},
   {id:'planBath', name:'Fermacell Badseite', color:'#dcd8cc', off:[0,0,44], anchor:[110,60,24]},
   {id:'planEnd', name:'Fermacell Stirnseite', color:'#d3cfc2', off:[42,0,0], anchor:[135,60,12]},
-  {id:'eps', name:'Dämmung EPS 5 cm', color:'#f1f1ec', off:[0,0,0], anchor:[15,3,-100]},
-  {id:'tsd', name:'Trittschalldämmung 3 cm', color:'#e3d79a', off:[0,14,0], anchor:[90,7,-105]},
+  {id:'eps', name:'Dämmung EPS 5 cm', color:'#6fa8dc', off:[0,0,0], anchor:[15,3,-100]},
+  {id:'tsd', name:'Trittschalldämmung 3 cm', color:'#f2a7c3', off:[0,14,0], anchor:[90,7,-105]},
   {id:'fbh', name:'Fußbodenheizung', color:'#e8892b', off:[0,22,0], anchor:[120,9,-60]},
   {id:'screed', name:'Anhydrit-Estrich 5 cm', color:'#bdb7aa', off:[0,30,0], anchor:[170,10,-30]},
-  {id:'edge', name:'Randdämmstreifen', color:'#7fa7c4', off:[0,30,0], anchor:[136,12,12]},
+  {id:'edge', name:'Randdämmstreifen', color:'#8c8f96', off:[0,30,0], anchor:[136,12,12]},
   {id:'context', name:'Umgebung (Boden, Decke, Rückwand)', color:'#9aa3a9', off:[0,0,0], anchor:null, noLabel:true},
 ];
 
@@ -183,10 +184,10 @@ const MAT = {
   ht: mat(0x7f878e, {roughness:.5}), insDrain: mat(0x5f7286, {roughness:.6}),
   cold: mat(0x2f6fb3, {roughness:.55}), warm: mat(0xd2553f, {roughness:.55}), steel: mat(0xa9b0b8, {metalness:.6, roughness:.35}),
   brass: mat(0xb9a27a, {metalness:.5, roughness:.4}), black: mat(0x2a2a2a, {roughness:.6}),
-  eps: mat(0xf1f1ec, {transparent:true, opacity:.6, depthWrite:false}),
-  tsd: mat(0xe3d79a, {transparent:true, opacity:.7, depthWrite:false}),
+  eps: mat(0x6fa8dc, {transparent:true, opacity:.6, depthWrite:false}),
+  tsd: mat(0xf2a7c3, {transparent:true, opacity:.7, depthWrite:false}),
   screed: mat(0xbdb7aa, {transparent:true, opacity:.88, roughness:.9}),
-  edge: mat(0x7fa7c4, {roughness:.8}),
+  edge: mat(0x8c8f96, {roughness:.8}),
   fbh: mat(0xe8892b, {roughness:.5}),
   led: mat(0xfff3c4, {emissive:0xffe8a0, emissiveIntensity:.9}),
   ghost: mat(0x9aa3a9, {transparent:true, opacity:.14, depthWrite:false}),
@@ -361,6 +362,9 @@ const labels = GROUPS.filter(g => !g.noLabel).map(g => {
   labelsEl.appendChild(el); return {g, el};
 });
 
+var showLabels = true;
+document.getElementById('showLabels').addEventListener('change', e => { showLabels = e.target.checked; render(); });
+
 // ---------- Explosion ----------
 const slider = document.getElementById('explode');
 let ex = slider.value/100;
@@ -419,7 +423,7 @@ new ResizeObserver(resize).observe(viewer);
 const v = new THREE.Vector3();
 function placeLabels(){
   const w = viewer.clientWidth, h = viewer.clientHeight;
-  const show = ex > 0.25;
+  const show = ex > 0.25 && showLabels;
   labels.forEach(({g, el}) => {
     const grp = groups[g.id];
     if (!grp.visible || !show){ el.style.opacity = 0; return; }
