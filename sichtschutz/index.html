@@ -233,7 +233,7 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="vdesc">
         <h2>Treppe zum Bach</h2>
         <p class="small muted">Beton-Blockstufen in der Lücke zwischen Terrassenmauer und Kalksteinmauer. Oben ein Podest auf Terrassenhöhe, von dem man auf die Terrasse und in den Giebelgarten kommt. Von dort gerade hinunter auf die Ebene am Bach, 1 m über dem Wasser.</p>
-        <div class="row"><button class="btn" id="stView">Im Modell zeigen</button><label class="small"><input type="checkbox" id="st-on" style="accent-color:var(--accent)"> Treppe einblenden</label></div>
+        <div class="row"><button class="btn" id="stView">Im Modell zeigen</button><label class="small"><input type="checkbox" id="st-on" style="accent-color:var(--accent)"> Treppe einblenden</label><label class="small"><input type="checkbox" id="st-old" style="accent-color:var(--accent)"> Bestehenden Weg mit Höhen zeigen</label></div>
       </div>
       <div><div class="tablewrap"><table id="stRes"></table></div></div>
       <div>
@@ -301,7 +301,7 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <tr><td>Kiesstreifen am Giebel bis zum Beet</td><td class="n">1,6 m</td></tr>
         </table></div>
       </div>
-      <p class="small muted">Nicht modelliert: Gerüst, Möbel und Baumaterial auf der Terrasse, Balkongeländer von Nr. 25 als Sichtschutz, Fenster und Türen von Nr. 25 hinter dem Balkon. Der Hang zeigt den Stand des Aufmaßes vom Januar 2024; was seither am Hang verändert wurde, fehlt bis auf Kalksteinmauer und Beet. Bachbreite und Gegenufer sind angenommen. Straßenseite und Giebelgarten sind als ebene Fläche gerechnet.</p>
+      <p class="small muted">Nicht modelliert: Gerüst, Möbel und Baumaterial auf der Terrasse, Balkongeländer von Nr. 25 als Sichtschutz, Fenster und Türen von Nr. 25 hinter dem Balkon. Der Hang zeigt den Stand des Aufmaßes vom Januar 2024, also vor dem Einbau der Jurakalk-Blöcke und der Terrassen im Hang. Ergänzt sind nur die obere Kalksteinmauer und das Beet. Die Höhen des bestehenden Wegs und der alten Treppe gelten nach deiner Angabe unverändert. Bachbreite und Gegenufer sind angenommen. Straßenseite und Giebelgarten sind als ebene Fläche gerechnet.</p>
     </section>
 
     <section class="tabpane" id="p-hi" role="tabpanel" aria-labelledby="t-hi" hidden>
@@ -389,6 +389,7 @@ const CFG = {
     land: 1.0,     // Länge des Zwischenpodests (0 = ohne)
     landAfter: 0,  // Zwischenpodest nach Steigung Nr. (0 = in der Mitte)
     bottom: 1.0,   // Austritt über dem Wasserspiegel: 1,0 m = Ebene am Bach (741,5 m ü. NHN)
+    showOld: true, // bestehenden Weg (alte Treppe laut Aufmaß) mit Höhen einblenden
   },
 };
 function fixedCrowns() {
@@ -1362,9 +1363,23 @@ function buildStair(g) {
   g.add(box(P.u0 - 0.1, P.u1 + 0.1, P.vEnd - 0.6, P.vEnd, P.bot - 0.1, P.bot, MAT.gravel));     // Austritt
   const lb = label('Treppe (geplant)', { size: 0.36, bg: 'rgba(60,66,70,0.92)' }); lb.position.copy(W(P.uc, P.top + 0.75, P.vTop - 0.5)); g.add(lb);
 }
+// Bestehender Weg laut Aufmaß 2024 (alte Treppe in der Lücke, schräg hinunter zum Grillplatz). Seine Höhen gelten weiter;
+// der Hang daneben ist seither mit Jurakalk-Blöcken terrassiert und im Modell noch auf dem Stand des Aufmaßes.
+const OLD_PATH = [[1.2, -1.4], [1.2, -3.08], [1.2, -4.55], [-1.9, -6.6], [-4.35, -6.7], [-7.3, -7.25], [-1.7, -8.7]];
+function buildOldPath(g) {
+  if (!CFG.stair.showOld) return;
+  const mat = new THREE.LineBasicMaterial({ color: 0xd2601a });
+  for (const pl of SURVEY.treppe) for (let i = 1; i < pl.length; i++) {
+    const a = pl[i - 1], b = pl[i]; if (Math.max(a[1], b[1]) > 0.3) continue; // nur der Teil am Hang
+    const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.2)), pts = [];
+    for (let k = 0; k <= n; k++) { const u = a[0] + (b[0] - a[0]) * k / n, v = a[1] + (b[1] - a[1]) * k / n; pts.push(W(u, Math.max(groundH(u, v), groundNat(u, v)) + 0.07, v)); }
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+  }
+  for (const [u, v] of OLD_PATH) { const lb = label(fmt(surveyH(u, v), 2), { size: 0.24, bg: 'rgba(178,82,20,0.92)', depthTest: false }); lb.position.copy(W(u, groundNat(u, v) + 0.45, v)); g.add(lb); }
+}
 function buildSite() {
   clearGroup(siteGrp);
-  buildTerrace27(siteGrp); buildBalcony27(siteGrp); buildKalk(siteGrp); buildFences(siteGrp); buildPavilion25(siteGrp); buildStair(siteGrp);
+  buildTerrace27(siteGrp); buildBalcony27(siteGrp); buildKalk(siteGrp); buildFences(siteGrp); buildPavilion25(siteGrp); buildStair(siteGrp); buildOldPath(siteGrp);
   const B = CFG.bach, lb = label('Bach', { size: 0.5, bg: 'rgba(52,104,130,0.92)' }); lb.position.copy(W(-3, bachLevel() + 1.3, waterV(-3) - B.width / 2)); siteGrp.add(lb);
   req();
 }
@@ -1882,6 +1897,8 @@ function renderStairFields() {
   };
   $('st-on').checked = CFG.stair.on;
   $('st-on').onchange = (e) => { CFG.stair.on = e.target.checked; rebuildSite(); save(); };
+  $('st-old').checked = CFG.stair.showOld;
+  $('st-old').onchange = (e) => { CFG.stair.showOld = e.target.checked; buildSite(); save(); };
   $('stView').onclick = () => setView('treppe');
 }
 function renderStair() {
@@ -1916,7 +1933,7 @@ function renderStair() {
     ${tx(xOf(P.vEnd) - 0.1, P.bot + 0.35, 'Austritt ' + sg(P.bot), 'end')}
     ${tx(xMax - 0.05, lvl, 'Wasser ' + sg(lvl), 'end')}
   </svg>` : '<p class="small muted">Treppe ist ausgeblendet.</p>';
-  $('stSecNote').textContent = 'Braun: Gelände entlang der Treppenachse laut Aufmaß vom 16.01.2024. Linie: Treppe. Höhen in m ü. NHN. Links das Podest, rechts der Bach.';
+  $('stSecNote').textContent = 'Braun: Gelände entlang der Treppenachse laut Aufmaß vom 16.01.2024 (vor den Jurakalk-Terrassen). Linie: Treppe. Höhen in m ü. NHN. Links das Podest, rechts der Bach.';
   const notes = [
     `<b>Material:</b> ${C.blocks} Blockstufen, je ${cm(S.w, 0)} cm breit, ${cm(S.s, 0)} cm hoch und mindestens ${cm(S.a + 0.03, 0)} cm tief (Auftritt plus 3 cm Überdeckung). Dazu das obere Podest mit ${fmt(kalkU0() - T.over, 2)} × ${fmt(-P.vTop, 2)} m${P.k ? ` und das Zwischenpodest mit ${fmt(S.w, 2)} × ${fmt(S.land, 2)} m` : ''}.`,
     Math.abs(C.dBlock) > 0.0005 ? `Rechnerisch ergibt die Höhe ${cm(P.s)} cm je Stufe, die Blockstufe hat ${cm(S.s, 0)} cm. Die ${fmt(Math.abs(C.dBlock) * 1000, 0)} mm Unterschied je Stufe gleichst du über das Mörtelbett oder die Höhe des Austritts aus.` : '',
@@ -1924,6 +1941,7 @@ function renderStair() {
     `Zum Giebelgarten bleibt am Podest eine Stufe von ${cm(Math.max(0, P.top), 0)} cm.`,
     C.fitL === 'bad' ? '<span style="color:var(--bad)">Die Treppe reicht bis über die Wasserkante hinaus. Stufen höher wählen, Auftritt kürzen, Zwischenpodest kürzen, Austritt höher legen oder die Treppe unten wenden.</span>' : '',
     S.bottom >= 0.8 ? `Die Treppe endet auf der Ebene am Bach, ${fmt(S.bottom, 2)} m über dem Wasser. Für Stufen bis ans Wasser den Austritt auf 0 stellen: das sind weitere ${Math.round(S.bottom / P.s)} Steigungen durch die Uferböschung.` : '',
+    (() => { const off = P.steps.find(t => t.v0 < -4.7); return off ? `Bis Stufe ${off.i - 1} liegt die Treppe auf dem bestehenden Weg (orange im Modell), dessen Höhen unverändert gelten. Ab ${off.land ? 'dem Zwischenpodest' : 'Stufe ' + off.i} verlässt der gerade Lauf den Weg und quert den Hang, der seit dem Aufmaß terrassiert wurde: Auffüllung und Einschnitt sind dort noch nicht belastbar.` : ''; })(),
     'Gelände, Bach und Grenzen stammen aus dem Aufmaß vom Januar 2024. Die Höhe des Podests hängt an der Oberkante des Betonbalkens (746,30 m ü. NHN, aus Meterstab und Aufmaß hergeleitet). Diese eine Höhe vor dem Bestellen nachmessen und im Tab „Annahmen“ eintragen.',
     'Die unteren Stufen stehen an der Uferböschung. Bauten am Gewässer können genehmigungspflichtig sein (Art. 20 BayWG). Vorher bei der Gemeinde oder beim Landratsamt nachfragen. Hochwasser kann die untersten Stufen unterspülen. Keine Rechtsberatung.',
     'Bei dieser Höhe ist ein Handlauf sinnvoll. Er ist im Modell noch nicht dargestellt.',
