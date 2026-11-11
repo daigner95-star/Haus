@@ -130,7 +130,9 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
 .assume { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 6px 10px; align-items: center; font-size: 13.5px; }
 .assume input { width: 100%; }
 .src { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
-.src.m { color: var(--ok); } .src.g { color: var(--warn); } .src.p { color: var(--muted); }
+#stSec svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); }
+#stSec text { font-family: var(--font-mono); font-size: 0.36px; fill: var(--fg); }
+.src.m, .src.v { color: var(--ok); } .src.g { color: var(--warn); } .src.p { color: var(--muted); }
 
 @media (max-width: 860px) {
   .app { display: block; height: auto; }
@@ -187,6 +189,7 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <div class="tabs" role="tablist" aria-label="Planung">
       <button role="tab" id="t-cov" aria-selected="true" aria-controls="p-cov">Sichtschutz</button>
       <button role="tab" id="t-pl" aria-selected="false" aria-controls="p-pl">Pflanzen</button>
+      <button role="tab" id="t-st" aria-selected="false" aria-controls="p-st">Treppe</button>
       <button role="tab" id="t-as" aria-selected="false" aria-controls="p-as">Annahmen</button>
       <button role="tab" id="t-hi" aria-selected="false" aria-controls="p-hi">Hinweise</button>
     </div>
@@ -226,6 +229,23 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <textarea id="copyFallback" hidden rows="5" style="width:100%;font-family:var(--font-mono);font-size:12px" aria-label="Plan als Text"></textarea>
     </section>
 
+    <section class="tabpane" id="p-st" role="tabpanel" aria-labelledby="t-st" hidden>
+      <div class="vdesc">
+        <h2>Treppe zum Bach</h2>
+        <p class="small muted">Beton-Blockstufen in der Lücke zwischen Terrassenmauer und Kalksteinmauer. Oben ein Podest auf Terrassenhöhe, von dem man auf die Terrasse und in den Giebelgarten kommt. Von dort gerade hinunter auf die Ebene am Bach, 1 m über dem Wasser.</p>
+        <div class="row"><button class="btn" id="stView">Im Modell zeigen</button><label class="small"><input type="checkbox" id="st-on" style="accent-color:var(--accent)"> Treppe einblenden</label></div>
+      </div>
+      <div><div class="tablewrap"><table id="stRes"></table></div></div>
+      <div>
+        <h3>Längsschnitt</h3>
+        <div id="stSec"></div>
+        <p class="small muted" id="stSecNote"></p>
+      </div>
+      <div><h3>Maße der Treppe</h3></div>
+      <div class="assume" id="stFields"></div>
+      <ul class="tight small" id="stNotes"></ul>
+    </section>
+
     <section class="tabpane" id="p-as" role="tabpanel" aria-labelledby="t-as" hidden>
       <div>
         <h2>Annahmen prüfen</h2>
@@ -234,7 +254,7 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="assume" id="assume"></div>
       <div>
         <h2>Terrasse, Hang und Bach</h2>
-        <p class="small muted">Aus den Fotos vom 11.11. <span class="src m">Meterstab</span> = im Foto am Meterstab abgelesen (± 5 cm). <span class="src g">geschätzt</span> = aus der Perspektive geschätzt, bitte nachmessen. <span class="src p">Plan</span> = aus dem Werkplan abgeleitet.</p>
+        <p class="small muted">Lage und Höhen von Mauer, Hang, Bach und Grenzen stammen aus dem Aufmaß des Vermessers vom 16.01.2024 und sind fest hinterlegt. Änderbar ist, was seither gebaut wurde oder nur geschätzt ist. <span class="src v">Aufmaß</span> = vom Vermesser. <span class="src m">Meterstab</span> = im Foto abgelesen (± 5 cm). <span class="src g">geschätzt</span> = bitte nachmessen. <span class="src p">Plan</span> = aus dem Werkplan abgeleitet.</p>
       </div>
       <div class="assume" id="assume2"></div>
       <button class="btn" id="asReset">Annahmen zurücksetzen</button>
@@ -246,12 +266,27 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <tr><td>OG-Fußboden / Traufe / First</td><td class="n">+2,78 / +6,70 / +9,04 m</td><td>Schnitt</td></tr>
           <tr><td>OG-Fenster Südost-Giebel</td><td class="n">1,78–2,79 · 4,29–5,31 · 6,81–7,82 m</td><td>Fensterplan OG</td></tr>
           <tr><td>Brüstung / Fensterhöhe</td><td class="n">0,87 / 1,265 m</td><td>Fensterplan</td></tr>
-          <tr><td>Giebel → Grenze (straßenseitig)</td><td class="n">1,55 m</td><td>Lageplan, Atlas 1,2 m</td></tr>
-          <tr><td>Grenzversatz Richtung Nr. 25</td><td class="n">3,5 m</td><td>BayernAtlas</td></tr>
-          <tr><td>Giebel → Grenze (gartenseitig)</td><td class="n">4,9 m</td><td>BayernAtlas</td></tr>
-          <tr><td>Versatz ab Gartenfassade</td><td class="n">7,9 m</td><td>BayernAtlas</td></tr>
-          <tr><td>Achse Giebel → Straße</td><td class="n">≈ 34° (NO)</td><td>BayernAtlas</td></tr>
+          <tr><td>Giebel → Grenze (straßenseitig)</td><td class="n">1,55 m am Haus, 0,7 m an der Straße</td><td>Lageplan, Aufmaß</td></tr>
+          <tr><td>Grenzversatz Richtung Nr. 25</td><td class="n">3,74 m</td><td>Aufmaß</td></tr>
+          <tr><td>Giebel → Grenze (gartenseitig)</td><td class="n">5,33 m</td><td>Aufmaß</td></tr>
+          <tr><td>Versatz ab Gartenfassade</td><td class="n">7,6–8,0 m</td><td>Aufmaß</td></tr>
+          <tr><td>Achse Giebel → Straße</td><td class="n">32° (NO)</td><td>Aufmaß</td></tr>
         </table></div>
+      </div>
+      <div>
+        <h3>Aus dem Aufmaß (16.01.2024, Höhen in m ü. NHN)</h3>
+        <div class="tablewrap"><table>
+          <tr><th>Wert</th><th>Maß</th></tr>
+          <tr><td>Gelände am Giebel, von der Straße zur Hausecke Süd</td><td class="n">746,48 → 746,07</td></tr>
+          <tr><td>Terrasse alt, hinter der Mauer</td><td class="n">745,51–745,79</td></tr>
+          <tr><td>Mauerfuß an der Bachseite</td><td class="n">743,58–744,08</td></tr>
+          <tr><td>Mauerfuß an der Ecke Süd</td><td class="n">744,64</td></tr>
+          <tr><td>Grillplatz</td><td class="n">741,6–742,0</td></tr>
+          <tr><td>Ebene am Bach (im Plan „Schuppen“)</td><td class="n">741,5</td></tr>
+          <tr><td>Wasserkante</td><td class="n">740,44–740,57</td></tr>
+          <tr><td>Mauer bis Wasserkante, Ecke Süd / Nordwest-Ende</td><td class="n">7,9 m / 4,2 m</td></tr>
+        </table></div>
+        <p class="small muted">Lage des Neubaus im Aufmaß: Ecke Süd 0,70 m nordwestlich und 0,53 m bachseitig der alten Hausecke. Hergeleitet aus 1,55 m Giebelabstand zur Grenze (Lageplan) und 2,98 m von der Hauswand zur Mauer (Meterstab). Die Nordfassade liegt damit auf der alten Flucht. Höhe des Betonbalkens: Mauerfuß an der Ecke Süd (744,64) plus 1,65 m vom Meterstab.</p>
       </div>
       <div>
         <h3>In den Fotos am Meterstab abgelesen</h3>
@@ -266,7 +301,7 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <tr><td>Kiesstreifen am Giebel bis zum Beet</td><td class="n">1,6 m</td></tr>
         </table></div>
       </div>
-      <p class="small muted">Nicht modelliert: Gerüst, Möbel und Baumaterial auf der Terrasse, Balkongeländer von Nr. 25 als Sichtschutz, Fenster und Türen von Nr. 25 hinter dem Balkon. Der Hang ist vereinfacht: Berme, Böschung und Bach als glatte Flächen. Der Bach liegt nach den Fotos näher am Haus als die Flurgrenze aus der Karte; die Grenze selbst ist unverändert.</p>
+      <p class="small muted">Nicht modelliert: Gerüst, Möbel und Baumaterial auf der Terrasse, Balkongeländer von Nr. 25 als Sichtschutz, Fenster und Türen von Nr. 25 hinter dem Balkon. Der Hang zeigt den Stand des Aufmaßes vom Januar 2024; was seither am Hang verändert wurde, fehlt bis auf Kalksteinmauer und Beet. Bachbreite und Gegenufer sind angenommen. Straßenseite und Giebelgarten sind als ebene Fläche gerechnet.</p>
     </section>
 
     <section class="tabpane" id="p-hi" role="tabpanel" aria-labelledby="t-hi" hidden>
@@ -299,9 +334,10 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
 //   v = entlang des Giebels Richtung Straße (Nordost), 0 = Außenkante Gartenfassade (Südwest) Nr. 27
 //   h = Höhe über Gelände
 const CFG = {
-  bearingV: 34, // Kompassrichtung der +v-Achse (aus BayernAtlas-Messung 212° / 126,7°)
-  boundary: [[1.60, 30.2], [1.60, 8.00], [5.10, 7.80], [4.50, -11.5]], // Grenze 27|25
-  parcel27: [[-16.6, 30.2], [1.60, 30.2], [1.60, 8.00], [5.10, 7.80], [4.50, -11.5], [-16.6, -7.1]],
+  bearingV: 32, // Kompassrichtung der +v-Achse (Giebelrichtung aus dem Aufmaß: 32,05°)
+  // Grenzen aus dem Aufmaß des Vermessers (16.01.2024), umgerechnet auf die Südecke des Neubaus
+  boundary: [[0.71, 30.17], [1.59, 7.99], [5.33, 7.63], [5.34, -1.78], [5.40, -11.29]], // Grenze 27|25
+  parcel27: [[-16.35, 32.53], [-11.71, 31.92], [-12.43, 30.64], [0.71, 30.17], [1.59, 7.99], [5.33, 7.63], [5.34, -1.78], [5.40, -11.29], [4.95, -11.20], [-16.83, -7.46], [-16.66, 6.24], [-16.42, 25.16]],
   house27: { u0: -13.54, u1: 0, v0: 0, v1: 9.60, floor0: 0.25, og: 2.78, dg: 5.54, eave: 6.70, ridge: 9.04, ohEave: 1.4, ohGable: 0.9 },
   winOG: [
     { id: 'OG1', name: 'OG-Fenster 1', room: 'Wohnen, gartenseitig', v0: 1.778, v1: 2.793 },
@@ -324,32 +360,42 @@ const CFG = {
   // Terrasse Nr. 25 (Annahme: vor dem Erdgeschoss unter und vor dem Balkon)
   terrace: { u0: 5.4, u1: 11.0, v0: 6.2, v1: 9.7 },
   lattice: true, // vorhandenes Rankgitter am Nordwest-Ende des Balkons (Foto), ca. 50 % blickdicht
-  // ---- Bachseite (Fotos vom 11.11.): Terrasse Nr. 27, Hang, Kalksteinmauer, Bach ----
-  // Höhen beziehen sich auf h = 0 (Gelände am Südost-Giebel). "Meterstab" = im Foto abgelesen, sonst geschätzt.
+  // ---- Bachseite: Lage und Höhen aus dem Aufmaß (16.01.2024), Bauteile aus den Fotos vom 11.11. ----
+  // h = 0 ist das Gelände am Südost-Giebel. Absolut: h0 = survey.beam - terr27.top (m ü. NHN).
   terr27: {
-    uA: -13.54,     // Nordwest-Ende (Annahme: bündig mit dem Nordwest-Giebel)
-    over: 0.45,     // Außenkante Betonbalken steht so weit über die Giebelflucht hinaus (geschätzt)
-    depth: 2.93,    // Hauswand → Außenkante Betonbalken (Meterstab: 2,65 m Kies + 0,28 m Balken)
+    uA: -16.6,      // Nordwest-Ende der Mauer (Aufmaß)
+    over: 0.58,     // Außenkante Betonbalken über der Giebelflucht (Aufmaß: Mauerrücksprung, Neubau 0,70 m nordwestlich der Altbau-Ecke)
+    depth: 2.93,    // Hauswand → Außenkante Betonbalken (Meterstab; passt zum Aufmaß)
     curb: 0.28, curbH: 0.27, // Betonbalken Breite / Höhe (Meterstab)
     top: 0.15,      // OK Betonbalken über Gelände am Giebel (geschätzt)
     fill: 0.08,     // Kies liegt so weit unter OK Balken
-    hCorner: 1.65,  // Boden an der Ecke Süd → OK Balken (Meterstab)
-    hRiver: 2.15,   // Berme an der Bachseite → OK Balken (geschätzt)
-    berm: 1.3,      // Breite der Berme am Mauerfuß (geschätzt)
     rail: 0.88,     // OK Handlauf über OK Balken (Meterstab)
     sideRail: 2.1,  // Länge des seitlichen Geländers ab Ecke Süd (Meterstab)
-    board: 1.15,    // Hausecke → Ende Betonbalken, dort Holzbohle (aus Foto)
+    board: 1.15,    // Hausecke → Ende Betonbalken (Foto; im Aufmaß endet der Mauerrücksprung an derselben Stelle)
   },
+  survey: { beam: 746.30 }, // OK Betonbalken in m ü. NHN: Mauerfuß an der Ecke Süd 744,64 (Aufmaß) + 1,65 m (Meterstab)
   balc27: { u0: -11.74, u1: -1.80, depth: 2.55 }, // Balkon OG Gartenseite: Lage aus den OG-Türen im Plan abgeleitet, Tiefe geschätzt
-  kalk: { gap: 0.9, v: -1.95, h: 1.1, d: 0.45 },   // Kalksteinmauer: Lücke zur Terrassenmauer (Meterstab), Vorderkante, Höhe (3 Lagen), Tiefe
-  bach: { dist: 4.4, minDist: 1.8, skew: 0.26, width: 4.5, level: -3.4, slope: 0.75, far: -0.8 }, // Wasserkante ab Mauer (Ecke Süd), Wasserspiegel
+  kalk: { gap: 0.9, v: -1.95, h: 1.1, d: 0.45 },   // Kalksteinmauer (nach dem Aufmaß gebaut): Lücke zur Terrassenmauer (Meterstab), Vorderkante, Höhe, Tiefe
+  bach: { H: 740.5, width: 4.5, slope: 0.75, far: -1.5, minV: -4.0 }, // Wasserkante 740,44–740,57 m ü. NHN (Aufmaß); Breite und Gegenufer angenommen
   fence25: { newV0: -2.6, newV1: 1.0 },            // die zwei neuen Sichtschutzelemente von Nr. 25 (aus Fotos)
+  // Geplante Treppe zum Bach: Beton-Blockstufen in der Lücke zwischen Terrassenmauer und Kalksteinmauer.
+  // Oben ein Podest auf Terrassenhöhe (für Terrasse und Giebelgarten), dann gerade Richtung Bach.
+  stair: {
+    on: true,
+    w: 0.80,       // Laufbreite
+    side: 0.05,    // Abstand zur Terrassenmauer
+    s: 0.18,       // Stufenhöhe = Höhe der Blockstufe
+    a: 0.27,       // Auftritt
+    land: 1.0,     // Länge des Zwischenpodests (0 = ohne)
+    landAfter: 0,  // Zwischenpodest nach Steigung Nr. (0 = in der Mitte)
+    bottom: 1.0,   // Austritt über dem Wasserspiegel: 1,0 m = Ebene am Bach (741,5 m ü. NHN)
+  },
 };
 function fixedCrowns() {
   const b = CFG.balcony, out = [], opaque = (min, max) => out.push({ cr: { shape: 'box', min, max }, k: 80 });
   if (CFG.lattice) out.push({ cr: { shape: 'box', min: [b.u0, b.wallV - b.depth + 0.1, b.floor + 1.0], max: [b.u0 + 0.05, b.wallV - 0.05, b.floor + 2.25] }, k: 14 });
   // Zaun an der Grenze (Sichtschutz 1,8 m, weiter zum Bach nur Staketenzaun 1,0 m, halb durchsichtig), Schuppen, Balkonplatte
-  for (let v = 7.8; v > -7.4; v -= 1) {
+  for (let v = CFG.boundary[2][1]; v > -9.4; v -= 1) {
     const vm = v - 0.5, bu = boundaryUAt(vm), tall = vm > CFG.fence25.newV0, h = tall ? 1.8 : 1.0, z = groundH(bu + 0.15, vm);
     out.push({ cr: { shape: 'box', min: [bu + 0.12, v - 1, z], max: [bu + 0.18, v, z + h] }, k: tall ? 80 : 6 });
   }
@@ -453,13 +499,56 @@ function inPoly(u, v, P) {
   }
   return c;
 }
-function boundaryUAt(v) { // u der Grenze auf Höhe v (unterer Abschnitt bzw. oberer)
-  const B = CFG.boundary;
-  if (v >= B[1][1]) return B[1][0];
+function boundaryUAt(v) { // u der Grenze 27|25 auf Höhe v (oberhalb des Versatzes, im Versatz, unterhalb)
+  const B = CFG.boundary, seg = (a, b) => a[0] + (b[0] - a[0]) * (v - a[1]) / ((b[1] - a[1]) || 1e-9);
+  if (v >= B[1][1]) return seg(B[0], B[1]);
   if (v >= B[2][1]) return B[2][0];
-  const t = (v - B[2][1]) / (B[3][1] - B[2][1]);
-  return B[2][0] + t * (B[3][0] - B[2][0]);
+  for (let i = 3; i < B.length - 1; i++) if (v >= B[i][1]) return seg(B[i - 1], B[i]);
+  return seg(B[B.length - 2], B[B.length - 1]);
 }
+
+// u der Kalksteinmauer-Stirn: Außenfläche der Terrassenmauer (5 cm vor dem Betonbalken) plus Lücke
+function kalkU0() { return CFG.terr27.over + 0.05 + CFG.kalk.gap; }
+// ---- Aufmaß des Vermessers (16.01.2024, Höhen DHHN2016) in Modellkoordinaten ----
+// P: Geländepunkte [u, v, Höhe m ü. NHN], T: Dreiecksnetz des Vermessers, bach: Wasserkante,
+// zaun: aufgenommener Zaun an der Grenze zu Nr. 25, treppe/kanten/mauer: Bestandslinien 2024.
+// Lage: Neubau-Ecke Süd liegt 0,70 m nordwestlich und 0,53 m bachseitig der Altbau-Ecke Südost. Hergeleitet aus
+// Giebelabstand 1,55 m zur Grenze (Lageplan), Hauswand → Mauer 2,98 m (Meterstab) und der unveränderten Nordfassade.
+const SURVEY = {
+  P: [[-10.86,40.82,746.32],[2.11,38.68,746.23],[-18.67,35.8,746.48],[-17.7,34.66,746.5],[-17.55,33.4,746.54],[-16.85,32.63,746.55],[-10.19,30.96,746.49],[-6.22,30.17,746.53],[1.98,28.79,746.45],[0.1,31.25,746.3],[-6.09,32.17,746.41],[-10.81,33.54,746.47],[-6.13,32.03,746.51],[-0.02,31.12,746.45],[-4.88,31.87,746.42],[-4.92,31.76,746.52],[-10.69,31.84,746.52],[-12.39,31.99,746.53],[-12.82,31.26,746.6],[-8.1,26.0,746.26],[-11.39,26.16,746.28],[-12.3,23.54,746.21],[-12.88,21.7,746.15],[-14.58,18.39,746.33],[-15.5,18.32,746.27],[-16.24,10.02,746.47],[-12.79,11.46,746.35],[-1.72,12.54,746.42],[-0.11,11.13,746.59],[-0.39,17.3,746.37],[-0.99,21.4,746.44],[-0.66,21.1,746.39],[-0.24,27.27,746.53],[-4.11,26.78,746.35],[-5.29,19.53,746.3],[-9.83,18.19,746.25],[-12.7,10.02,746.42],[-10.38,9.61,746.43],[-0.03,9.85,746.46],[-19.35,17.64,746.53],[-16.95,7.09,746.32],[-17.19,2.57,745.99],[-21.68,3.12,746.25],[-21.25,7.31,746.55],[-16.72,-0.71,745.66],[-21.72,-0.23,744.01],[-21.75,-2.63,742.7],[-22.63,-4.65,741.78],[-22.72,-5.69,740.44],[-18.79,-4.17,742.83],[-16.86,-3.06,743.58],[-16.83,-6.28,742.08],[-12.72,-6.91,742.16],[-10.24,-7.37,742.21],[-10.25,-5.68,742.74],[-9.86,-3.42,744.08],[-6.3,-3.06,743.82],[-9.95,-7.81,741.59],[-9.56,-6.19,741.98],[-8.07,-6.4,741.66],[-5.66,-7.1,741.65],[-8.0,-9.09,740.48],[-3.41,-9.25,741.49],[1.33,-10.24,741.49],[1.42,-10.88,740.51],[5.05,-10.48,741.87],[4.89,-11.77,740.57],[5.12,-8.54,742.38],[1.96,-7.22,741.51],[-1.1,-7.17,741.54],[-4.31,-7.41,741.52],[-4.96,-6.54,741.82],[-6.53,-6.55,741.72],[-4.32,-7.12,741.96],[-4.37,-6.25,742.14],[-4.29,-3.03,743.98],[-2.0,-6.18,742.46],[0.03,-6.94,742.8],[0.65,-4.4,744.34],[1.72,-4.68,744.29],[0.58,-3.09,744.64],[1.95,0.2,745.76],[1.89,1.07,746.07],[5.0,-4.11,744.95],[1.74,-3.07,744.86],[1.75,-1.63,745.54],[5.06,-1.81,745.66],[5.04,1.35,745.88],[5.18,7.4,746.15],[1.54,7.57,746.48],[2.01,6.85,746.33],[1.98,3.41,746.1],[0.82,28.39,746.48],[2.03,-6.87,742.9],[1.33,11.17,746.5]],
+  T: [[0,1,10],[0,2,11],[0,10,11],[1,9,14],[1,10,14],[2,3,11],[3,4,5],[3,5,17],[3,11,17],[5,18,20],[5,20,21],[5,21,39],[6,7,19],[6,7,12],[6,12,16],[6,18,20],[6,19,20],[7,8,13],[7,8,92],[7,12,15],[7,13,15],[7,19,33],[7,32,33],[7,32,92],[9,13,14],[10,11,12],[10,12,15],[10,14,15],[11,12,16],[11,16,17],[13,14,15],[19,20,21],[19,21,35],[19,33,34],[19,34,35],[21,22,39],[21,22,35],[22,23,35],[22,23,24],[22,24,39],[23,24,26],[23,26,35],[24,25,39],[24,25,26],[25,26,36],[25,39,43],[25,40,43],[26,36,37],[27,28,94],[27,28,38],[27,29,34],[27,29,94],[28,38,94],[29,31,34],[29,31,92],[29,92,94],[30,31,32],[30,31,34],[30,32,33],[30,33,34],[31,32,92],[40,41,42],[40,42,43],[41,42,45],[41,44,45],[42,45,46],[44,45,46],[44,46,49],[44,49,50],[46,47,49],[47,48,51],[47,49,51],[48,51,61],[49,50,51],[50,51,52],[50,52,55],[51,52,61],[52,53,54],[52,53,57],[52,54,55],[52,57,61],[53,54,58],[53,57,58],[54,55,56],[54,56,74],[54,58,59],[54,59,74],[56,74,75],[57,58,59],[59,72,74],[60,70,73],[60,71,72],[60,71,73],[61,62,64],[62,63,69],[62,63,64],[62,69,70],[63,64,65],[63,65,67],[63,67,68],[63,68,69],[64,65,66],[67,68,93],[67,83,93],[68,69,77],[68,77,93],[71,72,74],[71,73,74],[74,75,76],[75,76,80],[76,78,80],[77,79,93],[79,83,93],[79,83,84],[81,82,87],[81,85,86],[81,86,87],[82,87,91],[83,84,86],[84,85,86],[87,88,91],[88,89,90],[88,90,91]],
+  bach: [[-22.72,-5.69],[-8.0,-9.09],[1.42,-10.88],[4.89,-11.77]],
+  zaun: [[[5.18,7.4],[5.04,1.35]],[[5.04,1.35],[5.06,-1.81]],[[5.0,-4.11],[5.06,-1.81]],[[5.0,-4.11],[5.12,-8.54]],[[5.12,-8.54],[5.05,-10.48]]],
+  treppe: [[[2.01,6.85],[0.7,6.85]],[[1.54,7.57],[0.7,7.57]],[[0.7,7.57],[0.7,6.94]],[[2.01,6.85],[1.54,7.57]],[[2.01,6.85],[1.98,3.41]],[[1.89,1.07],[1.95,0.2]],[[0.77,0.21],[1.95,0.2]],[[1.89,1.07],[0.7,1.07]],[[0.7,0.53],[0.77,0.21]],[[1.89,1.07],[1.98,3.41]],[[0.77,0.21],[0.67,-1.17]],[[1.95,0.2],[1.75,-1.63]],[[1.75,-1.63],[1.74,-3.07]],[[1.74,-3.07],[1.72,-4.68]],[[-1.81,-7.0],[1.72,-4.68]],[[-2.0,-6.18],[0.65,-4.4]],[[0.65,-4.4],[0.58,-3.09]],[[-1.81,-7.0],[-4.32,-7.12]],[[-4.32,-7.12],[-4.37,-6.25]],[[-4.37,-6.25],[-2.0,-6.18]]],
+  kanten: [[[-22.63,-4.65],[-16.83,-6.28]],[[-12.72,-6.91],[-16.83,-6.28]],[[-12.72,-6.91],[-10.24,-7.37]],[[-10.24,-7.37],[-10.25,-5.68]],[[-10.24,-7.37],[-9.95,-7.81],[-6.54,-8.36],[-3.41,-9.25],[1.33,-10.24]],[[1.33,-10.24],[5.05,-10.48]],[[-1.81,-7.0],[0.03,-6.94]],[[-4.37,-6.25],[-10.25,-5.68]],[[-16.86,-3.06],[-16.62,-2.47]],[[2.03,-6.87],[0.03,-6.94]],[[1.96,-7.22],[2.03,-6.87]],[[1.75,-1.63],[5.06,-1.81]],[[-9.95,-7.81],[-9.56,-6.19]],[[-9.56,-6.19],[-8.07,-6.4],[-6.53,-6.55],[-5.66,-7.1],[-4.31,-7.41],[-1.1,-7.17],[1.96,-7.22],[1.33,-10.24]],[[-4.31,-7.41],[-4.32,-7.12]]],
+  mauer: [[[-16.62,-2.47],[-7.35,-2.69],[-4.86,-2.59],[0.24,-2.55],[0.24,-1.15],[0.67,-1.17],[0.58,-3.09],[-4.29,-3.03],[-6.3,-3.06],[-9.86,-3.42],[-16.86,-3.06]]],
+};
+const TIN = (() => {
+  const P = SURVEY.P, cnt = new Map();
+  const tris = SURVEY.T.map(([a, b, c]) => {
+    for (const [i, j] of [[a, b], [b, c], [a, c]]) { const k = Math.min(i, j) + '_' + Math.max(i, j); cnt.set(k, (cnt.get(k) || 0) + 1); }
+    const A = P[a], B = P[b], C = P[c];
+    return { A, B, C, det: (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]), u0: Math.min(A[0], B[0], C[0]), u1: Math.max(A[0], B[0], C[0]), v0: Math.min(A[1], B[1], C[1]), v1: Math.max(A[1], B[1], C[1]) };
+  });
+  return { tris, hull: [...cnt].filter(([, n]) => n === 1).map(([k]) => k.split('_').map(i => P[+i])) };
+})();
+// Höhe in m ü. NHN aus dem Aufmaß. Außerhalb des Netzes (Nachbargrund, frühere Gebäudeflächen): Höhe am nächsten Netzrand.
+function surveyH(u, v) {
+  for (const t of TIN.tris) {
+    if (u < t.u0 || u > t.u1 || v < t.v0 || v > t.v1) continue;
+    const l1 = ((t.B[1] - t.C[1]) * (u - t.C[0]) + (t.C[0] - t.B[0]) * (v - t.C[1])) / t.det, l2 = ((t.C[1] - t.A[1]) * (u - t.C[0]) + (t.A[0] - t.C[0]) * (v - t.C[1])) / t.det, l3 = 1 - l1 - l2;
+    if (l1 >= -1e-9 && l2 >= -1e-9 && l3 >= -1e-9) return l1 * t.A[2] + l2 * t.B[2] + l3 * t.C[2];
+  }
+  let best = Infinity, h = 0;
+  for (const [a, b] of TIN.hull) {
+    const du = b[0] - a[0], dv = b[1] - a[1], L2 = du * du + dv * dv, t = L2 ? Math.max(0, Math.min(1, ((u - a[0]) * du + (v - a[1]) * dv) / L2)) : 0;
+    const d = (u - a[0] - t * du) ** 2 + (v - a[1] - t * dv) ** 2;
+    if (d < best) { best = d; h = a[2] + t * (b[2] - a[2]); }
+  }
+  return h;
+}
+function h0() { return CFG.survey.beam - CFG.terr27.top; }   // m ü. NHN auf Modellhöhe 0
+function bachLevel() { return CFG.bach.H - h0(); }           // Wasserspiegel in Modellhöhe
 
 // ---- Gelände (Hang zum Bach) ----
 function lerpPts(x, pts) { // stückweise linear; pts = [[x, y], ...] aufsteigend in x
@@ -468,48 +557,85 @@ function lerpPts(x, pts) { // stückweise linear; pts = [[x, y], ...] aufsteigen
   return pts[pts.length - 1][1];
 }
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
-// v der hausseitigen Wasserkante. Der Bach läuft schräg zum Haus und kommt Richtung Nordwesten näher.
+// v der hausseitigen Wasserkante (Aufmaß), über die aufgenommenen Enden hinaus gerade verlängert
 function waterV(u) {
-  const T = CFG.terr27, B = CFG.bach;
-  return Math.min(-(T.depth + B.minDist), -(T.depth + B.dist) - B.skew * (u - T.over));
+  const Wl = SURVEY.bach, n = Wl.length; let a = Wl[n - 2], b = Wl[n - 1];
+  for (let i = 1; i < n; i++) if (u <= Wl[i][0]) { a = Wl[i - 1]; b = Wl[i]; break; }
+  return Math.min(CFG.bach.minV, a[1] + (b[1] - a[1]) * (u - a[0]) / (b[0] - a[0]));
 }
-// Geländehöhe über dem Bezugsniveau (0 = Gelände am Südost-Giebel). Unter der Terrasse Nr. 27 liegt die Fläche
-// auf Bermenhöhe; die Terrasse selbst ist ein eigener Körper. Stufen sitzen 3 cm innerhalb der Mauern.
-function groundH(u, v) {
+// Geländehöhe ohne die geplante Treppe (0 = Gelände am Südost-Giebel): Hang, Ufer und Fläche unter der Terrasse nach dem
+// Aufmaß 2024. Seither gebaut und hier ergänzt: das aufgefüllte Beet hinter der Kalksteinmauer. Straßenseite und
+// Giebelgarten bleiben wie im Sichtschutz-Modell eben auf 0.
+function groundNat(u, v) {
   if (v >= 0.8) return 0;
-  const T = CFG.terr27, K = CFG.kalk, B = CFG.bach, e = 0.03;
-  const s = v - waterV(u); // Abstand zur Wasserkante, positiv Richtung Haus
-  if (s <= 0) { // Bachbett: beide Ufer fallen mit der Böschungsneigung unter den Wasserspiegel, dahinter das Gegenufer
-    if (s > -B.width) return B.level - Math.min(0.42, B.slope * Math.min(-s, B.width + s));
-    return B.level + (B.far - B.level) * clamp01((-s - B.width) / 2.5);
+  const K = CFG.kalk, B = CFG.bach, lvl = bachLevel(), s = v - waterV(u);
+  if (s <= 0) { // Bachbett: beide Ufer fallen unter den Wasserspiegel, dahinter das Gegenufer (angenommen)
+    if (s > -B.width) return lvl - Math.min(0.42, B.slope * Math.min(-s, B.width + s));
+    return lvl + (B.far - lvl) * clamp01((-s - B.width) / 4);
   }
-  const ub = T.over, vT = -T.depth, hC = T.top - T.hCorner, hBerm = T.top - T.hRiver, hK = -K.h;
-  const kv = Math.max(K.v, vT + 0.3), hLow = Math.min(hBerm, hC) - 0.2;
-  const slopeLG = lerpPts(v, [[vT - 3.5, hLow], [vT, hC], [kv, hK]]);         // Hang unterhalb der Kalksteinmauer
-  const nw = lerpPts(v, [[vT - T.berm, hBerm], [0, 0]]);                      // Hang nordwestlich der Terrasse (Annahme)
-  let up;
-  if (u <= ub - e) {
-    if (v >= -e) up = 0;
-    else if (u <= T.uA + e) up = nw;
-    else if (v > vT + e) up = hBerm;                                          // unter der Terrasse (verdeckt)
-    else {
-      const d = vT - v;                                                       // Abstand vom Mauerfuß
-      let berm = hBerm - 0.35 * clamp01((d - T.berm) / 0.4);
-      berm += (nw - berm) * clamp01(1 - (u - T.uA) / 2);
-      up = berm + (slopeLG - berm) * clamp01((u - (ub - 1.5)) / 1.5);
-    }
-  } else {
-    const uK = ub + K.gap;
-    if (v <= kv + 0.05) up = slopeLG;
-    else {
-      const gap = lerpPts(v, [[kv, hK], [kv + 0.65, hK + 0.15], [Math.max(-0.3, kv + 0.9), -0.3], [0.6, 0]]); // Treppe und Rampe zum Giebelgarten
-      const uG = v > kv + K.d + 0.15 ? uK + 0.45 : uK;                         // hinter dem Mauerkopf weitet sich die Lücke
-      up = gap * (1 - clamp01((u - uG) / 0.35));                              // dahinter das Beet auf Höhe 0
-    }
-    const f25 = clamp01((u - boundaryUAt(v)) / 1.2);                          // Grundstück Nr. 25: sanfter Hang (Annahme)
-    if (f25 > 0) up += (lerpPts(s, [[1.5, hLow], [4.5, hK * 0.6], [6.5, 0]]) - up) * f25;
+  let h = Math.max(surveyH(u, v) - h0(), lvl);
+  const uK = kalkU0(), kv = K.v;
+  if (v > kv + 0.05 && u > uK) {
+    const uG = !CFG.stair.on && v > kv + K.d + 0.15 ? uK + 0.45 : uK;          // hinter dem Mauerkopf weitet sich die Lücke (heute: Paletten)
+    const f25 = clamp01((u - boundaryUAt(v)) / 1.5);                           // auf dem Grund von Nr. 25 läuft die Auffüllung aus (Annahme)
+    h += (0 - h) * clamp01((u - uG) / 0.35) * (1 - f25);
   }
-  return Math.min(up, B.level + s * B.slope);                                 // Uferböschung
+  if (v > 0.2) h *= 1 - (v - 0.2) / 0.6;                                       // Übergang zur ebenen Fläche am Giebel
+  return h;
+}
+
+// ---- Geplante Treppe ----
+// Lauf von oben nach unten: n Steigungen, dazwischen n-1 Trittflächen (eine davon das Zwischenpodest).
+let _spKey = '', _sp = null;
+function stairPlan() {
+  const S = CFG.stair, T = CFG.terr27, lvl = bachLevel(), key = JSON.stringify([S, T, lvl]);
+  if (key === _spKey) return _sp;
+  const u0 = T.over + 0.05 + S.side, u1 = u0 + S.w, top = T.top, vTop = -Math.min(T.board, T.depth - 0.5); // Podestkante am Ende des Betonbalkens
+  const bot = lvl + S.bottom, H = Math.max(0.3, top - bot), n = Math.max(2, Math.round(H / S.s)), s = H / n;
+  let k = S.landAfter > 0 ? Math.round(S.landAfter) : Math.round(n / 2);
+  if (S.land < 0.3 || k < 1 || k >= n) k = 0;
+  const steps = []; let v = vTop;
+  for (let i = 1; i < n; i++) { const len = i === k ? S.land : S.a; steps.push({ i, z: top - i * s, v0: v, v1: v - len, land: i === k }); v -= len; }
+  _spKey = key; _sp = { u0, u1, uc: (u0 + u1) / 2, top, vTop, bot, H, n, s, k, steps, vEnd: v, run: vTop - v };
+  return _sp;
+}
+function stairZ(P, v) { // Höhe der Treppenoberfläche an der Stelle v
+  if (v >= P.vTop) return P.top;
+  if (v < P.vEnd) return P.bot;
+  for (const st of P.steps) if (v >= st.v1) return st.z;
+  return P.bot;
+}
+// Gelände mit Treppe: nördlich der Podestkante aufgefüllt auf Giebelgarten-Niveau, im Lauf dort abgetragen, wo der Hang höher liegt
+function groundH(u, v) {
+  const g = groundNat(u, v), S = CFG.stair;
+  if (!S.on || v >= 0.8) return g;
+  const T = CFG.terr27, uL = T.over + 0.03 + S.side;
+  if (u <= T.over - 0.03 || u > kalkU0() + 0.4) return g;
+  const P = stairPlan();
+  if (v >= P.vTop + 0.02) return 0;
+  if (u < uL || u > uL + S.w + 0.04 || v < P.vEnd - 0.6) return g;
+  return Math.min(g, stairZ(P, v - 0.27) - 0.06);
+}
+function stairChecks() {
+  const S = CFG.stair, K = CFG.kalk, B = CFG.bach, P = stairPlan(), sm = 2 * P.s + S.a;
+  const lv = (ok, warn) => ok ? 'ok' : (warn ? 'warn' : 'bad');
+  let maxFill = 0, iFill = 0, maxCut = 0, iCut = 0;
+  for (const st of P.steps) {
+    const d = st.z - groundNat(P.uc, (st.v0 + st.v1) / 2); // + = Trittfläche über dem heutigen Gelände
+    if (d > maxFill) { maxFill = d; iFill = st.i; }
+    if (-d > maxCut) { maxCut = -d; iCut = st.i; }
+  }
+  const wv = waterV(P.uc), flight = P.k ? Math.max(P.k, P.n - P.k) : P.n, clear = K.gap - S.side - S.w;
+  return {
+    sm, smL: lv(sm >= 0.61 && sm <= 0.65, sm >= 0.59 && sm <= 0.67),
+    sL: lv(P.s >= 0.14 && P.s <= 0.185, P.s >= 0.12 && P.s <= 0.195),
+    aL: lv(S.a >= 0.26, S.a >= 0.23),
+    toWater: P.vEnd - wv, fitL: lv(P.vEnd - wv >= 0.5, P.vEnd - wv >= 0),
+    flight, flightL: lv(flight <= 18, flight <= 21),
+    clear, wL: lv(clear >= 0.02 && S.w >= 0.8, clear >= 0 && S.w >= 0.6),
+    maxFill, iFill, maxCut, iCut, podFill: P.top - groundNat(P.uc, P.vTop + 0.3),
+    blocks: P.n - 1 - (P.k ? 1 : 0), dBlock: P.s - S.s,
+  };
 }
 
 // Wirksame Maße einer Pflanze im gewählten Zeitpunkt
@@ -637,7 +763,7 @@ function plantChecks(p) {
   }
   return { dB, need, hLegal, ok: own && dB >= need - 1e-6, own, dHouse, overhang, facade, maxTop: D.top, maxW: D.w };
 }
-if (typeof module !== 'undefined') module.exports = { CFG, SPECIES, STAGES, coverage, terraceTargets, plantChecks, distToBoundary, boundaryUAt, crown, crown0, dims, inPoly, groundH, waterV };
+if (typeof module !== 'undefined') module.exports = { CFG, SPECIES, STAGES, coverage, terraceTargets, plantChecks, distToBoundary, boundaryUAt, crown, crown0, dims, inPoly, groundH, groundNat, surveyH, waterV, h0, bachLevel, stairPlan, stairChecks, TIN, SURVEY };
 // ===== CORE ENDE =====
 
 
@@ -680,9 +806,9 @@ const ST = {
   variant: 'A', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, target: 'balcony',
 };
 const LS_KEY = 'sichtschutz27-v2';
-const SITE_KEYS = ['terr27', 'balc27', 'kalk', 'bach', 'fence25'];
+const SITE_KEYS = ['terr27', 'balc27', 'kalk', 'bach', 'fence25', 'stair', 'survey'];
 function save() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ variant: ST.variant, plants: ST.plants, balcony: CFG.balcony, terrace: CFG.terrace, floor0: CFG.house27.floor0, lattice: CFG.lattice, site: Object.fromEntries(SITE_KEYS.map(k => [k, CFG[k]])) })); } catch (e) { /* ignorieren */ }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ variant: ST.variant, plants: ST.plants, balcony: CFG.balcony, terrace: CFG.terrace, floor0: CFG.house27.floor0, lattice: CFG.lattice, site2: Object.fromEntries(SITE_KEYS.map(k => [k, CFG[k]])) })); } catch (e) { /* ignorieren */ }
 }
 function load() {
   try {
@@ -695,7 +821,7 @@ function load() {
     if (s.terrace) Object.assign(CFG.terrace, s.terrace);
     if (typeof s.floor0 === 'number') CFG.house27.floor0 = s.floor0;
     if (typeof s.lattice === 'boolean') CFG.lattice = s.lattice;
-    if (s.site) for (const k of SITE_KEYS) if (s.site[k]) for (const [f, x] of Object.entries(s.site[k])) if (f in CFG[k] && typeof x === 'number' && isFinite(x)) CFG[k][f] = x;
+    if (s.site2) for (const k of SITE_KEYS) if (s.site2[k]) for (const [f, x] of Object.entries(s.site2[k])) if (f in CFG[k] && typeof x === typeof CFG[k][f] && (typeof x === 'boolean' || isFinite(x))) CFG[k][f] = x;
     return true;
   } catch (e) { return false; }
 }
@@ -772,7 +898,7 @@ Object.assign(MAT, {
   stone: lam(0xffffff, { map: stoneTexture() }), concrete: lam(0xbdbab1), gravel: lam(0xa69e92), galv: lam(0xaab1b4),
   kalk: [lam(0xd6c69c), lam(0xc9b88c), lam(0xddcfaa)], water: lam(0x5f8ea6, { transparent: true, opacity: 0.9 }),
   pallet: lam(0x8a6f52), chest: lam(0x5e5046), stepC: lam(0x8f7466), deck: lam(0x8a7458), outer: lam(0x7b955a),
-  glass25: lam(0xa9c2b4, { transparent: true, opacity: 0.6 }),
+  glass25: lam(0xa9c2b4, { transparent: true, opacity: 0.6 }), blockstep: lam(0xb7b4ac), unterbau: lam(0x7d7a74),
 });
 function clearGroup(g) {
   g.traverse(o => { if (o.geometry && o.geometry !== ICO) o.geometry.dispose(); if (o.isSprite) { o.material.map.dispose(); o.material.dispose(); } });
@@ -886,8 +1012,9 @@ function buildTerrain() {
   for (let u = Math.min(-17, T.uA - 3); u <= 9; u += 0.25) us.push(u);
   for (let v = -14; v <= 1.5; v += 0.25) vs.push(v);
   const kv = Math.max(K.v, -T.depth + 0.3), pair = (arr, x) => arr.push(x - 0.004, x + 0.004);
-  [T.uA + e, T.over - e, T.over + K.gap, T.over + K.gap + 0.45].forEach(x => pair(us, x));
+  [T.uA + e, T.over - e, kalkU0(), kalkU0() + 0.45].forEach(x => pair(us, x));
   [-T.depth + e, -e, kv + 0.05, kv + K.d + 0.15].forEach(x => pair(vs, x));
+  if (CFG.stair.on) { const P = stairPlan(); pair(us, P.u0 - 0.02); pair(us, P.u1 + 0.02); pair(vs, P.vTop + 0.02); pair(vs, P.vEnd - 0.6); }
   ground = gridMesh(uniq(us), uniq(vs), (u, v, i, j, nu, nv) => groundH(u, v) - (i === 0 || j === 0 || i === nu - 1 || j === nv - 1 ? 1.5 : 0), groundMat, true);
   ground.receiveShadow = true; terrGrp.add(ground);
   const ou = [GA.u0, GA.u1], ov = [GA.v0, GA.v1];
@@ -898,7 +1025,7 @@ function buildTerrain() {
   far.receiveShadow = true; terrGrp.add(far);
   const wp = [], wn = [], wi = [];
   for (let u = -150, n = 0; u <= 150; u += 3, n++) {
-    const vw = waterV(u); wp.push(u, B.level, -(vw + 0.5), u, B.level, -(vw - B.width - 0.5)); wn.push(0, 1, 0, 0, 1, 0);
+    const vw = waterV(u), lvl = bachLevel(); wp.push(u, lvl, -(vw + 0.5), u, lvl, -(vw - B.width - 0.5)); wn.push(0, 1, 0, 0, 1, 0);
     if (n) { const a = (n - 1) * 2; wi.push(a, a + 3, a + 2, a, a + 1, a + 3); }
   }
   const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wp, 3)); wg.setAttribute('normal', new THREE.Float32BufferAttribute(wn, 3)); wg.setIndex(wi);
@@ -918,25 +1045,30 @@ function drawGround() {
   // Strasse
   poly([[GA.u0, 30.6], [GA.u1, 30.6], [GA.u1, 37.4], [GA.u0, 37.4]], '#9b9a94');
   // Hang: Treppe/Rampe zwischen Terrassenmauer und Kalksteinmauer, Beet im Giebelgarten (Gründüngung)
-  const T27 = CFG.terr27, K = CFG.kalk, Bc = CFG.bach, ub = T27.over, uK = ub + K.gap, kv = Math.max(K.v, -T27.depth + 0.3), vP = kv + K.d + 0.15;
+  const T27 = CFG.terr27, K = CFG.kalk, Bc = CFG.bach, ub = T27.over, uK = kalkU0(), kv = Math.max(K.v, -T27.depth + 0.3), vP = kv + K.d + 0.15;
   poly([[ub, -T27.depth - 0.5], [uK, -T27.depth - 0.5], [uK, vP], [uK + 0.45, vP], [uK + 0.45, 0.6], [ub, 0.6]], '#b2a792');
   poly([[uK, kv + 0.05], [boundaryUAt(kv) - 0.25, kv + 0.05], [boundaryUAt(7.7) - 0.25, 7.7], [1.6, 7.7], [1.6, 0.6], [uK + 0.45, 0.6], [uK + 0.45, vP], [uK, vP]], winter ? '#86876c' : '#6f9450');
   // Bach mit Böschungen, Gegenufer mit Weg
   const wline = (off) => { const a = []; for (let u = GA.u0; u <= GA.u1 + 1e-6; u += 1) a.push([u, waterV(u) + off]); return a; };
   const band = (o1, o0, fill) => poly(wline(o1).concat(wline(o0).reverse()), fill);
-  band(2.2, 0, winter ? '#7f8468' : '#6f8a52');
+  band(0.7, 0, winter ? '#7f8468' : '#6f8a52');
   band(0, -Bc.width, '#5f8ea6');
   band(-Bc.width, -Bc.width - 2.6, winter ? '#7f8468' : '#6f8a52');
-  band(-Bc.width - 3.2, -Bc.width - 4.6, '#b3aa98');
+  band(-Bc.width - 4.6, -Bc.width - 6.0, '#b3aa98');
+  // Bestand laut Aufmaß 2024: alte Treppe, Geländekanten, Ebenen am Bach
+  c.strokeStyle = 'rgba(40,34,26,0.45)'; c.lineWidth = 1.5;
+  for (const pl of SURVEY.treppe.concat(SURVEY.kanten)) { c.beginPath(); pl.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.stroke(); }
+  c.fillStyle = 'rgba(28,36,29,0.8)'; c.font = `600 ${Math.round(0.3 * P)}px "Source Sans 3", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('Grillplatz 741,7', X(-7.3), Y(-7.25)); c.fillText('Ebene am Bach 741,5', X(-1.7), Y(-8.7));
   // Zufahrt / Gemeinschaftsfläche G
-  poly([[-16.6, 9.6], [1.6, 9.6], [1.6, 30.2], [-16.6, 30.2]], '#aaa598');
+  poly([[-16.6, 9.6], [boundaryUAt(9.6), 9.6], [boundaryUAt(30.17), 30.17], [-16.4, 30.2]], '#aaa598');
   // Terrasse Nr. 25 (Annahme)
   const T = CFG.terrace; poly([[T.u0, T.v0], [T.u1, T.v0], [T.u1, T.v1], [T.u0, T.v1]], winter ? '#a59d8e' : '#b8ad99');
   c.strokeStyle = 'rgba(90,80,64,0.35)'; c.lineWidth = 1;
   for (let u = T.u0; u <= T.u1 + 1e-6; u += 0.5) { c.beginPath(); c.moveTo(X(u), Y(T.v0)); c.lineTo(X(u), Y(T.v1)); c.stroke(); }
   for (let v = T.v0; v <= T.v1 + 1e-6; v += 0.5) { c.beginPath(); c.moveTo(X(T.u0), Y(v)); c.lineTo(X(T.u1), Y(v)); c.stroke(); }
   // Kiesstreifen am Giebel
-  poly([[0, 0], [ub, 0], [ub, 0.6], [1.6, 0.6], [1.6, 9.6], [0, 9.6]], '#bcae97');
+  poly([[0, 0], [ub, 0], [ub, 0.6], [1.6, 0.6], [1.6, 7.9], [boundaryUAt(9.6), 9.6], [0, 9.6]], '#bcae97');
   // Grenzabstands-Zonen (Art. 47 AGBGB)
   const img = c.getImageData(X(-0.6), Y(30.2), Math.ceil(7.2 * P), Math.ceil(42 * P));
   const d = img.data, wpx = img.width;
@@ -953,8 +1085,8 @@ function drawGround() {
   c.putImageData(img, X(-0.6), Y(30.2));
   // 1-m-Raster im Giebelgarten
   c.strokeStyle = 'rgba(255,255,255,0.32)'; c.lineWidth = 1;
-  for (let u = 0; u <= 5; u++) { c.beginPath(); c.moveTo(X(u), Y(u < uK + 0.45 ? 0 : kv + K.d)); c.lineTo(X(u), Y(Math.min(9.6, u <= 1.6 ? 9.6 : 7.8))); c.stroke(); }
-  for (let v = Math.ceil(kv + K.d); v <= 9; v++) { c.beginPath(); c.moveTo(X(v < 0 ? uK + 0.45 : 0), Y(v)); c.lineTo(X(v >= 8 ? 1.6 : boundaryUAt(v)), Y(v)); c.stroke(); }
+  for (let u = 0; u <= 5; u++) { c.beginPath(); c.moveTo(X(u), Y(u < uK + 0.45 ? 0 : kv + K.d)); c.lineTo(X(u), Y(u <= 1.5 ? 9.6 : 7.6)); c.stroke(); }
+  for (let v = Math.ceil(kv + K.d); v <= 9; v++) { c.beginPath(); c.moveTo(X(v < 0 ? uK + 0.45 : 0), Y(v)); c.lineTo(X(boundaryUAt(v)), Y(v)); c.stroke(); }
   // Masszahlen
   c.fillStyle = 'rgba(28,36,29,0.85)'; c.font = `600 ${Math.round(0.36 * P)}px "IBM Plex Mono", monospace`; c.textAlign = 'center'; c.textBaseline = 'middle';
   for (let u = 2; u <= 4; u++) c.fillText(u + ' m', X(u), Y(kv + K.d + 0.35));
@@ -965,9 +1097,10 @@ function drawGround() {
   c.beginPath(); CFG.boundary.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.stroke(); c.setLineDash([]);
   c.fillStyle = '#8c2f22'; CFG.boundary.forEach(([u, v]) => { c.beginPath(); c.arc(X(u), Y(v), 0.16 * P, 0, 7); c.fill(); });
   // Beschriftung entlang der 2-m-Linie
-  c.save(); c.translate(X(3.05), Y(-4.8)); c.rotate(-Math.PI / 2 - Math.atan2(0.6, 19.3)); c.fillStyle = 'rgba(120,80,14,0.95)'; c.textAlign = 'center';
+  const bA = CFG.boundary[CFG.boundary.length - 2], bB = CFG.boundary[CFG.boundary.length - 1], bRot = -Math.PI / 2 - Math.atan2(bA[0] - bB[0], bA[1] - bB[1]);
+  c.save(); c.translate(X(boundaryUAt(-4.8) - 2.3), Y(-4.8)); c.rotate(bRot); c.fillStyle = 'rgba(120,80,14,0.95)'; c.textAlign = 'center';
   c.font = `700 ${Math.round(0.34 * P)}px "Source Sans 3", sans-serif`; c.fillText('2 m Grenzabstand (Pflanzen über 2 m)', 0, 0); c.restore();
-  c.save(); c.translate(X(5.45), Y(-4.8)); c.rotate(-Math.PI / 2 - Math.atan2(0.6, 19.3)); c.fillStyle = '#8c2f22'; c.textAlign = 'center';
+  c.save(); c.translate(X(boundaryUAt(-4.8) + 0.35), Y(-4.8)); c.rotate(bRot); c.fillStyle = '#8c2f22'; c.textAlign = 'center';
   c.font = `700 ${Math.round(0.36 * P)}px "Source Sans 3", sans-serif`; c.fillText('Grenze 27 | 25', 0, 0); c.restore();
   gTex.needsUpdate = true; req();
 }
@@ -1130,7 +1263,8 @@ function rail27(a, b, out, base, H, postAt, slats) {
 }
 function buildTerrace27(g) {
   const T = CFG.terr27, ub = T.over, vT = -T.depth, top = T.top, wallTop = top - T.curbH, floor = top - T.fill, c = T.curb;
-  const hBot = Math.min(top - T.hRiver, top - T.hCorner) - 1.6, vB = -Math.min(T.board, T.depth - 0.5);
+  let hBot = 0; for (let u = T.uA; u <= ub; u += 0.5) hBot = Math.min(hBot, groundNat(u, vT - 0.3));
+  hBot -= 0.8; const vB = -Math.min(T.board, T.depth - 0.5);
   // Natursteinmauer (steht 5 cm vor dem Betonbalken), Kiesfläche, Betonbalken, Holzbohle am Südost-Ende
   g.add(texBox(T.uA - 0.05, ub + 0.05, vT - 0.05, 0, hBot, wallTop, MAT.stone));
   g.add(box(T.uA, ub, vT, 0, wallTop, floor, MAT.gravel, false));
@@ -1158,7 +1292,7 @@ function buildBalcony27(g) {
   br(B.u0 - 0.04, B.u1 + 0.04, v0 - 0.04, v0); br(B.u0 - 0.04, B.u0, v0, 0); br(B.u1, B.u1 + 0.04, v0, 0);
 }
 function buildKalk(g) {
-  const T = CFG.terr27, K = CFG.kalk, R = rng(31), uK = T.over + K.gap, kv = Math.max(K.v, -T.depth + 0.3), hc = K.h / 3, uEnd = boundaryUAt(kv) - 0.1;
+  const T = CFG.terr27, K = CFG.kalk, R = rng(31), uK = kalkU0(), kv = Math.max(K.v, -T.depth + 0.3), hc = K.h / 3, uEnd = boundaryUAt(kv) - 0.35;
   // Kalksteinmauer: drei Lagen grobe Blöcke, untere Lagen stehen etwas vor
   for (let c = 0; c < 3; c++) {
     const z0 = -K.h + c * hc, front = kv - (2 - c) * 0.05;
@@ -1173,10 +1307,11 @@ function buildKalk(g) {
     const u = uK + 0.1 + i * 0.5, v = kv + dv, z = groundH(u + 0.22, v);
     g.add(box(u, u + 0.46, v - 0.11, v + 0.11, z - 0.15, z + 0.2, MAT.kalk[i % 3]));
   }
+  if (CFG.stair.on) return; // mit der geplanten Treppe entfallen die alten Betonkanten und die Paletten
   // alte Betonkanten als Stufen zwischen Terrassenmauer und Kalksteinmauer
-  for (let v = -T.depth + 0.25; v < Math.min(-0.5, kv + 1.0); v += 0.42) { const z = groundH(T.over + K.gap / 2, v); g.add(box(T.over + 0.08, uK - 0.05, v - 0.03, v + 0.03, z - 0.14, z + 0.07, MAT.stepC)); }
+  for (let v = -T.depth + 0.25; v < Math.min(-0.5, kv + 1.0); v += 0.42) { const z = groundH((T.over + uK) / 2, v); g.add(box(T.over + 0.1, uK - 0.05, v - 0.03, v + 0.03, z - 0.14, z + 0.07, MAT.stepC)); }
   // Paletten mit Truhe oben an der Lücke (stehen dort im Foto)
-  const pu = T.over + 0.1, va = kv + 0.7, za = groundH(pu + 0.6, va + 0.3) - 0.02, vb = va + 0.85, zb = groundH(pu + 0.6, vb + 0.3) - 0.02;
+  const pu = T.over + 0.15, va = kv + 0.7, za = groundH(pu + 0.6, va + 0.3) - 0.02, vb = va + 0.85, zb = groundH(pu + 0.6, vb + 0.3) - 0.02;
   for (let i = 0; i < 2; i++) g.add(box(pu, pu + 1.2, va, va + 0.8, za + i * 0.15, za + i * 0.15 + 0.14, MAT.pallet));
   g.add(box(pu + 0.1, pu + 1.1, va + 0.12, va + 0.68, za + 0.29, za + 0.79, MAT.chest));
   g.add(box(pu, pu + 1.2, vb, vb + 0.8, zb, zb + 0.14, MAT.pallet));
@@ -1191,11 +1326,11 @@ function buildFences(g) {
       f.position.y = groundH(boundaryUAt((a + b) / 2) + 0.15, (a + b) / 2); g.add(f);
     }
   };
-  seg(7.8, v1, 1.8, MAT.fence, 1.8);
+  seg(CFG.boundary[2][1], v1, 1.8, MAT.fence, 1.8);
   seg(v1, F.newV0, 1.8, MAT.fenceNew, 1.8);
   g.add(fenceAlong(lerpB(5.9), lerpB(5.0), 1.75, MAT.gate, 1.0, 0.1));
-  const pts = [], vEnd = waterV(boundaryUAt(-8)) + 1.7;
-  for (let v = 3.0; v > vEnd; v -= 0.09) { const u = boundaryUAt(v) - 0.06; pts.push([u, v, groundH(u, v)]); }
+  const pts = []; // alter Staketenzaun: Verlauf aus dem Aufmaß, steht 0,2–0,3 m innerhalb der Grenze auf Nr. 27
+  for (const [a, b] of SURVEY.zaun) { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(L / 0.09)); for (let i = 0; i < n; i++) { const u = a[0] + (b[0] - a[0]) * i / n, v = a[1] + (b[1] - a[1]) * i / n; pts.push([u, v, groundH(u, v)]); } }
   const pk = new THREE.InstancedMesh(new THREE.BoxGeometry(0.02, 1.0, 0.045), MAT.fence, pts.length), rl = new THREE.InstancedMesh(new THREE.BoxGeometry(0.03, 0.05, 0.1), MAT.fence, pts.length * 2), M = new THREE.Matrix4();
   pts.forEach(([u, v, z], i) => {
     M.makeTranslation(u, z + 0.52, -v); pk.setMatrixAt(i, M);
@@ -1213,10 +1348,24 @@ function buildPavilion25(g) {
   for (const [a, b] of [[u0, v0], [u1, v0], [u0, v1], [u1, v1], [um, v0], [um, v1], [u0, vm], [u1, vm]]) g.add(box(a - 0.06, a + 0.06, b - 0.06, b + 0.06, hp, hp + 2.3, MAT.post));
   g.add(box(u0 - 0.5, u1 + 0.5, v0 - 0.5, v1 + 0.5, hp + 2.3, hp + 2.42, MAT.roof25));
 }
+// Geplante Treppe: Podest, Blockstufen mit Unterbau, Zwischenpodest, Austritt
+function buildStair(g) {
+  if (!CFG.stair.on) return;
+  const S = CFG.stair, T = CFG.terr27, P = stairPlan(), uE = kalkU0();
+  const under = (v0, v1, zTop) => { const gm = Math.min(groundH(P.uc, v0 - 0.01), groundH(P.uc, v1 + 0.01), groundNat(P.uc, (v0 + v1) / 2)); g.add(box(P.u0 + 0.01, P.u1 - 0.01, v1, v0, Math.min(zTop - 0.08, gm - 0.05), zTop, MAT.unterbau)); };
+  g.add(box(T.over, uE, P.vTop, 0, P.top - 0.16, P.top, MAT.blockstep));                       // Podest auf Terrassenhöhe
+  for (const st of P.steps) {
+    const th = st.land ? 0.12 : P.s;
+    g.add(box(P.u0, P.u1, st.v1, st.v0 + 0.03, st.z - th, st.z, st.land ? MAT.concrete : MAT.blockstep));
+    under(st.v0, st.v1, st.z - th);
+  }
+  g.add(box(P.u0 - 0.1, P.u1 + 0.1, P.vEnd - 0.6, P.vEnd, P.bot - 0.1, P.bot, MAT.gravel));     // Austritt
+  const lb = label('Treppe (geplant)', { size: 0.36, bg: 'rgba(60,66,70,0.92)' }); lb.position.copy(W(P.uc, P.top + 0.75, P.vTop - 0.5)); g.add(lb);
+}
 function buildSite() {
   clearGroup(siteGrp);
-  buildTerrace27(siteGrp); buildBalcony27(siteGrp); buildKalk(siteGrp); buildFences(siteGrp); buildPavilion25(siteGrp);
-  const B = CFG.bach, lb = label('Bach', { size: 0.5, bg: 'rgba(52,104,130,0.92)' }); lb.position.copy(W(-3, B.level + 1.3, waterV(-3) - B.width / 2)); siteGrp.add(lb);
+  buildTerrace27(siteGrp); buildBalcony27(siteGrp); buildKalk(siteGrp); buildFences(siteGrp); buildPavilion25(siteGrp); buildStair(siteGrp);
+  const B = CFG.bach, lb = label('Bach', { size: 0.5, bg: 'rgba(52,104,130,0.92)' }); lb.position.copy(W(-3, bachLevel() + 1.3, waterV(-3) - B.width / 2)); siteGrp.add(lb);
   req();
 }
 function buildContext() {
@@ -1449,6 +1598,7 @@ const VIEWS = [
   { id: 'terr27', name: 'Terrasse Nr. 27' },
   { id: 'bach', name: 'Bachseite' },
   { id: 'hang', name: 'Vom Hang' },
+  { id: 'treppe', name: 'Treppe' },
 ];
 let tween = null;
 function viewPose(id) {
@@ -1458,7 +1608,8 @@ function viewPose(id) {
   const T7 = CFG.terr27;
   if (id === 'garden') return { pos: W(T7.over - 0.6, T7.top + 1.6, -T7.depth + 0.7), tgt: W(4.8, 3.2, 8.5), fov: 60 }; // von der Terrassenecke Süd
   if (id === 'terr27') return { pos: W(-4.2, T7.top + 1.6, -1.3), tgt: W(4.5, 0.8, -1.2), fov: 64 };
-  if (id === 'bach') return { pos: W(9.0, 3.2, waterV(9.0) - CFG.bach.width - 2.5), tgt: W(-3.5, -0.6, -2.6), fov: 50 }; // vom Gegenufer
+  if (id === 'bach') return { pos: W(8.5, bachLevel() + 5.2, waterV(8.5) - CFG.bach.width - 3.0), tgt: W(-3.5, -2.2, -4.0), fov: 56 }; // vom Gegenufer
+  if (id === 'treppe') { const P = stairPlan(); return { pos: W(P.u1 + 3.0, P.bot + 3.0, P.vEnd - 1.6), tgt: W(P.uc, (P.top + P.bot) / 2 - 0.3, (P.vTop + P.vEnd) / 2), fov: 62 }; }
   if (id === 'hang') { const pu = 3.3, pv = Math.max(waterV(3.3) + 2.6, -T7.depth - 2.4); return { pos: W(pu, groundH(pu, pv) + 1.6, pv), tgt: W(-0.6, 0.5, -1.4), fov: 64 }; }
   if (id === 'balk') return { pos: W((B.u0 + B.u1) / 2, B.floor + 1.3, B.wallV - 0.55), tgt: W(0, fo + 1.5, 4.6), fov: 60 };
   if (id === 'side') return { pos: W(13.5, 1.65, -3.5), tgt: W(1.5, 3.4, 5.0), fov: 58 };
@@ -1697,13 +1848,8 @@ const AS_FIELDS = [
 ];
 // [id, Text, Quelle (m = Meterstab, g = geschätzt, p = Plan), lesen, schreiben, Schritt, min, max]
 const AS_SITE = [
-  ['s-dep', 'Terrasse: Hauswand bis Außenkante Betonbalken (m)', 'm', () => CFG.terr27.depth, (x) => CFG.terr27.depth = x, 0.05, 1.5, 6],
-  ['s-ovr', 'Terrasse steht über die Giebelflucht hinaus (m)', 'g', () => CFG.terr27.over, (x) => CFG.terr27.over = x, 0.05, 0.1, 2],
-  ['s-ua', 'Terrasse endet nordwestlich (m vor Giebel, negativ)', 'g', () => CFG.terr27.uA, (x) => CFG.terr27.uA = x, 0.1, -20, -3],
+  ['s-abs', 'OK Betonbalken der Terrasse (m ü. NHN)', 'g', () => CFG.survey.beam, (x) => CFG.survey.beam = x, 0.01, 745, 748],
   ['s-top', 'OK Betonbalken über Gelände am Giebel (m)', 'g', () => CFG.terr27.top, (x) => CFG.terr27.top = x, 0.01, -0.3, 0.6],
-  ['s-hc', 'Mauer Ecke Süd: Boden bis OK Betonbalken (m)', 'm', () => CFG.terr27.hCorner, (x) => CFG.terr27.hCorner = x, 0.05, 0.3, 4],
-  ['s-hr', 'Mauer Bachseite: Boden bis OK Betonbalken (m)', 'g', () => CFG.terr27.hRiver, (x) => CFG.terr27.hRiver = x, 0.05, 0.3, 5],
-  ['s-bm', 'Ebener Streifen am Mauerfuß, Breite (m)', 'g', () => CFG.terr27.berm, (x) => CFG.terr27.berm = x, 0.1, 0.2, 5],
   ['s-rl', 'Geländer: OK Handlauf über OK Betonbalken (m)', 'm', () => CFG.terr27.rail, (x) => CFG.terr27.rail = x, 0.01, 0.6, 1.3],
   ['s-bd', 'Balkon Nr. 27: Tiefe ab Hauswand (m)', 'g', () => CFG.balc27.depth, (x) => CFG.balc27.depth = x, 0.05, 0.5, 4],
   ['s-b0', 'Balkon Nr. 27 beginnt (m vor Giebel, negativ)', 'p', () => CFG.balc27.u0, (x) => CFG.balc27.u0 = x, 0.1, -14, -1],
@@ -1711,13 +1857,80 @@ const AS_SITE = [
   ['s-kg', 'Lücke Terrassenmauer ↔ Kalksteinmauer (m)', 'm', () => CFG.kalk.gap, (x) => CFG.kalk.gap = x, 0.05, 0.3, 3],
   ['s-kh', 'Kalksteinmauer: Höhe (m)', 'g', () => CFG.kalk.h, (x) => CFG.kalk.h = x, 0.05, 0.3, 2.5],
   ['s-kv', 'Kalksteinmauer: Vorderkante (m ab Gartenecke, negativ = Richtung Bach)', 'g', () => CFG.kalk.v, (x) => CFG.kalk.v = x, 0.05, -5, -0.8],
-  ['s-wd', 'Bach: Mauerfuß bis Wasserkante an der Ecke Süd (m)', 'g', () => CFG.bach.dist, (x) => CFG.bach.dist = x, 0.1, 2, 15],
-  ['s-wl', 'Bach: Wasserspiegel unter Gelände am Giebel (m)', 'g', () => -CFG.bach.level, (x) => CFG.bach.level = -x, 0.1, 1.5, 8],
+  ['s-wh', 'Bach: Wasserspiegel (m ü. NHN)', 'v', () => CFG.bach.H, (x) => CFG.bach.H = x, 0.05, 739, 742],
   ['s-f1', 'Neue Sichtschutzelemente Nr. 25 beginnen (m ab Gartenecke)', 'g', () => CFG.fence25.newV1, (x) => CFG.fence25.newV1 = x, 0.1, -6, 7],
   ['s-f0', 'Neue Sichtschutzelemente Nr. 25 enden (m ab Gartenecke, negativ = Richtung Bach)', 'g', () => CFG.fence25.newV0, (x) => CFG.fence25.newV0 = x, 0.1, -7, 6],
 ];
-const SRC = { m: 'Meterstab', g: 'geschätzt', p: 'Plan' };
-function rebuildSite() { buildTerrain(); buildSite(); buildCtxTrees(); drawGround(); rebuildPlants(); rebuildSight(); renderCoverage(); renderPlants(true); }
+const SRC = { m: 'Meterstab', g: 'geschätzt', p: 'Plan', v: 'Aufmaß' };
+function rebuildSite() { buildTerrain(); buildSite(); buildCtxTrees(); drawGround(); rebuildPlants(); rebuildSight(); renderCoverage(); renderPlants(true); renderStair(); }
+// ---------- Treppe: Maße, Prüfung, Längsschnitt ----------
+const ST_FIELDS = [
+  ['st-w', 'Laufbreite (m)', () => CFG.stair.w, (x) => CFG.stair.w = x, 0.05, 0.5, 1.5],
+  ['st-s', 'Stufenhöhe = Höhe der Blockstufe (m)', () => CFG.stair.s, (x) => CFG.stair.s = x, 0.01, 0.12, 0.22],
+  ['st-a', 'Auftritt (m)', () => CFG.stair.a, (x) => CFG.stair.a = x, 0.01, 0.2, 0.45],
+  ['st-l', 'Zwischenpodest: Länge (m, 0 = ohne)', () => CFG.stair.land, (x) => CFG.stair.land = x, 0.1, 0, 3],
+  ['st-k', 'Zwischenpodest nach Steigung Nr. (0 = in der Mitte)', () => CFG.stair.landAfter, (x) => CFG.stair.landAfter = Math.round(x), 1, 0, 40],
+  ['st-b', 'Austritt über dem Wasserspiegel (m)', () => CFG.stair.bottom, (x) => CFG.stair.bottom = x, 0.05, 0, 2.5],
+  ['st-sd', 'Abstand zur Terrassenmauer (m)', () => CFG.stair.side, (x) => CFG.stair.side = x, 0.01, 0, 0.5],
+];
+function renderStairFields() {
+  const dec = (st) => st >= 1 ? 0 : 2;
+  $('stFields').innerHTML = ST_FIELDS.map(([id, l, g, , st, mn, mx]) => `<label for="${id}">${l}</label><input type="number" id="${id}" step="${st}" min="${mn}" max="${mx}" value="${g().toFixed(dec(st))}">`).join('');
+  for (const [id, , g, set, st, mn, mx] of ST_FIELDS) $(id).onchange = (e) => {
+    const x = parseFloat(e.target.value); if (isFinite(x)) set(Math.max(mn, Math.min(mx, x)));
+    e.target.value = g().toFixed(dec(st)); rebuildSite(); save();
+  };
+  $('st-on').checked = CFG.stair.on;
+  $('st-on').onchange = (e) => { CFG.stair.on = e.target.checked; rebuildSite(); save(); };
+  $('stView').onclick = () => setView('treppe');
+}
+function renderStair() {
+  const S = CFG.stair, T = CFG.terr27, lvl = bachLevel(), P = stairPlan(), C = stairChecks(), cm = (x, d = 1) => fmt(x * 100, d), nhn = (h) => fmt(h + h0(), 2);
+  const TXT = { ok: 'passt', warn: 'grenzwertig', bad: 'passt nicht' }, pill = (l) => `<span class="pill ${l}">${TXT[l]}</span>`;
+  const row = (a, b, l) => `<tr><td>${a}</td><td class="n">${b}</td><td>${l ? pill(l) : ''}</td></tr>`;
+  $('stRes').innerHTML = '<tr><th>Wert</th><th>Ergebnis</th><th></th></tr>' + [
+    row('Podest oben / Austritt unten (m ü. NHN)', `${nhn(P.top)} / ${nhn(P.bot)}`),
+    row('Höhe Podest bis Austritt', `${fmt(P.H, 2)} m`),
+    row('Steigungen', `${P.n} × ${cm(P.s)} cm`, C.sL),
+    row('Auftritt', `${cm(S.a, 0)} cm`, C.aL),
+    row('Schrittmaß 2 × Steigung + Auftritt (Ziel 61–65 cm)', `${cm(C.sm)} cm`, C.smL),
+    row('Längster Lauf ohne Podest (höchstens 18)', `${C.flight} Steigungen`, C.flightL),
+    row('Lauflänge ab Podestkante', `${fmt(P.run, 2)} m`),
+    row('Treppenende bis Wasserkante', `${fmt(C.toWater, 2)} m`, C.fitL),
+    row('Breite in der Lücke, Rest zur Kalksteinmauer', `${cm(C.clear, 0)} cm`, C.wL),
+  ].join('');
+  // Längsschnitt entlang der Treppenachse (Blick von Nr. 25): links Haus, rechts Bach
+  const x0 = 0.9, xOf = (v) => x0 - v, xMax = xOf(waterV(P.uc) - 1.4), yTop = Math.max(P.top, 0) + 0.75, yBot = lvl - 0.45, Y = (h) => yTop - h;
+  const nat = []; for (let v = x0; v >= waterV(P.uc) - 1.4 - 1e-6; v -= 0.1) nat.push(`${xOf(v).toFixed(2)},${Y(groundNat(P.uc, v)).toFixed(2)}`);
+  let st = `M0,${Y(0).toFixed(2)} L${xOf(0).toFixed(2)},${Y(0).toFixed(2)} L${xOf(0).toFixed(2)},${Y(P.top).toFixed(2)} L${xOf(P.vTop).toFixed(2)},${Y(P.top).toFixed(2)}`;
+  for (const t of P.steps) st += ` L${xOf(t.v0).toFixed(2)},${Y(t.z).toFixed(2)} L${xOf(t.v1).toFixed(2)},${Y(t.z).toFixed(2)}`;
+  st += ` L${xOf(P.vEnd).toFixed(2)},${Y(P.bot).toFixed(2)} L${xOf(P.vEnd - 0.6).toFixed(2)},${Y(P.bot).toFixed(2)}`;
+  const land = P.steps.find(t => t.land), tx = (x, h, s, anchor = 'start') => `<text x="${x.toFixed(2)}" y="${(Y(h) - 0.15).toFixed(2)}" text-anchor="${anchor}">${s}</text>`;
+  const sg = (h) => nhn(h);
+  $('stSec').innerHTML = S.on ? `<svg viewBox="0 0 ${xMax.toFixed(2)} ${(yTop - yBot).toFixed(2)}" role="img" aria-label="Längsschnitt der Treppe mit heutigem Gelände und Wasserspiegel">
+    <rect x="${xOf(waterV(P.uc)).toFixed(2)}" y="${Y(lvl).toFixed(2)}" width="${(xMax - xOf(waterV(P.uc))).toFixed(2)}" height="${(lvl - yBot).toFixed(2)}" fill="#5f8ea6" opacity="0.7"/>
+    <polygon points="0,${(yTop - yBot).toFixed(2)} ${nat.join(' ')} ${xMax.toFixed(2)},${(yTop - yBot).toFixed(2)}" fill="#a58a63" opacity="0.55"/>
+    <path d="${st}" fill="none" stroke="currentColor" stroke-width="0.05" stroke-linejoin="miter"/>
+    ${tx(0.15, P.top, 'Podest ' + sg(P.top))}
+    ${land ? tx(xOf(land.v0) + 0.05, land.z, 'Podest ' + sg(land.z)) : ''}
+    ${tx(xOf(P.vEnd) - 0.1, P.bot + 0.35, 'Austritt ' + sg(P.bot), 'end')}
+    ${tx(xMax - 0.05, lvl, 'Wasser ' + sg(lvl), 'end')}
+  </svg>` : '<p class="small muted">Treppe ist ausgeblendet.</p>';
+  $('stSecNote').textContent = 'Braun: Gelände entlang der Treppenachse laut Aufmaß vom 16.01.2024. Linie: Treppe. Höhen in m ü. NHN. Links das Podest, rechts der Bach.';
+  const notes = [
+    `<b>Material:</b> ${C.blocks} Blockstufen, je ${cm(S.w, 0)} cm breit, ${cm(S.s, 0)} cm hoch und mindestens ${cm(S.a + 0.03, 0)} cm tief (Auftritt plus 3 cm Überdeckung). Dazu das obere Podest mit ${fmt(kalkU0() - T.over, 2)} × ${fmt(-P.vTop, 2)} m${P.k ? ` und das Zwischenpodest mit ${fmt(S.w, 2)} × ${fmt(S.land, 2)} m` : ''}.`,
+    Math.abs(C.dBlock) > 0.0005 ? `Rechnerisch ergibt die Höhe ${cm(P.s)} cm je Stufe, die Blockstufe hat ${cm(S.s, 0)} cm. Die ${fmt(Math.abs(C.dBlock) * 1000, 0)} mm Unterschied je Stufe gleichst du über das Mörtelbett oder die Höhe des Austritts aus.` : '',
+    `<b>Unterbau:</b> Das Podest liegt rund ${fmt(Math.max(0, C.podFill), 2)} m über dem heutigen Boden.${C.maxFill > 0.05 ? ` Im Lauf liegt die Trittfläche bis zu ${fmt(C.maxFill, 2)} m über dem Gelände (Stufe ${C.iFill}): dort auffüllen und verdichten oder unterbauen.` : ''}${C.maxCut > 0.05 ? ` Weiter unten schneidet sie bis zu ${fmt(C.maxCut, 2)} m in den Hang ein (Stufe ${C.iCut}): dort Aushub und seitlich abfangen.` : ''}`,
+    `Zum Giebelgarten bleibt am Podest eine Stufe von ${cm(Math.max(0, P.top), 0)} cm.`,
+    C.fitL === 'bad' ? '<span style="color:var(--bad)">Die Treppe reicht bis über die Wasserkante hinaus. Stufen höher wählen, Auftritt kürzen, Zwischenpodest kürzen, Austritt höher legen oder die Treppe unten wenden.</span>' : '',
+    S.bottom >= 0.8 ? `Die Treppe endet auf der Ebene am Bach, ${fmt(S.bottom, 2)} m über dem Wasser. Für Stufen bis ans Wasser den Austritt auf 0 stellen: das sind weitere ${Math.round(S.bottom / P.s)} Steigungen durch die Uferböschung.` : '',
+    'Gelände, Bach und Grenzen stammen aus dem Aufmaß vom Januar 2024. Die Höhe des Podests hängt an der Oberkante des Betonbalkens (746,30 m ü. NHN, aus Meterstab und Aufmaß hergeleitet). Diese eine Höhe vor dem Bestellen nachmessen und im Tab „Annahmen“ eintragen.',
+    'Die unteren Stufen stehen an der Uferböschung. Bauten am Gewässer können genehmigungspflichtig sein (Art. 20 BayWG). Vorher bei der Gemeinde oder beim Landratsamt nachfragen. Hochwasser kann die untersten Stufen unterspülen. Keine Rechtsberatung.',
+    'Bei dieser Höhe ist ein Handlauf sinnvoll. Er ist im Modell noch nicht dargestellt.',
+  ];
+  $('stNotes').innerHTML = S.on ? notes.filter(Boolean).map(t => `<li>${t}</li>`).join('') : '';
+  $('stRes').style.display = S.on ? '' : 'none';
+}
 function renderAssume() {
   $('assume2').innerHTML = AS_SITE.map(([id, l, src, g, , st, mn, mx]) => `<label for="${id}">${l} <span class="src ${src}">${SRC[src]}</span></label><input type="number" id="${id}" step="${st}" min="${mn}" max="${mx}" value="${g().toFixed(2)}">`).join('');
   for (const [id, , , g, set, , mn, mx] of AS_SITE) $(id).onchange = (e) => {
@@ -1753,7 +1966,7 @@ $('sunT').addEventListener('input', (e) => { ST.sunT = +e.target.value; updateSu
 $('addSp').innerHTML = Object.entries(SPECIES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
 $('addBtn').onclick = () => { const p = mk($('addSp').value, 2.4, 1.0); ST.plants.push(p); ST.sel = p.id; markCustom(); rebuildPlants(); afterEdit(); toast('Pflanze ' + ST.plants.length + ' eingefügt. In der Draufsicht verschieben.'); };
 $('resetBtn').onclick = () => { const id = ST.variant === 'eigen' ? 'A' : ST.variant; $('variant').value = id; loadVariant(id); toast('Variante zurückgesetzt'); };
-$('asReset').onclick = () => { Object.assign(CFG.balcony, clone(CFG0.balcony)); Object.assign(CFG.terrace, clone(CFG0.terrace)); CFG.house27.floor0 = CFG0.house27.floor0; CFG.lattice = CFG0.lattice; for (const k of SITE_KEYS) Object.assign(CFG[k], clone(CFG0[k])); renderAssume(); buildHouse27(); buildHouse25(); rebuildSite(); renderInsights(); save(); };
+$('asReset').onclick = () => { Object.assign(CFG.balcony, clone(CFG0.balcony)); Object.assign(CFG.terrace, clone(CFG0.terrace)); CFG.house27.floor0 = CFG0.house27.floor0; CFG.lattice = CFG0.lattice; for (const k of SITE_KEYS) Object.assign(CFG[k], clone(CFG0[k])); renderAssume(); renderStairFields(); buildHouse27(); buildHouse25(); rebuildSite(); renderInsights(); save(); };
 $('copyBtn').onclick = () => {
   const txt = JSON.stringify({ balkon: CFG.balcony, pflanzen: ST.plants.map((p, i) => ({ nr: i + 1, art: SPECIES[p.sp].name, vorGiebel_m: +p.u.toFixed(2), abGartenecke_m: +p.v.toFixed(2), hoehe_m: p.top, breite_m: p.w, stamm_m: p.stem, quer: p.rot === 90 })) }, null, 1);
   const fb = () => { const ta = $('copyFallback'); ta.hidden = false; ta.value = txt; ta.select(); toast('Text markiert, bitte kopieren'); };
@@ -1785,13 +1998,13 @@ if (!load()) ST.plants = VARIANTS.find(v => v.id === 'A').plants();
 renderVariantSelect();
 buildTerrain(); buildHouse27(); buildHouse25(); buildContext(); buildSite(); buildCtxTrees(); drawGround();
 rebuildPlants(); rebuildSight(); updateSun();
-renderCoverage(); renderPlants(); renderSpecies(); renderInsights(); renderAssume();
+renderCoverage(); renderPlants(); renderSpecies(); renderInsights(); renderAssume(); renderStairFields(); renderStair();
 resize();
 const P0 = viewPose('overview'); persp.position.copy(P0.pos); ctlP.target.copy(P0.tgt); ctlP.update();
 setView('overview');
 requestAnimationFrame(loop);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawGround(); buildHouse27(); buildHouse25(); rebuildPlants(); });
-window.__app = { ST, CFG, setView, loadVariant, coverage, setSeason, persp, ctlP, rebuildSite, groundH };
+window.__app = { ST, CFG, setView, loadVariant, coverage, setSeason, persp, ctlP, rebuildSite, groundH, stairPlan, stairChecks };
 })();
 </script>
 

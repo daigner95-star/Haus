@@ -9,9 +9,10 @@ Interaktives 3D-Modell: `sichtschutz/index.html` im Browser öffnen (braucht Int
 - Varianten mit 2 m Grenzabstand (A, B, D) und unter 2 m, nur mit Zustimmung Nr. 25 (C, E, F, G). Pflanzen per Ziehen verschiebbar.
 - Arten u. a. Hainbuche (Spalier, Säule, Hecke), Eibe, Felsenbirne, Liguster ‚Atrovirens‘ (Hecke und freiwachsend), Schmalblättrige und Wintergrüne Ölweide, jeweils mit Endgröße.
 - Ansichten: Übersicht, Draufsicht, Garten, Blick aus EG 1 und OG 1–3, vom Balkon und von der Terrasse Nr. 25.
-- Bachseite nach Fotos vom 11.11.: Terrasse Nr. 27 mit Natursteinmauer, Betonbalken und Lattengeländer, Balkon OG, Kalksteinmauer am Giebelgarten, Treppe dazwischen, Hang und Bach. Das Gelände ist als Höhenmodell hinterlegt; Pflanzen stehen auf der Geländehöhe ihres Standorts.
-- Maße der Bachseite stehen im Tab „Annahmen“ und sind dort änderbar. „Meterstab“ = im Foto abgelesen, „geschätzt“ = bitte nachmessen.
-- Ansichten zusätzlich: Terrasse Nr. 27, Bachseite (vom Gegenufer), Vom Hang.
+- Bachseite: Lage und Höhen von Terrassenmauer, Hang, Bach und Grenzen aus dem Aufmaß des Vermessers (16.01.2024, Höhen DHHN2016). Das Gelände ist als Dreiecksnetz des Vermessers hinterlegt; Pflanzen stehen auf der Geländehöhe ihres Standorts. Seither Gebautes (Betonbalken, Geländer, Balkon, Kalksteinmauer, Beet) nach Fotos vom 11.11.
+- Treppe zum Bach (Tab „Treppe“): Podest auf Terrassenhöhe, gerader Lauf aus Beton-Blockstufen bis auf die Ebene am Bach. Stufenhöhe, Auftritt, Podeste und Breite sind einstellbar; geprüft werden Steigung, Auftritt, Schrittmaß, Lauflänge und Abstand zur Wasserkante, dazu ein Längsschnitt mit dem Gelände.
+- Im Tab „Annahmen“ steht, was aus dem Aufmaß stammt, was am Meterstab abgelesen und was geschätzt ist.
+- Ansichten zusätzlich: Terrasse Nr. 27, Bachseite (vom Gegenufer), Vom Hang, Treppe.
 - Berechnet, wie viel der Blickachsen Fenster → Balkon bzw. Terrasse Nr. 25 verdeckt sind (Sommer/Winter, Wuchsstadium bis Endgröße) und prüft Grenzabstand (Art. 47 AGBGB), Überhang und Abstand zur Hauswand.
 
 Koordinaten: „vor Giebel“ = Abstand von der Südost-Hauswand Richtung Nr. 25, „ab Gartenecke“ = Abstand von der Hausecke Süd Richtung Straße.
