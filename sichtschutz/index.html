@@ -232,7 +232,7 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <section class="tabpane" id="p-st" role="tabpanel" aria-labelledby="t-st" hidden>
       <div class="vdesc">
         <h2>Treppe zum Bach</h2>
-        <p class="small muted">Beton-Blockstufen in der Lücke zwischen Terrassenmauer und Kalksteinmauer. Oben ein Podest auf Terrassenhöhe, von dem man auf die Terrasse und in den Giebelgarten kommt. Von dort gerade hinunter auf die Ebene am Bach, 1 m über dem Wasser.</p>
+        <p class="small muted">Beton-Blockstufen auf dem bestehenden Weg. Oben ein Podest auf Terrassenhöhe, von dem man auf die Terrasse und in den Giebelgarten kommt. Dann in der Lücke zwischen Terrassenmauer und Kalksteinmauer hinunter, im Bogen nach Westen wie die alte Treppe und weiter auf die Ebene am Bach, 1 m über dem Wasser.</p>
         <div class="row"><button class="btn" id="stView">Im Modell zeigen</button><label class="small"><input type="checkbox" id="st-on" style="accent-color:var(--accent)"> Treppe einblenden</label><label class="small"><input type="checkbox" id="st-old" style="accent-color:var(--accent)"> Bestehenden Weg mit Höhen zeigen</label></div>
       </div>
       <div><div class="tablewrap"><table id="stRes"></table></div></div>
@@ -378,17 +378,15 @@ const CFG = {
   kalk: { gap: 0.9, v: -1.95, h: 1.1, d: 0.45 },   // Kalksteinmauer (nach dem Aufmaß gebaut): Lücke zur Terrassenmauer (Meterstab), Vorderkante, Höhe, Tiefe
   bach: { H: 740.5, width: 4.5, slope: 0.75, far: -1.5, minV: -4.0 }, // Wasserkante 740,44–740,57 m ü. NHN (Aufmaß); Breite und Gegenufer angenommen
   fence25: { newV0: -2.6, newV1: 1.0 },            // die zwei neuen Sichtschutzelemente von Nr. 25 (aus Fotos)
-  // Geplante Treppe zum Bach: Beton-Blockstufen in der Lücke zwischen Terrassenmauer und Kalksteinmauer.
-  // Oben ein Podest auf Terrassenhöhe (für Terrasse und Giebelgarten), dann gerade Richtung Bach.
+  // Geplante Treppe: Beton-Blockstufen auf dem bestehenden Weg. Oben ein Podest auf Terrassenhöhe, dann in der Lücke
+  // zwischen Terrassenmauer und Kalksteinmauer hinunter, im Bogen nach Westen und hinunter auf die Ebene am Bach.
   stair: {
     on: true,
     w: 0.80,       // Laufbreite
     side: 0.05,    // Abstand zur Terrassenmauer
     s: 0.18,       // Stufenhöhe = Höhe der Blockstufe
-    a: 0.27,       // Auftritt
-    land: 1.0,     // Länge des Zwischenpodests (0 = ohne)
-    landAfter: 0,  // Zwischenpodest nach Steigung Nr. (0 = in der Mitte)
-    bottom: 1.0,   // Austritt über dem Wasserspiegel: 1,0 m = Ebene am Bach (741,5 m ü. NHN)
+    a: 0.27,       // Auftritt in der Lauflinie (Mitte)
+    r: 1.2,        // Bogenradius der Lauflinie
     showOld: true, // bestehenden Weg (alte Treppe laut Aufmaß) mit Höhen einblenden
   },
 };
@@ -585,57 +583,100 @@ function groundNat(u, v) {
   return h;
 }
 
-// ---- Geplante Treppe ----
-// Lauf von oben nach unten: n Steigungen, dazwischen n-1 Trittflächen (eine davon das Zwischenpodest).
+// ---- Geplante Treppe: folgt dem bestehenden Weg mit seinem Bogen ----
+// Achse: Podestkante → Knick des alten Wegs (v = -4,55) → schräg nach Westen → Wegende am Grillplatz → Ebene am Bach.
+// Die Knicke sind mit dem Bogenradius ausgerundet. Alle Stufen sind gleich hoch; an den Bögen liegen Podeste auf der
+// Höhe, die der bestehende Weg dort laut Aufmaß hat.
+const STAIR_KINK_V = -4.55, STAIR_ROUTE = [[-1.9, -6.6], [-4.35, -6.7], [-4.35, -7.95]];
 let _spKey = '', _sp = null;
 function stairPlan() {
-  const S = CFG.stair, T = CFG.terr27, lvl = bachLevel(), key = JSON.stringify([S, T, lvl]);
+  const S = CFG.stair, T = CFG.terr27, key = JSON.stringify([S, T, CFG.survey]);
   if (key === _spKey) return _sp;
-  const u0 = T.over + 0.05 + S.side, u1 = u0 + S.w, top = T.top, vTop = -Math.min(T.board, T.depth - 0.5); // Podestkante am Ende des Betonbalkens
-  const bot = lvl + S.bottom, H = Math.max(0.3, top - bot), n = Math.max(2, Math.round(H / S.s)), s = H / n;
-  let k = S.landAfter > 0 ? Math.round(S.landAfter) : Math.round(n / 2);
-  if (S.land < 0.3 || k < 1 || k >= n) k = 0;
-  const steps = []; let v = vTop;
-  for (let i = 1; i < n; i++) { const len = i === k ? S.land : S.a; steps.push({ i, z: top - i * s, v0: v, v1: v - len, land: i === k }); v -= len; }
-  _spKey = key; _sp = { u0, u1, uc: (u0 + u1) / 2, top, vTop, bot, H, n, s, k, steps, vEnd: v, run: vTop - v };
+  const u0 = T.over + 0.05 + S.side, u1 = u0 + S.w, uc = (u0 + u1) / 2, top = T.top, vTop = -Math.min(T.board, T.depth - 0.5), H0 = h0();
+  const nodes = [[uc, vTop], [uc, STAIR_KINK_V], ...STAIR_ROUTE], path = [], arcs = [];
+  const add = (u, v) => { const q = path[path.length - 1], d = q ? Math.hypot(u - q.u, v - q.v) : 0; if (!q || d > 1e-6) path.push({ u, v, s: q ? q.s + d : 0 }); };
+  const line = (a, b) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(L / 0.05)); for (let i = 0; i <= n; i++) add(a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n); };
+  let cur = nodes[0];
+  for (let i = 1; i < nodes.length - 1; i++) { // Knick i ausrunden
+    const A = nodes[i - 1], N = nodes[i], B = nodes[i + 1], l0 = Math.hypot(N[0] - A[0], N[1] - A[1]), l1 = Math.hypot(B[0] - N[0], B[1] - N[1]);
+    const d0 = [(N[0] - A[0]) / l0, (N[1] - A[1]) / l0], d1 = [(B[0] - N[0]) / l1, (B[1] - N[1]) / l1];
+    const th = Math.acos(Math.max(-1, Math.min(1, d0[0] * d1[0] + d0[1] * d1[1]))), sg = Math.sign(d0[0] * d1[1] - d0[1] * d1[0]) || 1;
+    const t = Math.min(S.r * Math.tan(th / 2), 0.45 * l0, 0.45 * l1), R = t / Math.tan(th / 2);
+    const P0 = [N[0] - d0[0] * t, N[1] - d0[1] * t], C = [P0[0] - sg * d0[1] * R, P0[1] + sg * d0[0] * R];
+    line(cur, P0); const sA = path[path.length - 1].s, a0 = Math.atan2(P0[1] - C[1], P0[0] - C[0]), n = Math.max(2, Math.ceil(R * th / 0.05));
+    for (let k = 1; k <= n; k++) add(C[0] + R * Math.cos(a0 + sg * th * k / n), C[1] + R * Math.sin(a0 + sg * th * k / n));
+    arcs.push({ s0: sA, s1: path[path.length - 1].s, R, th }); cur = [path[path.length - 1].u, path[path.length - 1].v];
+  }
+  line(cur, nodes[nodes.length - 1]);
+  const L = path[path.length - 1].s, end = nodes[nodes.length - 1];
+  const bot = surveyH(end[0], end[1]) - H0, H = Math.max(0.3, top - bot), n = Math.max(2, Math.round(H / S.s)), s = H / n;
+  // Podeste an den Bögen: nach so vielen Steigungen, dass die Höhe des bestehenden Wegs am Knick getroffen wird
+  const ks = []; let last = 0;
+  for (let j = 1; j < nodes.length - 1; j++) { const k = Math.max(last + 1, Math.min(n - (nodes.length - 1 - j), Math.round((top - (surveyH(nodes[j][0], nodes[j][1]) - H0)) / s))); ks.push(k); last = k; }
+  const steps = []; let sp = 0, li = 0;
+  for (let i = 1; i < n; i++) {
+    const land = i === ks[li], len = land ? Math.max(0.8, arcs[li].s1 + 0.1 - sp) : S.a; if (land) li++;
+    steps.push({ i, z: top - i * s, s0: sp, s1: sp + len, land }); sp += len;
+  }
+  const slack = L - sp; // Rest der Achse: dem letzten Podest zuschlagen, damit die letzte Stufe am Wegende sitzt
+  if (slack > 0) { let hit = false; for (const st of steps) { if (hit) { st.s0 += slack; st.s1 += slack; } else if (st.i === ks[ks.length - 1]) { st.s1 += slack; hit = true; } } }
+  const us = path.map(q => q.u), vs = path.map(q => q.v);
+  _spKey = key; _sp = { u0, u1, uc, top, vTop, bot, H, n, s, ks, steps, path, arcs, nodes, L, slack, sEnd: steps.length ? steps[steps.length - 1].s1 : 0,
+    bb: [Math.min(...us) - 1.2, Math.max(...us) + 1.2, Math.min(...vs) - 1.2, Math.max(...vs) + 1.2] };
   return _sp;
 }
-function stairZ(P, v) { // Höhe der Treppenoberfläche an der Stelle v
-  if (v >= P.vTop) return P.top;
-  if (v < P.vEnd) return P.bot;
-  for (const st of P.steps) if (v >= st.v1) return st.z;
+function stairAt(P, s) { // Punkt und Richtung der Laufachse bei der Bogenlänge s (über die Enden hinaus gerade verlängert)
+  const p = P.path; let i = 1;
+  if (s > 0) { let lo = 1, hi = p.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (p[m].s < s) lo = m + 1; else hi = m; } i = lo; }
+  const a = p[i - 1], b = p[i], d = b.s - a.s, tu = (b.u - a.u) / d, tv = (b.v - a.v) / d;
+  return { u: a.u + tu * (s - a.s), v: a.v + tv * (s - a.s), tu, tv };
+}
+function stairProj(P, u, v) { // nächster Punkt der Laufachse: Bogenlänge s und Abstand d
+  const p = P.path; let best = Infinity, sb = 0;
+  for (let i = 1; i < p.length; i++) {
+    const a = p[i - 1], b = p[i], du = b.u - a.u, dv = b.v - a.v, L2 = du * du + dv * dv, t = Math.max(0, Math.min(1, ((u - a.u) * du + (v - a.v) * dv) / L2));
+    const d = (u - a.u - t * du) ** 2 + (v - a.v - t * dv) ** 2;
+    if (d < best) { best = d; sb = a.s + t * (b.s - a.s); }
+  }
+  return { s: sb, d: Math.sqrt(best) };
+}
+function stairZ(P, s) { // Höhe der Treppenoberfläche bei der Bogenlänge s
+  if (s <= 0) return P.top;
+  for (const st of P.steps) if (s < st.s1) return st.z;
   return P.bot;
 }
-// Gelände mit Treppe: nördlich der Podestkante aufgefüllt auf Giebelgarten-Niveau, im Lauf dort abgetragen, wo der Hang höher liegt
+// Gelände mit Treppe: nördlich der Podestkante aufgefüllt auf Giebelgarten-Niveau; entlang des Laufs abgetragen, wo der Boden höher liegt
 function groundH(u, v) {
   const g = groundNat(u, v), S = CFG.stair;
   if (!S.on || v >= 0.8) return g;
-  const T = CFG.terr27, uL = T.over + 0.03 + S.side;
-  if (u <= T.over - 0.03 || u > kalkU0() + 0.4) return g;
   const P = stairPlan();
-  if (v >= P.vTop + 0.02) return 0;
-  if (u < uL || u > uL + S.w + 0.04 || v < P.vEnd - 0.6) return g;
-  return Math.min(g, stairZ(P, v - 0.27) - 0.06);
+  if (v >= P.vTop + 0.02) return (u > CFG.terr27.over - 0.03 && u <= kalkU0() + 0.4) ? 0 : g;
+  if (u < P.bb[0] || u > P.bb[1] || v < P.bb[2] || v > P.bb[3]) return g;
+  const q = stairProj(P, u, v);
+  return q.d > S.w / 2 + 0.3 ? g : Math.min(g, stairZ(P, q.s + 0.27) - 0.06);
 }
 function stairChecks() {
-  const S = CFG.stair, K = CFG.kalk, B = CFG.bach, P = stairPlan(), sm = 2 * P.s + S.a;
+  const S = CFG.stair, K = CFG.kalk, P = stairPlan(), sm = 2 * P.s + S.a, H0 = h0(), hw = S.w / 2;
   const lv = (ok, warn) => ok ? 'ok' : (warn ? 'warn' : 'bad');
-  let maxFill = 0, iFill = 0, maxCut = 0, iCut = 0;
+  let maxFill = 0, iFill = 0, maxCut = 0, iCut = 0, inner = Infinity;
   for (const st of P.steps) {
-    const d = st.z - groundNat(P.uc, (st.v0 + st.v1) / 2); // + = Trittfläche über dem heutigen Gelände
+    const m = stairAt(P, (st.s0 + st.s1) / 2), d = st.z - groundNat(m.u, m.v); // + = Trittfläche über dem Gelände laut Aufmaß
     if (d > maxFill) { maxFill = d; iFill = st.i; }
     if (-d > maxCut) { maxCut = -d; iCut = st.i; }
+    if (!st.land) { const a = stairAt(P, st.s0), b = stairAt(P, st.s1); for (const sg of [-1, 1]) inner = Math.min(inner, Math.hypot(b.u - sg * b.tv * hw - (a.u - sg * a.tv * hw), b.v + sg * b.tu * hw - (a.v + sg * a.tu * hw))); }
   }
-  const wv = waterV(P.uc), flight = P.k ? Math.max(P.k, P.n - P.k) : P.n, clear = K.gap - S.side - S.w;
+  const cuts = [0, ...P.ks, P.n], flight = Math.max(...cuts.slice(1).map((k, i) => k - cuts[i])), clear = K.gap - S.side - S.w;
+  const lands = P.steps.filter(t => t.land).map((t, j) => ({ i: t.i, len: t.s1 - t.s0, plan: t.z + H0, ist: surveyH(P.nodes[j + 1][0], P.nodes[j + 1][1]) }));
   return {
     sm, smL: lv(sm >= 0.61 && sm <= 0.65, sm >= 0.59 && sm <= 0.67),
     sL: lv(P.s >= 0.14 && P.s <= 0.185, P.s >= 0.12 && P.s <= 0.195),
     aL: lv(S.a >= 0.26, S.a >= 0.23),
-    toWater: P.vEnd - wv, fitL: lv(P.vEnd - wv >= 0.5, P.vEnd - wv >= 0),
+    inner, innerL: lv(inner >= 0.18, inner >= 0.10),
+    slack: P.slack, fitL: lv(P.slack >= -0.05, P.slack >= -0.4),
     flight, flightL: lv(flight <= 18, flight <= 21),
     clear, wL: lv(clear >= 0.02 && S.w >= 0.8, clear >= 0 && S.w >= 0.6),
     maxFill, iFill, maxCut, iCut, podFill: P.top - groundNat(P.uc, P.vTop + 0.3),
-    blocks: P.n - 1 - (P.k ? 1 : 0), dBlock: P.s - S.s,
+    lands, blocks: P.steps.filter(t => !t.land).length, dBlock: P.s - S.s,
   };
 }
 
@@ -764,7 +805,7 @@ function plantChecks(p) {
   }
   return { dB, need, hLegal, ok: own && dB >= need - 1e-6, own, dHouse, overhang, facade, maxTop: D.top, maxW: D.w };
 }
-if (typeof module !== 'undefined') module.exports = { CFG, SPECIES, STAGES, coverage, terraceTargets, plantChecks, distToBoundary, boundaryUAt, crown, crown0, dims, inPoly, groundH, groundNat, surveyH, waterV, h0, bachLevel, stairPlan, stairChecks, TIN, SURVEY };
+if (typeof module !== 'undefined') module.exports = { CFG, SPECIES, STAGES, coverage, terraceTargets, plantChecks, distToBoundary, boundaryUAt, crown, crown0, dims, inPoly, groundH, groundNat, surveyH, waterV, h0, bachLevel, stairPlan, stairAt, stairZ, stairChecks, TIN, SURVEY };
 // ===== CORE ENDE =====
 
 
@@ -899,7 +940,7 @@ Object.assign(MAT, {
   stone: lam(0xffffff, { map: stoneTexture() }), concrete: lam(0xbdbab1), gravel: lam(0xa69e92), galv: lam(0xaab1b4),
   kalk: [lam(0xd6c69c), lam(0xc9b88c), lam(0xddcfaa)], water: lam(0x5f8ea6, { transparent: true, opacity: 0.9 }),
   pallet: lam(0x8a6f52), chest: lam(0x5e5046), stepC: lam(0x8f7466), deck: lam(0x8a7458), outer: lam(0x7b955a),
-  glass25: lam(0xa9c2b4, { transparent: true, opacity: 0.6 }), blockstep: lam(0xb7b4ac), unterbau: lam(0x7d7a74),
+  glass25: lam(0xa9c2b4, { transparent: true, opacity: 0.6 }), blockstep: lam(0xb7b4ac), stairBlock: lam(0xb7b4ac, { side: THREE.DoubleSide }), stairLand: lam(0xa9a69e, { side: THREE.DoubleSide }), stairBase: lam(0x7d7a74, { side: THREE.DoubleSide }),
 });
 function clearGroup(g) {
   g.traverse(o => { if (o.geometry && o.geometry !== ICO) o.geometry.dispose(); if (o.isSprite) { o.material.map.dispose(); o.material.dispose(); } });
@@ -1015,7 +1056,7 @@ function buildTerrain() {
   const kv = Math.max(K.v, -T.depth + 0.3), pair = (arr, x) => arr.push(x - 0.004, x + 0.004);
   [T.uA + e, T.over - e, kalkU0(), kalkU0() + 0.45].forEach(x => pair(us, x));
   [-T.depth + e, -e, kv + 0.05, kv + K.d + 0.15].forEach(x => pair(vs, x));
-  if (CFG.stair.on) { const P = stairPlan(); pair(us, P.u0 - 0.02); pair(us, P.u1 + 0.02); pair(vs, P.vTop + 0.02); pair(vs, P.vEnd - 0.6); }
+  if (CFG.stair.on) pair(vs, stairPlan().vTop + 0.02);
   ground = gridMesh(uniq(us), uniq(vs), (u, v, i, j, nu, nv) => groundH(u, v) - (i === 0 || j === 0 || i === nu - 1 || j === nv - 1 ? 1.5 : 0), groundMat, true);
   ground.receiveShadow = true; terrGrp.add(ground);
   const ou = [GA.u0, GA.u1], ov = [GA.v0, GA.v1];
@@ -1349,22 +1390,35 @@ function buildPavilion25(g) {
   for (const [a, b] of [[u0, v0], [u1, v0], [u0, v1], [u1, v1], [um, v0], [um, v1], [u0, vm], [u1, vm]]) g.add(box(a - 0.06, a + 0.06, b - 0.06, b + 0.06, hp, hp + 2.3, MAT.post));
   g.add(box(u0 - 0.5, u1 + 0.5, v0 - 0.5, v1 + 0.5, hp + 2.3, hp + 2.42, MAT.roof25));
 }
-// Geplante Treppe: Podest, Blockstufen mit Unterbau, Zwischenpodest, Austritt
+// Körper entlang der Laufachse zwischen den Bogenlängen sA und sB (im Bogen keilförmig), Breite 2·hw, Höhe zBot…zTop
+function prismAlong(P, sA, sB, zTop, zBot, mat, hw) {
+  const n = Math.max(1, Math.ceil((sB - sA) / 0.12)), pos = [], idx = [];
+  for (let j = 0; j <= n; j++) {
+    const q = stairAt(P, sA + (sB - sA) * j / n), lu = q.u - q.tv * hw, lv = q.v + q.tu * hw, ru = q.u + q.tv * hw, rv = q.v - q.tu * hw;
+    pos.push(lu, zTop, -lv, ru, zTop, -rv, lu, zBot, -lv, ru, zBot, -rv);
+  }
+  for (let j = 0; j < n; j++) { const a = j * 4, b = a + 4; idx.push(a, a + 1, b + 1, a, b + 1, b, a, b, b + 2, a, b + 2, a + 2, a + 1, a + 3, b + 3, a + 1, b + 3, b + 1); }
+  const e = n * 4; idx.push(0, 2, 3, 0, 3, 1, e, e + 1, e + 3, e, e + 3, e + 2);
+  let geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx);
+  geo = geo.toNonIndexed(); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m;
+}
+// Geplante Treppe: Podest oben, Blockstufen und Podeste entlang des bestehenden Wegs, jeweils mit Unterbau bis zum Boden
 function buildStair(g) {
   if (!CFG.stair.on) return;
-  const S = CFG.stair, T = CFG.terr27, P = stairPlan(), uE = kalkU0();
-  const under = (v0, v1, zTop) => { const gm = Math.min(groundH(P.uc, v0 - 0.01), groundH(P.uc, v1 + 0.01), groundNat(P.uc, (v0 + v1) / 2)); g.add(box(P.u0 + 0.01, P.u1 - 0.01, v1, v0, Math.min(zTop - 0.08, gm - 0.05), zTop, MAT.unterbau)); };
+  const S = CFG.stair, T = CFG.terr27, P = stairPlan(), uE = kalkU0(), hw = S.w / 2;
   g.add(box(T.over, uE, P.vTop, 0, P.top - 0.16, P.top, MAT.blockstep));                       // Podest auf Terrassenhöhe
   for (const st of P.steps) {
-    const th = st.land ? 0.12 : P.s;
-    g.add(box(P.u0, P.u1, st.v1, st.v0 + 0.03, st.z - th, st.z, st.land ? MAT.concrete : MAT.blockstep));
-    under(st.v0, st.v1, st.z - th);
+    const th = st.land ? 0.12 : P.s; let gm = Infinity;
+    for (let k = 0; k <= 4; k++) { const q = stairAt(P, st.s0 + (st.s1 - st.s0) * k / 4); gm = Math.min(gm, groundH(q.u, q.v), groundNat(q.u, q.v)); }
+    g.add(prismAlong(P, st.s0 - 0.03, st.s1, st.z, st.z - th, st.land ? MAT.stairLand : MAT.stairBlock, hw));
+    g.add(prismAlong(P, st.s0, st.s1, st.z - th, Math.min(st.z - th - 0.08, gm - 0.05), MAT.stairBase, hw - 0.01));
   }
-  g.add(box(P.u0 - 0.1, P.u1 + 0.1, P.vEnd - 0.6, P.vEnd, P.bot - 0.1, P.bot, MAT.gravel));     // Austritt
   const lb = label('Treppe (geplant)', { size: 0.36, bg: 'rgba(60,66,70,0.92)' }); lb.position.copy(W(P.uc, P.top + 0.75, P.vTop - 0.5)); g.add(lb);
 }
 // Bestehender Weg laut Aufmaß 2024 (alte Treppe in der Lücke, schräg hinunter zum Grillplatz). Seine Höhen gelten weiter;
 // der Hang daneben ist seither mit Jurakalk-Blöcken terrassiert und im Modell noch auf dem Stand des Aufmaßes.
+// Die geplante Treppe folgt diesem Weg.
 const OLD_PATH = [[1.2, -1.4], [1.2, -3.08], [1.2, -4.55], [-1.9, -6.6], [-4.35, -6.7], [-7.3, -7.25], [-1.7, -8.7]];
 function buildOldPath(g) {
   if (!CFG.stair.showOld) return;
@@ -1624,7 +1678,7 @@ function viewPose(id) {
   if (id === 'garden') return { pos: W(T7.over - 0.6, T7.top + 1.6, -T7.depth + 0.7), tgt: W(4.8, 3.2, 8.5), fov: 60 }; // von der Terrassenecke Süd
   if (id === 'terr27') return { pos: W(-4.2, T7.top + 1.6, -1.3), tgt: W(4.5, 0.8, -1.2), fov: 64 };
   if (id === 'bach') return { pos: W(8.5, bachLevel() + 5.2, waterV(8.5) - CFG.bach.width - 3.0), tgt: W(-3.5, -2.2, -4.0), fov: 56 }; // vom Gegenufer
-  if (id === 'treppe') { const P = stairPlan(); return { pos: W(P.u1 + 3.0, P.bot + 3.0, P.vEnd - 1.6), tgt: W(P.uc, (P.top + P.bot) / 2 - 0.3, (P.vTop + P.vEnd) / 2), fov: 62 }; }
+  if (id === 'treppe') { const P = stairPlan(); return { pos: W(3.4, P.bot + 6.4, waterV(3.4) + 0.2), tgt: W(-1.7, (P.top + P.bot) / 2 - 0.9, -5.5), fov: 60 }; }
   if (id === 'hang') { const pu = 3.3, pv = Math.max(waterV(3.3) + 2.6, -T7.depth - 2.4); return { pos: W(pu, groundH(pu, pv) + 1.6, pv), tgt: W(-0.6, 0.5, -1.4), fov: 64 }; }
   if (id === 'balk') return { pos: W((B.u0 + B.u1) / 2, B.floor + 1.3, B.wallV - 0.55), tgt: W(0, fo + 1.5, 4.6), fov: 60 };
   if (id === 'side') return { pos: W(13.5, 1.65, -3.5), tgt: W(1.5, 3.4, 5.0), fov: 58 };
@@ -1882,10 +1936,8 @@ function rebuildSite() { buildTerrain(); buildSite(); buildCtxTrees(); drawGroun
 const ST_FIELDS = [
   ['st-w', 'Laufbreite (m)', () => CFG.stair.w, (x) => CFG.stair.w = x, 0.05, 0.5, 1.5],
   ['st-s', 'Stufenhöhe = Höhe der Blockstufe (m)', () => CFG.stair.s, (x) => CFG.stair.s = x, 0.01, 0.12, 0.22],
-  ['st-a', 'Auftritt (m)', () => CFG.stair.a, (x) => CFG.stair.a = x, 0.01, 0.2, 0.45],
-  ['st-l', 'Zwischenpodest: Länge (m, 0 = ohne)', () => CFG.stair.land, (x) => CFG.stair.land = x, 0.1, 0, 3],
-  ['st-k', 'Zwischenpodest nach Steigung Nr. (0 = in der Mitte)', () => CFG.stair.landAfter, (x) => CFG.stair.landAfter = Math.round(x), 1, 0, 40],
-  ['st-b', 'Austritt über dem Wasserspiegel (m)', () => CFG.stair.bottom, (x) => CFG.stair.bottom = x, 0.05, 0, 2.5],
+  ['st-a', 'Auftritt in der Lauflinie (m)', () => CFG.stair.a, (x) => CFG.stair.a = x, 0.01, 0.2, 0.45],
+  ['st-r', 'Bogenradius der Lauflinie (m)', () => CFG.stair.r, (x) => CFG.stair.r = x, 0.1, 0.5, 3],
   ['st-sd', 'Abstand zur Terrassenmauer (m)', () => CFG.stair.side, (x) => CFG.stair.side = x, 0.01, 0, 0.5],
 ];
 function renderStairFields() {
@@ -1902,48 +1954,49 @@ function renderStairFields() {
   $('stView').onclick = () => setView('treppe');
 }
 function renderStair() {
-  const S = CFG.stair, T = CFG.terr27, lvl = bachLevel(), P = stairPlan(), C = stairChecks(), cm = (x, d = 1) => fmt(x * 100, d), nhn = (h) => fmt(h + h0(), 2);
+  const S = CFG.stair, T = CFG.terr27, P = stairPlan(), C = stairChecks(), H0 = h0(), cm = (x, d = 1) => fmt(x * 100, d), nhn = (h) => fmt(h + H0, 2);
   const TXT = { ok: 'passt', warn: 'grenzwertig', bad: 'passt nicht' }, pill = (l) => `<span class="pill ${l}">${TXT[l]}</span>`;
   const row = (a, b, l) => `<tr><td>${a}</td><td class="n">${b}</td><td>${l ? pill(l) : ''}</td></tr>`;
+  const NAMES = ['Podest im Bogen', 'Podest am zweiten Knick', 'Podest am Wegende'];
   $('stRes').innerHTML = '<tr><th>Wert</th><th>Ergebnis</th><th></th></tr>' + [
     row('Podest oben / Austritt unten (m ü. NHN)', `${nhn(P.top)} / ${nhn(P.bot)}`),
     row('Höhe Podest bis Austritt', `${fmt(P.H, 2)} m`),
     row('Steigungen', `${P.n} × ${cm(P.s)} cm`, C.sL),
-    row('Auftritt', `${cm(S.a, 0)} cm`, C.aL),
+    row('Auftritt in der Lauflinie', `${cm(S.a, 0)} cm`, C.aL),
     row('Schrittmaß 2 × Steigung + Auftritt (Ziel 61–65 cm)', `${cm(C.sm)} cm`, C.smL),
+    row('Schmalste Trittfläche an der Bogeninnenseite', isFinite(C.inner) ? `${cm(C.inner, 0)} cm` : '–', C.innerL),
     row('Längster Lauf ohne Podest (höchstens 18)', `${C.flight} Steigungen`, C.flightL),
-    row('Lauflänge ab Podestkante', `${fmt(P.run, 2)} m`),
-    row('Treppenende bis Wasserkante', `${fmt(C.toWater, 2)} m`, C.fitL),
+    row('Länge der Lauflinie ab Podestkante', `${fmt(P.L, 2)} m`, C.fitL),
     row('Breite in der Lücke, Rest zur Kalksteinmauer', `${cm(C.clear, 0)} cm`, C.wL),
-  ].join('');
-  // Längsschnitt entlang der Treppenachse (Blick von Nr. 25): links Haus, rechts Bach
-  const x0 = 0.9, xOf = (v) => x0 - v, xMax = xOf(waterV(P.uc) - 1.4), yTop = Math.max(P.top, 0) + 0.75, yBot = lvl - 0.45, Y = (h) => yTop - h;
-  const nat = []; for (let v = x0; v >= waterV(P.uc) - 1.4 - 1e-6; v -= 0.1) nat.push(`${xOf(v).toFixed(2)},${Y(groundNat(P.uc, v)).toFixed(2)}`);
-  let st = `M0,${Y(0).toFixed(2)} L${xOf(0).toFixed(2)},${Y(0).toFixed(2)} L${xOf(0).toFixed(2)},${Y(P.top).toFixed(2)} L${xOf(P.vTop).toFixed(2)},${Y(P.top).toFixed(2)}`;
-  for (const t of P.steps) st += ` L${xOf(t.v0).toFixed(2)},${Y(t.z).toFixed(2)} L${xOf(t.v1).toFixed(2)},${Y(t.z).toFixed(2)}`;
-  st += ` L${xOf(P.vEnd).toFixed(2)},${Y(P.bot).toFixed(2)} L${xOf(P.vEnd - 0.6).toFixed(2)},${Y(P.bot).toFixed(2)}`;
-  const land = P.steps.find(t => t.land), tx = (x, h, s, anchor = 'start') => `<text x="${x.toFixed(2)}" y="${(Y(h) - 0.15).toFixed(2)}" text-anchor="${anchor}">${s}</text>`;
-  const sg = (h) => nhn(h);
-  $('stSec').innerHTML = S.on ? `<svg viewBox="0 0 ${xMax.toFixed(2)} ${(yTop - yBot).toFixed(2)}" role="img" aria-label="Längsschnitt der Treppe mit heutigem Gelände und Wasserspiegel">
-    <rect x="${xOf(waterV(P.uc)).toFixed(2)}" y="${Y(lvl).toFixed(2)}" width="${(xMax - xOf(waterV(P.uc))).toFixed(2)}" height="${(lvl - yBot).toFixed(2)}" fill="#5f8ea6" opacity="0.7"/>
-    <polygon points="0,${(yTop - yBot).toFixed(2)} ${nat.join(' ')} ${xMax.toFixed(2)},${(yTop - yBot).toFixed(2)}" fill="#a58a63" opacity="0.55"/>
+  ].concat(C.lands.map((l, j) => row(`${NAMES[j] || 'Podest'} nach Steigung ${l.i}, ${fmt(l.len, 2)} m lang`, `${fmt(l.plan, 2)}<br><span class="muted">Weg heute ${fmt(l.ist, 2)}</span>`))).join('');
+  // Längsschnitt: abgewickelt entlang der Lauflinie, links das Podest
+  const pre = 1.6, x0 = pre, xMax = pre + P.L + 1.2, hs = [P.top, 0, P.bot], gPt = [];
+  for (let sx = -pre; sx <= P.L + 1.2 + 1e-6; sx += 0.1) { const q = sx < 0 ? { u: P.uc, v: P.vTop - sx } : stairAt(P, sx), gh = groundNat(q.u, q.v); hs.push(gh); gPt.push([x0 + sx, gh]); }
+  const yTop = Math.max(...hs) + 0.75, yBot = Math.min(...hs) - 0.5, Y = (h) => (yTop - h).toFixed(2), X = (sx) => (x0 + sx).toFixed(2);
+  let st = `M0,${Y(0)} L${X(P.vTop)},${Y(0)} L${X(P.vTop)},${Y(P.top)} L${X(0)},${Y(P.top)}`;
+  for (const t of P.steps) st += ` L${X(t.s0)},${Y(t.z)} L${X(t.s1)},${Y(t.z)}`;
+  st += ` L${X(P.sEnd)},${Y(P.bot)} L${X(P.sEnd + 1.0)},${Y(P.bot)}`;
+  const tx = (x, h, s, anchor = 'start') => `<text x="${x}" y="${(yTop - h - 0.15).toFixed(2)}" text-anchor="${anchor}">${s}</text>`;
+  $('stSec').innerHTML = S.on ? `<svg viewBox="0 0 ${xMax.toFixed(2)} ${(yTop - yBot).toFixed(2)}" role="img" aria-label="Längsschnitt der Treppe entlang der Lauflinie mit dem Gelände aus dem Aufmaß">
+    ${P.arcs.map(a => `<rect x="${X(a.s0)}" y="0" width="${(a.s1 - a.s0).toFixed(2)}" height="${(yTop - yBot).toFixed(2)}" fill="currentColor" opacity="0.08"/>`).join('')}
+    <polygon points="0,${(yTop - yBot).toFixed(2)} ${gPt.map(([x, h]) => x.toFixed(2) + ',' + Y(h)).join(' ')} ${xMax.toFixed(2)},${(yTop - yBot).toFixed(2)}" fill="#a58a63" opacity="0.55"/>
     <path d="${st}" fill="none" stroke="currentColor" stroke-width="0.05" stroke-linejoin="miter"/>
-    ${tx(0.15, P.top, 'Podest ' + sg(P.top))}
-    ${land ? tx(xOf(land.v0) + 0.05, land.z, 'Podest ' + sg(land.z)) : ''}
-    ${tx(xOf(P.vEnd) - 0.1, P.bot + 0.35, 'Austritt ' + sg(P.bot), 'end')}
-    ${tx(xMax - 0.05, lvl, 'Wasser ' + sg(lvl), 'end')}
+    ${tx('0.15', P.top, 'Podest ' + nhn(P.top))}
+    ${P.steps.filter(t => t.land).map(t => tx(X(t.s0 + 0.05), t.z, nhn(t.z))).join('')}
+    ${tx((xMax - 0.1).toFixed(2), P.bot + 0.5, 'Ebene am Bach ' + nhn(P.bot), 'end')}
   </svg>` : '<p class="small muted">Treppe ist ausgeblendet.</p>';
-  $('stSecNote').textContent = 'Braun: Gelände entlang der Treppenachse laut Aufmaß vom 16.01.2024 (vor den Jurakalk-Terrassen). Linie: Treppe. Höhen in m ü. NHN. Links das Podest, rechts der Bach.';
+  $('stSecNote').textContent = 'Abgewickelt entlang der Lauflinie. Braun: bestehender Weg laut Aufmaß vom 16.01.2024; seine Höhen gelten weiter. Linie: neue Treppe. Grau hinterlegt: Bögen. Höhen in m ü. NHN.';
+  const landTxt = C.lands.map(l => `${fmt(S.w, 2)} × ${fmt(l.len, 2)} m`).join(', ');
   const notes = [
-    `<b>Material:</b> ${C.blocks} Blockstufen, je ${cm(S.w, 0)} cm breit, ${cm(S.s, 0)} cm hoch und mindestens ${cm(S.a + 0.03, 0)} cm tief (Auftritt plus 3 cm Überdeckung). Dazu das obere Podest mit ${fmt(kalkU0() - T.over, 2)} × ${fmt(-P.vTop, 2)} m${P.k ? ` und das Zwischenpodest mit ${fmt(S.w, 2)} × ${fmt(S.land, 2)} m` : ''}.`,
-    Math.abs(C.dBlock) > 0.0005 ? `Rechnerisch ergibt die Höhe ${cm(P.s)} cm je Stufe, die Blockstufe hat ${cm(S.s, 0)} cm. Die ${fmt(Math.abs(C.dBlock) * 1000, 0)} mm Unterschied je Stufe gleichst du über das Mörtelbett oder die Höhe des Austritts aus.` : '',
-    `<b>Unterbau:</b> Das Podest liegt rund ${fmt(Math.max(0, C.podFill), 2)} m über dem heutigen Boden.${C.maxFill > 0.05 ? ` Im Lauf liegt die Trittfläche bis zu ${fmt(C.maxFill, 2)} m über dem Gelände (Stufe ${C.iFill}): dort auffüllen und verdichten oder unterbauen.` : ''}${C.maxCut > 0.05 ? ` Weiter unten schneidet sie bis zu ${fmt(C.maxCut, 2)} m in den Hang ein (Stufe ${C.iCut}): dort Aushub und seitlich abfangen.` : ''}`,
-    `Zum Giebelgarten bleibt am Podest eine Stufe von ${cm(Math.max(0, P.top), 0)} cm.`,
-    C.fitL === 'bad' ? '<span style="color:var(--bad)">Die Treppe reicht bis über die Wasserkante hinaus. Stufen höher wählen, Auftritt kürzen, Zwischenpodest kürzen, Austritt höher legen oder die Treppe unten wenden.</span>' : '',
-    S.bottom >= 0.8 ? `Die Treppe endet auf der Ebene am Bach, ${fmt(S.bottom, 2)} m über dem Wasser. Für Stufen bis ans Wasser den Austritt auf 0 stellen: das sind weitere ${Math.round(S.bottom / P.s)} Steigungen durch die Uferböschung.` : '',
-    (() => { const off = P.steps.find(t => t.v0 < -4.7); return off ? `Bis Stufe ${off.i - 1} liegt die Treppe auf dem bestehenden Weg (orange im Modell), dessen Höhen unverändert gelten. Ab ${off.land ? 'dem Zwischenpodest' : 'Stufe ' + off.i} verlässt der gerade Lauf den Weg und quert den Hang, der seit dem Aufmaß terrassiert wurde: Auffüllung und Einschnitt sind dort noch nicht belastbar.` : ''; })(),
-    'Gelände, Bach und Grenzen stammen aus dem Aufmaß vom Januar 2024. Die Höhe des Podests hängt an der Oberkante des Betonbalkens (746,30 m ü. NHN, aus Meterstab und Aufmaß hergeleitet). Diese eine Höhe vor dem Bestellen nachmessen und im Tab „Annahmen“ eintragen.',
-    'Die unteren Stufen stehen an der Uferböschung. Bauten am Gewässer können genehmigungspflichtig sein (Art. 20 BayWG). Vorher bei der Gemeinde oder beim Landratsamt nachfragen. Hochwasser kann die untersten Stufen unterspülen. Keine Rechtsberatung.',
+    `<b>Verlauf:</b> wie die alte Treppe. ${P.ks[0]} Steigungen gerade in der Lücke, dann ein Podest im Bogen (${Math.round(P.arcs[0].th * 180 / Math.PI)}° nach Westen), ${P.ks[1] - P.ks[0]} Steigungen schräg hinunter, ${P.ks[2] - P.ks[1]} Steigungen im Weg Richtung Grillplatz und zuletzt ${P.n - P.ks[2]} Steigungen hinunter auf die Ebene am Bach.`,
+    `<b>Material:</b> ${C.blocks} Blockstufen, je ${cm(S.w, 0)} cm breit, ${cm(S.s, 0)} cm hoch und mindestens ${cm(S.a + 0.03, 0)} cm tief (Auftritt plus 3 cm Überdeckung). Dazu das obere Podest mit ${fmt(kalkU0() - T.over, 2)} × ${fmt(-P.vTop, 2)} m und ${C.lands.length} Podeste im Lauf (${landTxt}); die Podeste in den Bögen sind keilförmig.`,
+    Math.abs(C.dBlock) > 0.0005 ? `Rechnerisch ergibt die Höhe ${cm(P.s)} cm je Stufe, die Blockstufe hat ${cm(S.s, 0)} cm. Die ${fmt(Math.abs(C.dBlock) * 1000, 0)} mm Unterschied je Stufe gleichst du über das Mörtelbett aus.` : '',
+    `<b>Unterbau:</b> Das obere Podest liegt rund ${fmt(Math.max(0, C.podFill), 2)} m über dem heutigen Boden, weil die Terrasse höher liegt als der alte Antritt.${C.maxFill > 0.05 ? ` Die ersten Stufen liegen bis zu ${fmt(C.maxFill, 2)} m über dem bestehenden Weg (Stufe ${C.iFill}): dort auffüllen und verdichten.` : ''}${C.maxCut > 0.05 ? ` Größter Abtrag: ${fmt(C.maxCut, 2)} m bei Stufe ${C.iCut}.` : ''} Ab etwa Stufe 9 folgt die Treppe dem Weg auf wenige Zentimeter.`,
+    `Zum Giebelgarten bleibt am oberen Podest eine Stufe von ${cm(Math.max(0, P.top), 0)} cm.`,
+    C.fitL !== 'ok' ? '<span style="color:var(--bad)">Die Stufen reichen über das Wegende hinaus. Stufen höher wählen oder den Auftritt kürzen.</span>' : '',
+    'Die letzten Steigungen vom Wegende auf die Ebene am Bach stehen so nicht im Aufmaß: dort ist heute ein Absatz von rund 0,45 m. Bis ans Wasser wären es von der Ebene noch einmal 1,0 m.',
+    'Die Höhe des oberen Podests hängt an der Oberkante des Betonbalkens (746,30 m ü. NHN, aus Meterstab und Aufmaß hergeleitet). Diese eine Höhe vor dem Bestellen nachmessen und im Tab „Annahmen“ eintragen.',
+    'Stufen an der Uferböschung können genehmigungspflichtig sein (Art. 20 BayWG). Vorher bei der Gemeinde oder beim Landratsamt nachfragen. Keine Rechtsberatung.',
     'Bei dieser Höhe ist ein Handlauf sinnvoll. Er ist im Modell noch nicht dargestellt.',
   ];
   $('stNotes').innerHTML = S.on ? notes.filter(Boolean).map(t => `<li>${t}</li>`).join('') : '';
