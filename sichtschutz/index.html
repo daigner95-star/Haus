@@ -129,6 +129,8 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
 .note { border-left: 3px solid var(--warn); padding: 6px 10px; background: var(--bg); border-radius: 0 8px 8px 0; font-size: 13.5px; }
 .assume { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 6px 10px; align-items: center; font-size: 13.5px; }
 .assume input { width: 100%; }
+.src { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.src.m { color: var(--ok); } .src.g { color: var(--warn); } .src.p { color: var(--muted); }
 
 @media (max-width: 860px) {
   .app { display: block; height: auto; }
@@ -162,7 +164,7 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
   </header>
 
   <main class="stage" id="stageWrap">
-    <canvas id="scene" aria-label="3D-Modell Garten Nr. 27 mit Nachbarhaus Nr. 25"></canvas>
+    <canvas id="scene" aria-label="3D-Modell Garten Nr. 27 mit Terrasse, Hang zum Bach und Nachbarhaus Nr. 25"></canvas>
     <nav class="views" id="views" aria-label="Ansichten"></nav>
     <div class="toast" id="toast" role="status"></div>
     <div class="hud">
@@ -227,9 +229,14 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <section class="tabpane" id="p-as" role="tabpanel" aria-labelledby="t-as" hidden>
       <div>
         <h2>Annahmen prüfen</h2>
-        <p class="small muted">Balkon und Terrasse von Nr. 25 habe ich aus Fotos geschätzt. Als „EG 1“ rechne ich das Giebelfenster, das am nächsten zum Bach liegt (Küche laut Plan). Wenn du Balkon oder Terrasse nachmisst, hier eintragen: Modell und Prozentwerte rechnen sofort neu.</p>
+        <p class="small muted">Balkon und Terrasse von Nr. 25 sind aus Fotos geschätzt. Als „EG 1“ rechne ich das Giebelfenster, das am nächsten zum Bach liegt (Küche laut Plan). Wenn du Balkon oder Terrasse nachmisst, hier eintragen: Modell und Prozentwerte rechnen sofort neu.</p>
       </div>
       <div class="assume" id="assume"></div>
+      <div>
+        <h2>Terrasse, Hang und Bach</h2>
+        <p class="small muted">Aus den Fotos vom 11.11. <span class="src m">Meterstab</span> = im Foto am Meterstab abgelesen (± 5 cm). <span class="src g">geschätzt</span> = aus der Perspektive geschätzt, bitte nachmessen. <span class="src p">Plan</span> = aus dem Werkplan abgeleitet.</p>
+      </div>
+      <div class="assume" id="assume2"></div>
       <button class="btn" id="asReset">Annahmen zurücksetzen</button>
       <div>
         <h3>Aus Plänen und Karte übernommen</h3>
@@ -246,7 +253,20 @@ ul.tight { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <tr><td>Achse Giebel → Straße</td><td class="n">≈ 34° (NO)</td><td>BayernAtlas</td></tr>
         </table></div>
       </div>
-      <p class="small muted">Nicht modelliert: Geländeneigung, Balkongeländer als Sichtschutz, Fenster und Türen von Nr. 25 hinter dem Balkon.</p>
+      <div>
+        <h3>In den Fotos am Meterstab abgelesen</h3>
+        <div class="tablewrap"><table>
+          <tr><th>Wert</th><th>Maß</th></tr>
+          <tr><td>Terrassenmauer an der Ecke Süd, Boden bis OK Betonbalken</td><td class="n">1,65 m</td></tr>
+          <tr><td>Betonbalken Höhe / Breite</td><td class="n">0,27 / 0,28 m</td></tr>
+          <tr><td>OK Handlauf über OK Betonbalken</td><td class="n">0,88 m</td></tr>
+          <tr><td>Terrasse: Hauswand bis Innenkante Balken</td><td class="n">2,65 m</td></tr>
+          <tr><td>Seitliches Geländer (Südost), Länge</td><td class="n">2,1 m</td></tr>
+          <tr><td>Lücke Terrassenmauer ↔ Kalksteinmauer</td><td class="n">0,9 m</td></tr>
+          <tr><td>Kiesstreifen am Giebel bis zum Beet</td><td class="n">1,6 m</td></tr>
+        </table></div>
+      </div>
+      <p class="small muted">Nicht modelliert: Gerüst, Möbel und Baumaterial auf der Terrasse, Balkongeländer von Nr. 25 als Sichtschutz, Fenster und Türen von Nr. 25 hinter dem Balkon. Der Hang ist vereinfacht: Berme, Böschung und Bach als glatte Flächen. Der Bach liegt nach den Fotos näher am Haus als die Flurgrenze aus der Karte; die Grenze selbst ist unverändert.</p>
     </section>
 
     <section class="tabpane" id="p-hi" role="tabpanel" aria-labelledby="t-hi" hidden>
@@ -304,14 +324,34 @@ const CFG = {
   // Terrasse Nr. 25 (Annahme: vor dem Erdgeschoss unter und vor dem Balkon)
   terrace: { u0: 5.4, u1: 11.0, v0: 6.2, v1: 9.7 },
   lattice: true, // vorhandenes Rankgitter am Nordwest-Ende des Balkons (Foto), ca. 50 % blickdicht
+  // ---- Bachseite (Fotos vom 11.11.): Terrasse Nr. 27, Hang, Kalksteinmauer, Bach ----
+  // Höhen beziehen sich auf h = 0 (Gelände am Südost-Giebel). "Meterstab" = im Foto abgelesen, sonst geschätzt.
+  terr27: {
+    uA: -13.54,     // Nordwest-Ende (Annahme: bündig mit dem Nordwest-Giebel)
+    over: 0.45,     // Außenkante Betonbalken steht so weit über die Giebelflucht hinaus (geschätzt)
+    depth: 2.93,    // Hauswand → Außenkante Betonbalken (Meterstab: 2,65 m Kies + 0,28 m Balken)
+    curb: 0.28, curbH: 0.27, // Betonbalken Breite / Höhe (Meterstab)
+    top: 0.15,      // OK Betonbalken über Gelände am Giebel (geschätzt)
+    fill: 0.08,     // Kies liegt so weit unter OK Balken
+    hCorner: 1.65,  // Boden an der Ecke Süd → OK Balken (Meterstab)
+    hRiver: 2.15,   // Berme an der Bachseite → OK Balken (geschätzt)
+    berm: 1.3,      // Breite der Berme am Mauerfuß (geschätzt)
+    rail: 0.88,     // OK Handlauf über OK Balken (Meterstab)
+    sideRail: 2.1,  // Länge des seitlichen Geländers ab Ecke Süd (Meterstab)
+    board: 1.15,    // Hausecke → Ende Betonbalken, dort Holzbohle (aus Foto)
+  },
+  balc27: { u0: -11.74, u1: -1.80, depth: 2.55 }, // Balkon OG Gartenseite: Lage aus den OG-Türen im Plan abgeleitet, Tiefe geschätzt
+  kalk: { gap: 0.9, v: -1.95, h: 1.1, d: 0.45 },   // Kalksteinmauer: Lücke zur Terrassenmauer (Meterstab), Vorderkante, Höhe (3 Lagen), Tiefe
+  bach: { dist: 4.4, minDist: 1.8, skew: 0.26, width: 4.5, level: -3.4, slope: 0.75, far: -0.8 }, // Wasserkante ab Mauer (Ecke Süd), Wasserspiegel
+  fence25: { newV0: -2.6, newV1: 1.0 },            // die zwei neuen Sichtschutzelemente von Nr. 25 (aus Fotos)
 };
 function fixedCrowns() {
   const b = CFG.balcony, out = [], opaque = (min, max) => out.push({ cr: { shape: 'box', min, max }, k: 80 });
   if (CFG.lattice) out.push({ cr: { shape: 'box', min: [b.u0, b.wallV - b.depth + 0.1, b.floor + 1.0], max: [b.u0 + 0.05, b.wallV - 0.05, b.floor + 2.25] }, k: 14 });
-  // Zaun an der Grenze (1,8 m, ab v < -5,6 Lattenzaun 1,1 m, halb durchsichtig), Schuppen, Balkonplatte
-  for (let v = 7.8; v > -11.4; v -= 1) {
-    const bu = boundaryUAt(v - 0.5), h = v - 0.5 > -5.6 ? 1.8 : 1.1;
-    out.push({ cr: { shape: 'box', min: [bu + 0.12, v - 1, 0], max: [bu + 0.18, v, h] }, k: h > 1.5 ? 80 : 6 });
+  // Zaun an der Grenze (Sichtschutz 1,8 m, weiter zum Bach nur Staketenzaun 1,0 m, halb durchsichtig), Schuppen, Balkonplatte
+  for (let v = 7.8; v > -7.4; v -= 1) {
+    const vm = v - 0.5, bu = boundaryUAt(vm), tall = vm > CFG.fence25.newV0, h = tall ? 1.8 : 1.0, z = groundH(bu + 0.15, vm);
+    out.push({ cr: { shape: 'box', min: [bu + 0.12, v - 1, z], max: [bu + 0.18, v, z + h] }, k: tall ? 80 : 6 });
   }
   opaque([1.85, 8.05, 0], [4.95, b.wallV, 2.35]);
   opaque([b.u0, b.wallV - b.depth, b.floor - 0.18], [b.u1, b.wallV, b.floor]);
@@ -421,6 +461,57 @@ function boundaryUAt(v) { // u der Grenze auf Höhe v (unterer Abschnitt bzw. ob
   return B[2][0] + t * (B[3][0] - B[2][0]);
 }
 
+// ---- Gelände (Hang zum Bach) ----
+function lerpPts(x, pts) { // stückweise linear; pts = [[x, y], ...] aufsteigend in x
+  if (x <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const a = pts[i - 1], b = pts[i]; return b[0] - a[0] < 1e-9 ? b[1] : a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]); }
+  return pts[pts.length - 1][1];
+}
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+// v der hausseitigen Wasserkante. Der Bach läuft schräg zum Haus und kommt Richtung Nordwesten näher.
+function waterV(u) {
+  const T = CFG.terr27, B = CFG.bach;
+  return Math.min(-(T.depth + B.minDist), -(T.depth + B.dist) - B.skew * (u - T.over));
+}
+// Geländehöhe über dem Bezugsniveau (0 = Gelände am Südost-Giebel). Unter der Terrasse Nr. 27 liegt die Fläche
+// auf Bermenhöhe; die Terrasse selbst ist ein eigener Körper. Stufen sitzen 3 cm innerhalb der Mauern.
+function groundH(u, v) {
+  if (v >= 0.8) return 0;
+  const T = CFG.terr27, K = CFG.kalk, B = CFG.bach, e = 0.03;
+  const s = v - waterV(u); // Abstand zur Wasserkante, positiv Richtung Haus
+  if (s <= 0) { // Bachbett: beide Ufer fallen mit der Böschungsneigung unter den Wasserspiegel, dahinter das Gegenufer
+    if (s > -B.width) return B.level - Math.min(0.42, B.slope * Math.min(-s, B.width + s));
+    return B.level + (B.far - B.level) * clamp01((-s - B.width) / 2.5);
+  }
+  const ub = T.over, vT = -T.depth, hC = T.top - T.hCorner, hBerm = T.top - T.hRiver, hK = -K.h;
+  const kv = Math.max(K.v, vT + 0.3), hLow = Math.min(hBerm, hC) - 0.2;
+  const slopeLG = lerpPts(v, [[vT - 3.5, hLow], [vT, hC], [kv, hK]]);         // Hang unterhalb der Kalksteinmauer
+  const nw = lerpPts(v, [[vT - T.berm, hBerm], [0, 0]]);                      // Hang nordwestlich der Terrasse (Annahme)
+  let up;
+  if (u <= ub - e) {
+    if (v >= -e) up = 0;
+    else if (u <= T.uA + e) up = nw;
+    else if (v > vT + e) up = hBerm;                                          // unter der Terrasse (verdeckt)
+    else {
+      const d = vT - v;                                                       // Abstand vom Mauerfuß
+      let berm = hBerm - 0.35 * clamp01((d - T.berm) / 0.4);
+      berm += (nw - berm) * clamp01(1 - (u - T.uA) / 2);
+      up = berm + (slopeLG - berm) * clamp01((u - (ub - 1.5)) / 1.5);
+    }
+  } else {
+    const uK = ub + K.gap;
+    if (v <= kv + 0.05) up = slopeLG;
+    else {
+      const gap = lerpPts(v, [[kv, hK], [kv + 0.65, hK + 0.15], [Math.max(-0.3, kv + 0.9), -0.3], [0.6, 0]]); // Treppe und Rampe zum Giebelgarten
+      const uG = v > kv + K.d + 0.15 ? uK + 0.45 : uK;                         // hinter dem Mauerkopf weitet sich die Lücke
+      up = gap * (1 - clamp01((u - uG) / 0.35));                              // dahinter das Beet auf Höhe 0
+    }
+    const f25 = clamp01((u - boundaryUAt(v)) / 1.2);                          // Grundstück Nr. 25: sanfter Hang (Annahme)
+    if (f25 > 0) up += (lerpPts(s, [[1.5, hLow], [4.5, hK * 0.6], [6.5, 0]]) - up) * f25;
+  }
+  return Math.min(up, B.level + s * B.slope);                                 // Uferböschung
+}
+
 // Wirksame Maße einer Pflanze im gewählten Zeitpunkt
 function dims(p, stage) {
   const S = SPECIES[p.sp];
@@ -431,7 +522,13 @@ function dims(p, stage) {
   const top = p.stem > 0.05 ? p.stem + (p.top - p.stem) * g[0] : p.top * g[0];
   return { stem: p.stem, top: Math.max(top, p.stem + 0.3), w: p.w * g[1], d: (p.d || S.d || p.w) * (S.shape === 'box' ? Math.max(0.7, g[1]) : g[1]) };
 }
-function crown(p, stage) {
+function crown(p, stage) { // Krone in Modellkoordinaten: steht auf dem Gelände am Standort
+  const c = crown0(p, stage), z = groundH(p.u, p.v);
+  if (!z) return c;
+  if (c.shape === 'box') { c.min[2] += z; c.max[2] += z; } else if (c.shape === 'cyl') { c.h0 += z; c.h1 += z; } else c.c[2] += z;
+  return c;
+}
+function crown0(p, stage) { // Krone relativ zum Fußpunkt der Pflanze
   const S = SPECIES[p.sp], D = dims(p, stage);
   if (S.shape === 'box') {
     const along = D.w / 2, across = D.d / 2;
@@ -540,7 +637,7 @@ function plantChecks(p) {
   }
   return { dB, need, hLegal, ok: own && dB >= need - 1e-6, own, dHouse, overhang, facade, maxTop: D.top, maxW: D.w };
 }
-if (typeof module !== 'undefined') module.exports = { CFG, SPECIES, STAGES, coverage, terraceTargets, plantChecks, distToBoundary, boundaryUAt, crown, dims, inPoly };
+if (typeof module !== 'undefined') module.exports = { CFG, SPECIES, STAGES, coverage, terraceTargets, plantChecks, distToBoundary, boundaryUAt, crown, crown0, dims, inPoly, groundH, waterV };
 // ===== CORE ENDE =====
 
 
@@ -583,8 +680,9 @@ const ST = {
   variant: 'A', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, target: 'balcony',
 };
 const LS_KEY = 'sichtschutz27-v2';
+const SITE_KEYS = ['terr27', 'balc27', 'kalk', 'bach', 'fence25'];
 function save() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ variant: ST.variant, plants: ST.plants, balcony: CFG.balcony, terrace: CFG.terrace, floor0: CFG.house27.floor0, lattice: CFG.lattice })); } catch (e) { /* ignorieren */ }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ variant: ST.variant, plants: ST.plants, balcony: CFG.balcony, terrace: CFG.terrace, floor0: CFG.house27.floor0, lattice: CFG.lattice, site: Object.fromEntries(SITE_KEYS.map(k => [k, CFG[k]])) })); } catch (e) { /* ignorieren */ }
 }
 function load() {
   try {
@@ -597,6 +695,7 @@ function load() {
     if (s.terrace) Object.assign(CFG.terrace, s.terrace);
     if (typeof s.floor0 === 'number') CFG.house27.floor0 = s.floor0;
     if (typeof s.lattice === 'boolean') CFG.lattice = s.lattice;
+    if (s.site) for (const k of SITE_KEYS) if (s.site[k]) for (const [f, x] of Object.entries(s.site[k])) if (f in CFG[k] && typeof x === 'number' && isFinite(x)) CFG[k][f] = x;
     return true;
   } catch (e) { return false; }
 }
@@ -620,7 +719,7 @@ let cam = persp;
 const ctlP = new THREE.OrbitControls(persp, canvas);
 ctlP.enableDamping = false; ctlP.maxPolarAngle = Math.PI * 0.88; ctlP.minDistance = 0.5; ctlP.maxDistance = 140;
 // Blick nach oben erlauben (Augenhöhe), Kamera aber nie unter den Boden
-ctlP.addEventListener('change', () => { if (persp.position.y < 0.3) { persp.position.y = 0.3; } });
+ctlP.addEventListener('change', () => { const m = surfaceH(persp.position.x, -persp.position.z) + 0.3; if (persp.position.y < m) persp.position.y = m; });
 const ctlO = new THREE.OrbitControls(ortho, canvas);
 ctlO.enableRotate = false; ctlO.screenSpacePanning = true; ctlO.minZoom = 0.3; ctlO.maxZoom = 12;
 ctlO.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
@@ -651,6 +750,41 @@ const MAT = {
   trunk: lam(0x6b5442), branch: lam(0x5e4a3a), street: lam(0x8f8f8a), mountain: lam(0x9fb0bd), house: lam(0xd9d3c4),
   roofGrey: lam(0x6d5a4d), culm: lam(0x7a9a45),
 };
+function stoneTexture() { // Natursteinmauer: graue Bruchsteine in Mörtel, kachelbar in u
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), R = rng(11);
+  x.fillStyle = '#8f8b82'; x.fillRect(0, 0, 256, 256);
+  for (let y = 0; y < 256;) {
+    const h = Math.min(256 - y, 38 + Math.round(R() * 22));
+    for (let px = -Math.round(R() * 50); px < 256;) {
+      const w = 44 + Math.round(R() * 70), l = 36 + R() * 20, hue = 205 + R() * 25, sat = 4 + R() * 6;
+      for (const off of [0, 256]) {
+        x.fillStyle = `hsl(${hue}, ${sat}%, ${l}%)`; x.fillRect(px + 3 - off, y + 3, w - 6, h - 6);
+        x.fillStyle = `hsl(${hue}, ${sat}%, ${l + 9}%)`; x.fillRect(px + 3 - off, y + 3, w - 6, 4);
+        x.fillStyle = `hsl(${hue}, ${sat}%, ${l - 9}%)`; x.fillRect(px + 3 - off, y + h - 8, w - 6, 5);
+      }
+      px += w;
+    }
+    y += h;
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+}
+Object.assign(MAT, {
+  stone: lam(0xffffff, { map: stoneTexture() }), concrete: lam(0xbdbab1), gravel: lam(0xa69e92), galv: lam(0xaab1b4),
+  kalk: [lam(0xd6c69c), lam(0xc9b88c), lam(0xddcfaa)], water: lam(0x5f8ea6, { transparent: true, opacity: 0.9 }),
+  pallet: lam(0x8a6f52), chest: lam(0x5e5046), stepC: lam(0x8f7466), deck: lam(0x8a7458), outer: lam(0x7b955a),
+  glass25: lam(0xa9c2b4, { transparent: true, opacity: 0.6 }),
+});
+function clearGroup(g) {
+  g.traverse(o => { if (o.geometry && o.geometry !== ICO) o.geometry.dispose(); if (o.isSprite) { o.material.map.dispose(); o.material.dispose(); } });
+  g.clear();
+}
+// Kasten mit Textur im Maßstab (tile = Meter je Kachel)
+function texBox(u0, u1, v0, v1, h0, h1, mat, tile = 1.6) {
+  const m = box(u0, u1, v0, v1, h0, h1, mat), uv = m.geometry.attributes.uv, dx = u1 - u0, dy = h1 - h0, dz = v1 - v0;
+  const F = [[dz, dy], [dz, dy], [dx, dz], [dx, dz], [dx, dy], [dx, dy]];
+  for (let f = 0; f < 6; f++) for (let i = 0; i < 4; i++) { const k = f * 4 + i; uv.setXY(k, uv.getX(k) * F[f][0] / tile, uv.getY(k) * F[f][1] / tile); }
+  uv.needsUpdate = true; return m;
+}
 function box(u0, u1, v0, v1, h0, h1, mat, cast = true) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(u1 - u0, h1 - h0, v1 - v0), mat);
   m.position.copy(W((u0 + u1) / 2, (h0 + h1) / 2, (v0 + v1) / 2));
@@ -725,26 +859,75 @@ const GA = { u0: -32, u1: 36, v0: -26, v1: 42, px: 30 };
 const gCanvas = document.createElement('canvas');
 gCanvas.width = Math.round((GA.u1 - GA.u0) * GA.px); gCanvas.height = Math.round((GA.v1 - GA.v0) * GA.px);
 const gTex = new THREE.CanvasTexture(gCanvas); gTex.anisotropy = 8;
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(GA.u1 - GA.u0, GA.v1 - GA.v0), new THREE.MeshLambertMaterial({ map: gTex }));
-ground.rotation.x = -Math.PI / 2; ground.position.copy(W((GA.u0 + GA.u1) / 2, 0, (GA.v0 + GA.v1) / 2)); ground.receiveShadow = true;
-scene.add(ground);
-const far = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), lam(0x7b955a));
-far.rotation.x = -Math.PI / 2; far.position.y = -0.02; scene.add(far);
-const riverEdge = (u) => -8.6 - (u + 12.2) * 0.26;
+const groundMat = new THREE.MeshLambertMaterial({ map: gTex });
+const terrGrp = new THREE.Group(); scene.add(terrGrp);
+let ground = null;
+function uniq(a) { a.sort((x, y) => x - y); return a.filter((x, i) => !i || x - a[i - 1] > 1e-4); }
+// Gitter-Mesh über sortierten u-/v-Linien; hFn(u, v, i, j, nu, nv) liefert die Höhe
+function gridMesh(us, vs, hFn, mat, withUV) {
+  const nu = us.length, nv = vs.length, pos = new Float32Array(nu * nv * 3), uv = withUV ? new Float32Array(nu * nv * 2) : null, idx = [];
+  for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) {
+    const k = j * nu + i, u = us[i], v = vs[j];
+    pos[k * 3] = u; pos[k * 3 + 1] = hFn(u, v, i, j, nu, nv); pos[k * 3 + 2] = -v;
+    if (uv) { uv[k * 2] = (u - GA.u0) / (GA.u1 - GA.u0); uv[k * 2 + 1] = (v - GA.v0) / (GA.v1 - GA.v0); }
+  }
+  for (let j = 0; j < nv - 1; j++) for (let i = 0; i < nu - 1; i++) { const a = j * nu + i, b = a + 1, c = a + nu, d = c + 1; idx.push(a, b, d, a, d, c); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  if (uv) geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  return new THREE.Mesh(geo, mat);
+}
+// Gelände: fein um Terrasse und Hang, grob im Lageplan-Ausschnitt, dazu das Umland und der Bach
+function buildTerrain() {
+  clearGroup(terrGrp);
+  const T = CFG.terr27, K = CFG.kalk, B = CFG.bach, e = 0.03, us = [GA.u0 - 0.01, GA.u1 + 0.01], vs = [GA.v0 - 0.01, GA.v1 + 0.01];
+  for (let u = GA.u0; u <= GA.u1 + 1e-6; u += 1) us.push(u);
+  for (let v = GA.v0; v <= GA.v1 + 1e-6; v += 1) vs.push(v);
+  for (let u = Math.min(-17, T.uA - 3); u <= 9; u += 0.25) us.push(u);
+  for (let v = -14; v <= 1.5; v += 0.25) vs.push(v);
+  const kv = Math.max(K.v, -T.depth + 0.3), pair = (arr, x) => arr.push(x - 0.004, x + 0.004);
+  [T.uA + e, T.over - e, T.over + K.gap, T.over + K.gap + 0.45].forEach(x => pair(us, x));
+  [-T.depth + e, -e, kv + 0.05, kv + K.d + 0.15].forEach(x => pair(vs, x));
+  ground = gridMesh(uniq(us), uniq(vs), (u, v, i, j, nu, nv) => groundH(u, v) - (i === 0 || j === 0 || i === nu - 1 || j === nv - 1 ? 1.5 : 0), groundMat, true);
+  ground.receiveShadow = true; terrGrp.add(ground);
+  const ou = [GA.u0, GA.u1], ov = [GA.v0, GA.v1];
+  for (let u = -150; u <= 150; u += 1.5) ou.push(u);
+  for (let v = -111; v <= 111; v += 1.5) ov.push(v);
+  const inside = (u, v) => u > GA.u0 + 0.01 && u < GA.u1 - 0.01 && v > GA.v0 + 0.01 && v < GA.v1 - 0.01;
+  const far = gridMesh(uniq(ou), uniq(ov), (u, v) => groundH(u, v) - (inside(u, v) ? 2.5 : 0.02), MAT.outer, false);
+  far.receiveShadow = true; terrGrp.add(far);
+  const wp = [], wn = [], wi = [];
+  for (let u = -150, n = 0; u <= 150; u += 3, n++) {
+    const vw = waterV(u); wp.push(u, B.level, -(vw + 0.5), u, B.level, -(vw - B.width - 0.5)); wn.push(0, 1, 0, 0, 1, 0);
+    if (n) { const a = (n - 1) * 2; wi.push(a, a + 3, a + 2, a, a + 1, a + 3); }
+  }
+  const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wp, 3)); wg.setAttribute('normal', new THREE.Float32BufferAttribute(wn, 3)); wg.setIndex(wi);
+  const water = new THREE.Mesh(wg, MAT.water); water.receiveShadow = true; terrGrp.add(water);
+  req();
+}
+// begehbare Oberfläche: Gelände bzw. Kies der Terrasse Nr. 27
+function surfaceH(u, v) { const T = CFG.terr27; return (u > T.uA && u < T.over && v > -T.depth && v < 0) ? T.top - T.fill : groundH(u, v); }
 function drawGround() {
   const c = gCanvas.getContext('2d'), P = GA.px;
   const X = (u) => (u - GA.u0) * P, Y = (v) => (GA.v1 - v) * P;
   const poly = (pts, fill) => { c.beginPath(); pts.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.closePath(); c.fillStyle = fill; c.fill(); };
   const winter = ST.season === 'W';
   c.fillStyle = winter ? '#8a917a' : '#7b955a'; c.fillRect(0, 0, gCanvas.width, gCanvas.height);
+  MAT.outer.color.set(winter ? 0x8a917a : 0x7b955a);
   poly(CFG.parcel27, winter ? '#8f977f' : '#809c5d');
   // Strasse
   poly([[GA.u0, 30.6], [GA.u1, 30.6], [GA.u1, 37.4], [GA.u0, 37.4]], '#9b9a94');
-  // Fluss Schlierach mit Ufer
-  const bank = [], water = [];
-  for (let u = GA.u0; u <= GA.u1; u += 2) { bank.push([u, riverEdge(u) + 0.2]); water.push([u, riverEdge(u) - 2.2]); }
-  poly(bank.concat([[GA.u1, GA.v0], [GA.u0, GA.v0]]), winter ? '#8c9478' : '#7f9a5c');
-  poly(water.concat([[GA.u1, riverEdge(GA.u1) - 10.5], [GA.u0, riverEdge(GA.u0) - 10.5]]), '#6e9db6');
+  // Hang: Treppe/Rampe zwischen Terrassenmauer und Kalksteinmauer, Beet im Giebelgarten (Gründüngung)
+  const T27 = CFG.terr27, K = CFG.kalk, Bc = CFG.bach, ub = T27.over, uK = ub + K.gap, kv = Math.max(K.v, -T27.depth + 0.3), vP = kv + K.d + 0.15;
+  poly([[ub, -T27.depth - 0.5], [uK, -T27.depth - 0.5], [uK, vP], [uK + 0.45, vP], [uK + 0.45, 0.6], [ub, 0.6]], '#b2a792');
+  poly([[uK, kv + 0.05], [boundaryUAt(kv) - 0.25, kv + 0.05], [boundaryUAt(7.7) - 0.25, 7.7], [1.6, 7.7], [1.6, 0.6], [uK + 0.45, 0.6], [uK + 0.45, vP], [uK, vP]], winter ? '#86876c' : '#6f9450');
+  // Bach mit Böschungen, Gegenufer mit Weg
+  const wline = (off) => { const a = []; for (let u = GA.u0; u <= GA.u1 + 1e-6; u += 1) a.push([u, waterV(u) + off]); return a; };
+  const band = (o1, o0, fill) => poly(wline(o1).concat(wline(o0).reverse()), fill);
+  band(2.2, 0, winter ? '#7f8468' : '#6f8a52');
+  band(0, -Bc.width, '#5f8ea6');
+  band(-Bc.width, -Bc.width - 2.6, winter ? '#7f8468' : '#6f8a52');
+  band(-Bc.width - 3.2, -Bc.width - 4.6, '#b3aa98');
   // Zufahrt / Gemeinschaftsfläche G
   poly([[-16.6, 9.6], [1.6, 9.6], [1.6, 30.2], [-16.6, 30.2]], '#aaa598');
   // Terrasse Nr. 25 (Annahme)
@@ -753,13 +936,13 @@ function drawGround() {
   for (let u = T.u0; u <= T.u1 + 1e-6; u += 0.5) { c.beginPath(); c.moveTo(X(u), Y(T.v0)); c.lineTo(X(u), Y(T.v1)); c.stroke(); }
   for (let v = T.v0; v <= T.v1 + 1e-6; v += 0.5) { c.beginPath(); c.moveTo(X(T.u0), Y(v)); c.lineTo(X(T.u1), Y(v)); c.stroke(); }
   // Kiesstreifen am Giebel
-  poly([[0, -0.8], [1.05, -0.8], [1.05, 8.0], [1.6, 8.0], [1.6, 9.6], [0, 9.6]], '#bcae97');
+  poly([[0, 0], [ub, 0], [ub, 0.6], [1.6, 0.6], [1.6, 9.6], [0, 9.6]], '#bcae97');
   // Grenzabstands-Zonen (Art. 47 AGBGB)
   const img = c.getImageData(X(-0.6), Y(30.2), Math.ceil(7.2 * P), Math.ceil(42 * P));
   const d = img.data, wpx = img.width;
   for (let j = 0; j < img.height; j++) for (let i = 0; i < wpx; i++) {
     const u = -0.6 + (i + 0.5) / P, v = 30.2 - (j + 0.5) / P;
-    if (!inPoly(u, v, CFG.parcel27)) continue;
+    if (!inPoly(u, v, CFG.parcel27) || v < waterV(u) + 0.3) continue;
     const dd = distToBoundary(u, v);
     let a = 0, rgb = null;
     if (dd < 0.5) { rgb = [200, 86, 52]; a = 0.55; } else if (dd < 2.0) { rgb = [236, 186, 74]; a = 0.42; if (((i + j) % 18) < 2) a = 0.62; } else if (dd < 2.06) { rgb = [150, 104, 26]; a = 0.85; }
@@ -770,11 +953,11 @@ function drawGround() {
   c.putImageData(img, X(-0.6), Y(30.2));
   // 1-m-Raster im Giebelgarten
   c.strokeStyle = 'rgba(255,255,255,0.32)'; c.lineWidth = 1;
-  for (let u = 0; u <= 5; u++) { c.beginPath(); c.moveTo(X(u), Y(-10)); c.lineTo(X(u), Y(Math.min(9.6, u <= 1.6 ? 9.6 : 7.8))); c.stroke(); }
-  for (let v = -10; v <= 9; v++) { c.beginPath(); c.moveTo(X(0), Y(v)); c.lineTo(X(v >= 8 ? 1.6 : boundaryUAt(v)), Y(v)); c.stroke(); }
+  for (let u = 0; u <= 5; u++) { c.beginPath(); c.moveTo(X(u), Y(u < uK + 0.45 ? 0 : kv + K.d)); c.lineTo(X(u), Y(Math.min(9.6, u <= 1.6 ? 9.6 : 7.8))); c.stroke(); }
+  for (let v = Math.ceil(kv + K.d); v <= 9; v++) { c.beginPath(); c.moveTo(X(v < 0 ? uK + 0.45 : 0), Y(v)); c.lineTo(X(v >= 8 ? 1.6 : boundaryUAt(v)), Y(v)); c.stroke(); }
   // Masszahlen
   c.fillStyle = 'rgba(28,36,29,0.85)'; c.font = `600 ${Math.round(0.36 * P)}px "IBM Plex Mono", monospace`; c.textAlign = 'center'; c.textBaseline = 'middle';
-  for (let u = 1; u <= 4; u++) c.fillText(u + ' m', X(u), Y(-1.15));
+  for (let u = 2; u <= 4; u++) c.fillText(u + ' m', X(u), Y(kv + K.d + 0.35));
   c.textAlign = 'left';
   for (let v = 0; v <= 8; v += 2) c.fillText(v + ' m', X(1.12), Y(v));
   // Grenze
@@ -782,9 +965,9 @@ function drawGround() {
   c.beginPath(); CFG.boundary.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.stroke(); c.setLineDash([]);
   c.fillStyle = '#8c2f22'; CFG.boundary.forEach(([u, v]) => { c.beginPath(); c.arc(X(u), Y(v), 0.16 * P, 0, 7); c.fill(); });
   // Beschriftung entlang der 2-m-Linie
-  c.save(); c.translate(X(3.05), Y(-6)); c.rotate(-Math.PI / 2 - Math.atan2(0.6, 19.3)); c.fillStyle = 'rgba(120,80,14,0.95)'; c.textAlign = 'center';
+  c.save(); c.translate(X(3.05), Y(-4.8)); c.rotate(-Math.PI / 2 - Math.atan2(0.6, 19.3)); c.fillStyle = 'rgba(120,80,14,0.95)'; c.textAlign = 'center';
   c.font = `700 ${Math.round(0.34 * P)}px "Source Sans 3", sans-serif`; c.fillText('2 m Grenzabstand (Pflanzen über 2 m)', 0, 0); c.restore();
-  c.save(); c.translate(X(5.45), Y(-6)); c.rotate(-Math.PI / 2 - Math.atan2(0.6, 19.3)); c.fillStyle = '#8c2f22'; c.textAlign = 'center';
+  c.save(); c.translate(X(5.45), Y(-4.8)); c.rotate(-Math.PI / 2 - Math.atan2(0.6, 19.3)); c.fillStyle = '#8c2f22'; c.textAlign = 'center';
   c.font = `700 ${Math.round(0.36 * P)}px "Source Sans 3", sans-serif`; c.fillText('Grenze 27 | 25', 0, 0); c.restore();
   gTex.needsUpdate = true; req();
 }
@@ -922,12 +1105,121 @@ function fenceAlong(a, b, h, mat, panel = 1.8, offset = 0.15) {
   return g;
 }
 function lerpB(v) { return [boundaryUAt(v), v]; }
+// ---------- Bachseite: Terrasse Nr. 27, Balkon, Kalksteinmauer, Zäune (nach Fotos vom 11.11.) ----------
+const siteGrp = new THREE.Group(); scene.add(siteGrp);
+// Geländer der Terrasse: verzinkte Pfosten außen am Betonbalken, zwei Lärchenriegel, wahlweise senkrechte Latten
+function rail27(a, b, out, base, H, postAt, slats) {
+  const g = new THREE.Group(), du = b[0] - a[0], dv = b[1] - a[1], L = Math.hypot(du, dv), ang = Math.atan2(dv, du);
+  const at = (t, off) => [a[0] + du * t / L + out[0] * off, a[1] + dv * t / L + out[1] * off];
+  for (const hc of [base + 0.26, base + H - 0.045]) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(L, 0.09, 0.045), MAT.larch), [pu, pv] = at(L / 2, 0.085);
+    m.position.copy(W(pu, hc, pv)); m.rotation.y = ang; m.castShadow = true; g.add(m);
+  }
+  for (const t of postAt) {
+    const [pu, pv] = at(t, 0.03), po = new THREE.Mesh(new THREE.BoxGeometry(0.06, H + 0.2, 0.05), MAT.galv);
+    po.position.copy(W(pu, base - 0.22 + (H + 0.2) / 2, pv)); po.rotation.y = ang; po.castShadow = true; g.add(po);
+    const [qu, qv] = at(t, 0.006), pl = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.13, 0.012), MAT.galv);
+    pl.position.copy(W(qu, base - 0.14, qv)); pl.rotation.y = ang; g.add(pl);
+  }
+  if (slats) {
+    const n = Math.max(1, Math.round(L / 0.095)), im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.045, H + 0.17, 0.028), MAT.larch, n), M = new THREE.Matrix4();
+    for (let i = 0; i < n; i++) { const [pu, pv] = at((i + 0.5) * L / n, 0.122); M.makeRotationY(ang); M.setPosition(W(pu, base - 0.11 + (H + 0.17) / 2, pv)); im.setMatrixAt(i, M); }
+    im.castShadow = true; g.add(im);
+  }
+  return g;
+}
+function buildTerrace27(g) {
+  const T = CFG.terr27, ub = T.over, vT = -T.depth, top = T.top, wallTop = top - T.curbH, floor = top - T.fill, c = T.curb;
+  const hBot = Math.min(top - T.hRiver, top - T.hCorner) - 1.6, vB = -Math.min(T.board, T.depth - 0.5);
+  // Natursteinmauer (steht 5 cm vor dem Betonbalken), Kiesfläche, Betonbalken, Holzbohle am Südost-Ende
+  g.add(texBox(T.uA - 0.05, ub + 0.05, vT - 0.05, 0, hBot, wallTop, MAT.stone));
+  g.add(box(T.uA, ub, vT, 0, wallTop, floor, MAT.gravel, false));
+  g.add(box(T.uA, ub, vT, vT + c, wallTop, top, MAT.concrete));
+  g.add(box(ub - c, ub, vT + c, vB, wallTop, top, MAT.concrete));
+  g.add(box(T.uA, T.uA + c, vT + c, 0, wallTop, top, MAT.concrete));
+  g.add(box(ub - 0.05, ub, vB, 0, wallTop + 0.03, top - 0.03, MAT.larchDark));
+  const posts = (L, sp = 1.35) => { const n = Math.max(1, Math.round((L - 0.5) / sp)), a = []; for (let i = 0; i <= n; i++) a.push(0.25 + (L - 0.5) * i / n); return a; };
+  g.add(rail27([T.uA - 0.11, vT], [ub + 0.11, vT], [0, -1], top, T.rail, posts(ub - T.uA + 0.22), true));   // Bachseite, mit Latten
+  const ls = Math.min(T.sideRail, T.depth - 0.2);
+  g.add(rail27([ub, vT - 0.11], [ub, vT + ls], [1, 0], top, T.rail, [0.59, Math.min(1.69, ls - 0.1)], false)); // Südost: Latten fehlen noch
+  g.add(rail27([T.uA, vT - 0.11], [T.uA, -0.05], [-1, 0], top, T.rail, posts(T.depth), true));               // Nordwest-Ende (Annahme)
+  const lb = label('Terrasse Nr. 27', { size: 0.4, bg: 'rgba(156,90,34,0.92)' }); lb.position.copy(W((T.uA + ub) / 2, top + T.rail + 0.45, vT - 0.2)); g.add(lb);
+}
+function buildBalcony27(g) {
+  const B = CFG.balc27, T = CFG.terr27, H = CFG.house27, fl = H.floor0 + H.og - 0.04, v0 = -B.depth;
+  if (B.u1 - B.u0 < 0.6 || B.depth < 0.4) return;
+  g.add(box(B.u0, B.u1, v0, 0, fl - 0.16, fl, MAT.larch));                              // Belag
+  g.add(box(B.u0, B.u1, v0 + 0.04, v0 + 0.2, fl - 0.42, fl - 0.16, MAT.larchDark));     // Randbalken auf den Stützen
+  for (let u = B.u0 + 0.4; u < B.u1 - 0.2; u += 0.8) g.add(box(u - 0.05, u + 0.05, v0 + 0.2, -0.02, fl - 0.36, fl - 0.16, MAT.larchDark, false));
+  const n = Math.max(2, Math.round((B.u1 - B.u0) / 5) + 1);
+  for (let i = 0; i < n; i++) { const pu = B.u0 + 0.12 + (B.u1 - B.u0 - 0.24) * i / (n - 1); g.add(box(pu - 0.09, pu + 0.09, v0 + 0.03, v0 + 0.21, T.top - T.fill, fl - 0.42, MAT.larch)); }
+  // Brüstung: geschlossene Lärchenschalung mit dunklem Abschluss unten
+  const br = (a0, a1, b0, b1) => { g.add(box(a0, a1, b0, b1, fl + 0.02, fl + 1.02, MAT.larch)); g.add(box(a0 - 0.01, a1 + 0.01, b0 - 0.01, b1 + 0.01, fl - 0.18, fl + 0.02, MAT.frame)); };
+  br(B.u0 - 0.04, B.u1 + 0.04, v0 - 0.04, v0); br(B.u0 - 0.04, B.u0, v0, 0); br(B.u1, B.u1 + 0.04, v0, 0);
+}
+function buildKalk(g) {
+  const T = CFG.terr27, K = CFG.kalk, R = rng(31), uK = T.over + K.gap, kv = Math.max(K.v, -T.depth + 0.3), hc = K.h / 3, uEnd = boundaryUAt(kv) - 0.1;
+  // Kalksteinmauer: drei Lagen grobe Blöcke, untere Lagen stehen etwas vor
+  for (let c = 0; c < 3; c++) {
+    const z0 = -K.h + c * hc, front = kv - (2 - c) * 0.05;
+    for (let u = uK - (2 - c) * 0.04; u < uEnd - 0.2;) {
+      let len = 0.75 + R() * 0.5; if (uEnd - (u + len) < 0.45) len = uEnd - u;
+      g.add(box(u, u + len - 0.02, front + R() * 0.03, kv + K.d, z0 - (c ? 0 : 0.2), z0 + hc - 0.012 + (c === 2 ? 0.06 : 0), MAT.kalk[Math.floor(R() * 3)]));
+      u += len;
+    }
+  }
+  // kleine Einfassungen am Hang darunter (Lage geschätzt)
+  for (const [dv, n] of [[-2.2, 5], [-3.9, 3]]) for (let i = 0; i < n; i++) {
+    const u = uK + 0.1 + i * 0.5, v = kv + dv, z = groundH(u + 0.22, v);
+    g.add(box(u, u + 0.46, v - 0.11, v + 0.11, z - 0.15, z + 0.2, MAT.kalk[i % 3]));
+  }
+  // alte Betonkanten als Stufen zwischen Terrassenmauer und Kalksteinmauer
+  for (let v = -T.depth + 0.25; v < Math.min(-0.5, kv + 1.0); v += 0.42) { const z = groundH(T.over + K.gap / 2, v); g.add(box(T.over + 0.08, uK - 0.05, v - 0.03, v + 0.03, z - 0.14, z + 0.07, MAT.stepC)); }
+  // Paletten mit Truhe oben an der Lücke (stehen dort im Foto)
+  const pu = T.over + 0.1, va = kv + 0.7, za = groundH(pu + 0.6, va + 0.3) - 0.02, vb = va + 0.85, zb = groundH(pu + 0.6, vb + 0.3) - 0.02;
+  for (let i = 0; i < 2; i++) g.add(box(pu, pu + 1.2, va, va + 0.8, za + i * 0.15, za + i * 0.15 + 0.14, MAT.pallet));
+  g.add(box(pu + 0.1, pu + 1.1, va + 0.12, va + 0.68, za + 0.29, za + 0.79, MAT.chest));
+  g.add(box(pu, pu + 1.2, vb, vb + 0.8, zb, zb + 0.14, MAT.pallet));
+}
+function buildFences(g) {
+  // Sichtschutzelemente Nr. 25 (alt grau, zwei neue helle mit grünen Pfosten), Gartentür, alter Staketenzaun bis zur Böschung
+  const F = CFG.fence25, v1 = Math.min(7.0, Math.max(F.newV1, F.newV0 + 0.9));
+  const seg = (va, vb, h, mat, panel) => {
+    const n = Math.max(1, Math.round((va - vb) / panel));
+    for (let i = 0; i < n; i++) {
+      const a = va - (va - vb) * i / n, b = va - (va - vb) * (i + 1) / n, f = fenceAlong(lerpB(a), lerpB(b), h, mat, panel + 2);
+      f.position.y = groundH(boundaryUAt((a + b) / 2) + 0.15, (a + b) / 2); g.add(f);
+    }
+  };
+  seg(7.8, v1, 1.8, MAT.fence, 1.8);
+  seg(v1, F.newV0, 1.8, MAT.fenceNew, 1.8);
+  g.add(fenceAlong(lerpB(5.9), lerpB(5.0), 1.75, MAT.gate, 1.0, 0.1));
+  const pts = [], vEnd = waterV(boundaryUAt(-8)) + 1.7;
+  for (let v = 3.0; v > vEnd; v -= 0.09) { const u = boundaryUAt(v) - 0.06; pts.push([u, v, groundH(u, v)]); }
+  const pk = new THREE.InstancedMesh(new THREE.BoxGeometry(0.02, 1.0, 0.045), MAT.fence, pts.length), rl = new THREE.InstancedMesh(new THREE.BoxGeometry(0.03, 0.05, 0.1), MAT.fence, pts.length * 2), M = new THREE.Matrix4();
+  pts.forEach(([u, v, z], i) => {
+    M.makeTranslation(u, z + 0.52, -v); pk.setMatrixAt(i, M);
+    M.makeTranslation(u - 0.025, z + 0.3, -v); rl.setMatrixAt(i * 2, M); M.makeTranslation(u - 0.025, z + 0.78, -v); rl.setMatrixAt(i * 2 + 1, M);
+  });
+  pk.castShadow = true; g.add(pk, rl);
+}
+function buildPavilion25(g) {
+  // Gartenhaus Nr. 25 Richtung Bach: nur Kulisse, Lage und Größe aus einem Foto geschätzt
+  const u0 = 8.0, u1 = 11.4, v0 = -5.8, v1 = -1.0, hp = -0.25, zmin = Math.min(groundH(u0, v0 - 0.3), groundH(u1, v0 - 0.3)) - 0.4;
+  g.add(box(u0 - 0.3, u1 + 0.3, v0 - 0.3, v1 + 0.3, zmin, hp, MAT.deck));
+  g.add(box(u0 + 0.03, u1 - 0.03, v0 + 0.03, v1 - 0.03, hp, hp + 0.8, MAT.fenceNew));
+  g.add(box(u0 + 0.03, u1 - 0.03, v0 + 0.03, v1 - 0.03, hp + 0.8, hp + 2.25, MAT.glass25, false));
+  const um = (u0 + u1) / 2, vm = (v0 + v1) / 2;
+  for (const [a, b] of [[u0, v0], [u1, v0], [u0, v1], [u1, v1], [um, v0], [um, v1], [u0, vm], [u1, vm]]) g.add(box(a - 0.06, a + 0.06, b - 0.06, b + 0.06, hp, hp + 2.3, MAT.post));
+  g.add(box(u0 - 0.5, u1 + 0.5, v0 - 0.5, v1 + 0.5, hp + 2.3, hp + 2.42, MAT.roof25));
+}
+function buildSite() {
+  clearGroup(siteGrp);
+  buildTerrace27(siteGrp); buildBalcony27(siteGrp); buildKalk(siteGrp); buildFences(siteGrp); buildPavilion25(siteGrp);
+  const B = CFG.bach, lb = label('Bach', { size: 0.5, bg: 'rgba(52,104,130,0.92)' }); lb.position.copy(W(-3, B.level + 1.3, waterV(-3) - B.width / 2)); siteGrp.add(lb);
+  req();
+}
 function buildContext() {
-  // Zaun entlang der Grenze (Sichtschutzelemente + Lattenzaun), Gartentür
-  statics.add(fenceAlong(lerpB(7.8), lerpB(-2.0), 1.8, MAT.fence));
-  statics.add(fenceAlong(lerpB(-2.0), lerpB(-5.6), 1.8, MAT.fenceNew));
-  statics.add(fenceAlong(lerpB(-5.6), lerpB(-11.4), 1.1, MAT.fence));
-  const gt = fenceAlong(lerpB(5.9), lerpB(5.0), 1.75, MAT.gate, 1.0, 0.1); statics.add(gt);
   // Garage Nr. 27
   statics.add(box(-5.0, 1.25, 14.8, 23.0, 0, 2.6, MAT.larchDark));
   statics.add(prismV(-5.0, 1.25, 14.8, 23.0, 2.6, 2.6, 4.4, MAT.larchDark));
@@ -956,10 +1248,11 @@ function buildCtxTrees() {
   ctxTrees.clear();
   const R = rng(7), winter = ST.season === 'W';
   const spots = [];
-  for (let u = -30; u <= 34; u += 4.2) spots.push([u + R() * 2, riverEdge(u) - 13.5 - R() * 5, 9 + R() * 8]);
+  // Bäume am Gegenufer; vor dem Giebelgarten ausgespart, damit Übersicht und Bachseite frei bleiben
+  for (let u = -30; u <= 34; u += 4.2) { const uu = u + R() * 2, vv = waterV(uu) - CFG.bach.width - 0.8 - R() * 2.0, hh = 9 + R() * 8; if (uu < -3 || uu > 23) spots.push([uu, vv, hh]); }
   spots.push([16.5, 20, 13], [-14, 26, 8], [27, -2, 10], [-22, -1, 9]);
   for (const [u, v, h] of spots) {
-    const g = new THREE.Group(); g.position.copy(W(u, 0, v));
+    const g = new THREE.Group(); g.position.copy(W(u, groundH(u, v), v));
     const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, h * 0.6, 6), MAT.trunk); tr.position.y = h * 0.3; tr.castShadow = true; g.add(tr);
     const n = winter ? 0 : 14, im = new THREE.InstancedMesh(ICO, lam(0xffffff, { flatShading: true }), Math.max(n, 1)); im.count = n;
     const M = new THREE.Matrix4(), col = new THREE.Color(), rr = h * 0.28;
@@ -988,9 +1281,9 @@ function crownProfile(S, t) { // t 0..1 Höhe in der Krone, Rückgabe Radius-Fak
   return Math.pow(Math.max(0, 1 - Math.pow(Math.abs(2 * t - 1), 3)), 1 / 3);
 }
 function buildPlant(p) {
-  const S = SPECIES[p.sp], D = dims(p, ST.stage), cr = crown(p, ST.stage), winter = ST.season === 'W';
+  const S = SPECIES[p.sp], D = dims(p, ST.stage), cr = crown0(p, ST.stage), winter = ST.season === 'W';
   const R = rng(hashStr(p.id + p.sp));
-  const g = new THREE.Group(); g.position.copy(W(p.u, 0, p.v)); g.userData.pid = p.id;
+  const g = new THREE.Group(); g.position.copy(W(p.u, groundH(p.u, p.v), p.v)); g.userData.pid = p.id;
   const pts = [];
   const leafVisible = !winter || S.ever ? 1 : (S.semi ? 0.85 : (S.marc ? 0.5 : 0));
   // Stämme / Halme
@@ -1063,7 +1356,7 @@ function buildPlant(p) {
     const gm = new THREE.MeshBasicMaterial({ color: 0xd9822b, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide });
     let ghost = null;
     if (S.max && !S.cut && ST.stage !== 3) {
-      const c3 = crown(p, 3), D3 = dims(p, 3);
+      const c3 = crown0(p, 3), D3 = dims(p, 3);
       if (c3.shape === 'ell') { ghost = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 14), gm); ghost.scale.set(c3.r, c3.rh, c3.r); ghost.position.y = c3.c[2]; }
       else if (c3.shape === 'cyl') { ghost = new THREE.Mesh(new THREE.CylinderGeometry(c3.r, c3.r, D3.top - c3.h0, 24), gm); ghost.position.y = (D3.top + c3.h0) / 2; }
     } else if (S.cut && S.max && S.shape === 'box') {
@@ -1153,13 +1446,20 @@ const VIEWS = [
   { id: 'balk', name: 'Vom Balkon 25' },
   { id: 'terr', name: 'Von Terrasse 25' },
   { id: 'side', name: 'Von Nr. 25' },
+  { id: 'terr27', name: 'Terrasse Nr. 27' },
+  { id: 'bach', name: 'Bachseite' },
+  { id: 'hang', name: 'Vom Hang' },
 ];
 let tween = null;
 function viewPose(id) {
   const H = CFG.house27, B = CFG.balcony, fo = H.floor0 + H.og;
   const bc = W((B.u0 + B.u1) / 2, B.floor + 1.1, B.wallV - B.depth / 2);
   if (id === 'overview') return { pos: W(17, 14, -14), tgt: W(1.5, 2.8, 4.0), fov: 45 };
-  if (id === 'garden') return { pos: W(1.5, 1.65, -7.5), tgt: W(4.8, 3.6, 8.5), fov: 60 };
+  const T7 = CFG.terr27;
+  if (id === 'garden') return { pos: W(T7.over - 0.6, T7.top + 1.6, -T7.depth + 0.7), tgt: W(4.8, 3.2, 8.5), fov: 60 }; // von der Terrassenecke Süd
+  if (id === 'terr27') return { pos: W(-4.2, T7.top + 1.6, -1.3), tgt: W(4.5, 0.8, -1.2), fov: 64 };
+  if (id === 'bach') return { pos: W(9.0, 3.2, waterV(9.0) - CFG.bach.width - 2.5), tgt: W(-3.5, -0.6, -2.6), fov: 50 }; // vom Gegenufer
+  if (id === 'hang') { const pu = 3.3, pv = Math.max(waterV(3.3) + 2.6, -T7.depth - 2.4); return { pos: W(pu, groundH(pu, pv) + 1.6, pv), tgt: W(-0.6, 0.5, -1.4), fov: 64 }; }
   if (id === 'balk') return { pos: W((B.u0 + B.u1) / 2, B.floor + 1.3, B.wallV - 0.55), tgt: W(0, fo + 1.5, 4.6), fov: 60 };
   if (id === 'side') return { pos: W(13.5, 1.65, -3.5), tgt: W(1.5, 3.4, 5.0), fov: 58 };
   const T = CFG.terrace, tc = [(T.u0 + T.u1) / 2, Math.max(T.v0 + 0.6, Math.min(T.v1 - 0.6, B.wallV - B.depth - 0.6))];
@@ -1206,7 +1506,10 @@ function pick(e) {
   const r = canvas.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, cam);
 }
-function groundAt() { const p = new THREE.Vector3(); return ray.ray.intersectPlane(gPlane, p) ? p : null; }
+function groundAt() { // Treffer auf dem Gelände, sonst auf der Ebene h = 0
+  const hit = ground ? ray.intersectObject(ground, false)[0] : null; if (hit) return hit.point;
+  const p = new THREE.Vector3(); return ray.ray.intersectPlane(gPlane, p) ? p : null;
+}
 canvas.addEventListener('pointerdown', (e) => {
   down = { x: e.clientX, y: e.clientY };
   pick(e);
@@ -1227,7 +1530,7 @@ canvas.addEventListener('pointermove', (e) => {
   const nu = Math.round((gp.x + drag.off[0]) * 20) / 20, nv = Math.round((-gp.z + drag.off[1]) * 20) / 20;
   if (Math.abs(nu - drag.p.u) < 1e-6 && Math.abs(nv - drag.p.v) < 1e-6) return;
   drag.p.u = Math.max(-16, Math.min(14, nu)); drag.p.v = Math.max(-11, Math.min(29, nv)); drag.moved = true;
-  const g = plantObjs.get(drag.p.id); if (g) g.position.copy(W(drag.p.u, 0, drag.p.v));
+  const g = plantObjs.get(drag.p.id); if (g) g.position.copy(W(drag.p.u, groundH(drag.p.u, drag.p.v), drag.p.v));
   const now = performance.now(); if (now - lastCov > 120) { lastCov = now; rebuildSight(); renderCoverage(); updateEditorPos(); }
   req();
 });
@@ -1377,6 +1680,7 @@ function renderInsights() {
     'Liguster ‚Atrovirens‘ ist wintergrün und die dichteste Option im Winter. Er wird ohne Schnitt aber nur 3–5 m hoch. Direkt an der Grenze muss er auf etwa 4,5 m stehen, um das Sichtband zu treffen: das ist fast seine Endhöhe und viel Schnittarbeit.',
     'Die Schmalblättrige Ölweide wird 5–7 m hoch und 4–6 m breit. Der Streifen zwischen Giebel und Grenze ist nur 4,9 m breit. Sie ragt also entweder zu Nr. 25 hinüber oder bis an die Hauswand, auch mit Grenzabstand. Wählst du in Wuchs „Endgröße“, zeigt das Modell das.',
     'Die Wintergrüne Ölweide (Elaeagnus × ebbingei) bleibt mit 2–4 m kleiner, ist auf etwa 750 m Höhe aber nur bedingt winterhart.',
+    `Der Giebelgarten endet zum Bach hin an der Kalksteinmauer, ${fmt(CFG.kalk.h)} m über dem Hang. Pflanzen unterhalb der Mauer stehen entsprechend tiefer und brauchen so viel mehr Höhe, um das Sichtband zu erreichen. Das Modell rechnet die Geländehöhe am Standort mit.`,
   ].map(t => `<li>${t}</li>`).join('');
 }
 const AS_FIELDS = [
@@ -1391,11 +1695,39 @@ const AS_FIELDS = [
   ['t-v1', 'Terrasse hinterer Rand (m ab Gartenecke)', () => CFG.terrace.v1, (x) => CFG.terrace.v1 = x, 0.1],
   ['h-f', 'EG-Fußboden Nr. 27 über Gelände (m)', () => CFG.house27.floor0, (x) => CFG.house27.floor0 = x, 0.05],
 ];
+// [id, Text, Quelle (m = Meterstab, g = geschätzt, p = Plan), lesen, schreiben, Schritt, min, max]
+const AS_SITE = [
+  ['s-dep', 'Terrasse: Hauswand bis Außenkante Betonbalken (m)', 'm', () => CFG.terr27.depth, (x) => CFG.terr27.depth = x, 0.05, 1.5, 6],
+  ['s-ovr', 'Terrasse steht über die Giebelflucht hinaus (m)', 'g', () => CFG.terr27.over, (x) => CFG.terr27.over = x, 0.05, 0.1, 2],
+  ['s-ua', 'Terrasse endet nordwestlich (m vor Giebel, negativ)', 'g', () => CFG.terr27.uA, (x) => CFG.terr27.uA = x, 0.1, -20, -3],
+  ['s-top', 'OK Betonbalken über Gelände am Giebel (m)', 'g', () => CFG.terr27.top, (x) => CFG.terr27.top = x, 0.01, -0.3, 0.6],
+  ['s-hc', 'Mauer Ecke Süd: Boden bis OK Betonbalken (m)', 'm', () => CFG.terr27.hCorner, (x) => CFG.terr27.hCorner = x, 0.05, 0.3, 4],
+  ['s-hr', 'Mauer Bachseite: Boden bis OK Betonbalken (m)', 'g', () => CFG.terr27.hRiver, (x) => CFG.terr27.hRiver = x, 0.05, 0.3, 5],
+  ['s-bm', 'Ebener Streifen am Mauerfuß, Breite (m)', 'g', () => CFG.terr27.berm, (x) => CFG.terr27.berm = x, 0.1, 0.2, 5],
+  ['s-rl', 'Geländer: OK Handlauf über OK Betonbalken (m)', 'm', () => CFG.terr27.rail, (x) => CFG.terr27.rail = x, 0.01, 0.6, 1.3],
+  ['s-bd', 'Balkon Nr. 27: Tiefe ab Hauswand (m)', 'g', () => CFG.balc27.depth, (x) => CFG.balc27.depth = x, 0.05, 0.5, 4],
+  ['s-b0', 'Balkon Nr. 27 beginnt (m vor Giebel, negativ)', 'p', () => CFG.balc27.u0, (x) => CFG.balc27.u0 = x, 0.1, -14, -1],
+  ['s-b1', 'Balkon Nr. 27 endet (m vor Giebel, negativ)', 'p', () => CFG.balc27.u1, (x) => CFG.balc27.u1 = x, 0.1, -13, 0.5],
+  ['s-kg', 'Lücke Terrassenmauer ↔ Kalksteinmauer (m)', 'm', () => CFG.kalk.gap, (x) => CFG.kalk.gap = x, 0.05, 0.3, 3],
+  ['s-kh', 'Kalksteinmauer: Höhe (m)', 'g', () => CFG.kalk.h, (x) => CFG.kalk.h = x, 0.05, 0.3, 2.5],
+  ['s-kv', 'Kalksteinmauer: Vorderkante (m ab Gartenecke, negativ = Richtung Bach)', 'g', () => CFG.kalk.v, (x) => CFG.kalk.v = x, 0.05, -5, -0.8],
+  ['s-wd', 'Bach: Mauerfuß bis Wasserkante an der Ecke Süd (m)', 'g', () => CFG.bach.dist, (x) => CFG.bach.dist = x, 0.1, 2, 15],
+  ['s-wl', 'Bach: Wasserspiegel unter Gelände am Giebel (m)', 'g', () => -CFG.bach.level, (x) => CFG.bach.level = -x, 0.1, 1.5, 8],
+  ['s-f1', 'Neue Sichtschutzelemente Nr. 25 beginnen (m ab Gartenecke)', 'g', () => CFG.fence25.newV1, (x) => CFG.fence25.newV1 = x, 0.1, -6, 7],
+  ['s-f0', 'Neue Sichtschutzelemente Nr. 25 enden (m ab Gartenecke, negativ = Richtung Bach)', 'g', () => CFG.fence25.newV0, (x) => CFG.fence25.newV0 = x, 0.1, -7, 6],
+];
+const SRC = { m: 'Meterstab', g: 'geschätzt', p: 'Plan' };
+function rebuildSite() { buildTerrain(); buildSite(); buildCtxTrees(); drawGround(); rebuildPlants(); rebuildSight(); renderCoverage(); renderPlants(true); }
 function renderAssume() {
+  $('assume2').innerHTML = AS_SITE.map(([id, l, src, g, , st, mn, mx]) => `<label for="${id}">${l} <span class="src ${src}">${SRC[src]}</span></label><input type="number" id="${id}" step="${st}" min="${mn}" max="${mx}" value="${g().toFixed(2)}">`).join('');
+  for (const [id, , , g, set, , mn, mx] of AS_SITE) $(id).onchange = (e) => {
+    const x = parseFloat(e.target.value); if (!isFinite(x)) { e.target.value = g().toFixed(2); return; }
+    set(Math.max(mn, Math.min(mx, x))); e.target.value = g().toFixed(2); rebuildSite(); renderInsights(); save();
+  };
   $('assume').innerHTML = AS_FIELDS.map(([id, l, g, , st]) => `<label for="${id}">${l}</label><input type="number" id="${id}" step="${st}" value="${g().toFixed(2)}">`).join('')
     + `<label for="b-lat">Vorhandenes Rankgitter am Balkon mitrechnen (ca. 1,4 × 1,25 m, halb blickdicht)</label><input type="checkbox" id="b-lat" ${CFG.lattice ? 'checked' : ''} style="justify-self:start;width:20px;height:20px;accent-color:var(--accent)">`;
   $('b-lat').onchange = (e) => { CFG.lattice = e.target.checked; buildHouse25(); rebuildSight(); renderCoverage(); save(); };
-  for (const [id, , , s] of AS_FIELDS) $(id).onchange = (e) => { const x = parseFloat(e.target.value); if (!isFinite(x)) return; s(x); buildHouse27(); buildHouse25(); drawGround(); rebuildSight(); renderCoverage(); renderInsights(); save(); };
+  for (const [id, , , s] of AS_FIELDS) $(id).onchange = (e) => { const x = parseFloat(e.target.value); if (!isFinite(x)) return; s(x); buildHouse27(); buildHouse25(); buildSite(); drawGround(); rebuildSight(); renderCoverage(); renderInsights(); save(); };
 }
 function markCustom() { if (ST.variant !== 'eigen') { ST.variant = 'eigen'; $('variant').value = 'eigen'; } }
 function afterEdit(keepEditor) {
@@ -1421,7 +1753,7 @@ $('sunT').addEventListener('input', (e) => { ST.sunT = +e.target.value; updateSu
 $('addSp').innerHTML = Object.entries(SPECIES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
 $('addBtn').onclick = () => { const p = mk($('addSp').value, 2.4, 1.0); ST.plants.push(p); ST.sel = p.id; markCustom(); rebuildPlants(); afterEdit(); toast('Pflanze ' + ST.plants.length + ' eingefügt. In der Draufsicht verschieben.'); };
 $('resetBtn').onclick = () => { const id = ST.variant === 'eigen' ? 'A' : ST.variant; $('variant').value = id; loadVariant(id); toast('Variante zurückgesetzt'); };
-$('asReset').onclick = () => { Object.assign(CFG.balcony, clone(CFG0.balcony)); Object.assign(CFG.terrace, clone(CFG0.terrace)); CFG.house27.floor0 = CFG0.house27.floor0; CFG.lattice = CFG0.lattice; renderAssume(); buildHouse27(); buildHouse25(); drawGround(); rebuildSight(); renderCoverage(); renderInsights(); save(); };
+$('asReset').onclick = () => { Object.assign(CFG.balcony, clone(CFG0.balcony)); Object.assign(CFG.terrace, clone(CFG0.terrace)); CFG.house27.floor0 = CFG0.house27.floor0; CFG.lattice = CFG0.lattice; for (const k of SITE_KEYS) Object.assign(CFG[k], clone(CFG0[k])); renderAssume(); buildHouse27(); buildHouse25(); rebuildSite(); renderInsights(); save(); };
 $('copyBtn').onclick = () => {
   const txt = JSON.stringify({ balkon: CFG.balcony, pflanzen: ST.plants.map((p, i) => ({ nr: i + 1, art: SPECIES[p.sp].name, vorGiebel_m: +p.u.toFixed(2), abGartenecke_m: +p.v.toFixed(2), hoehe_m: p.top, breite_m: p.w, stamm_m: p.stem, quer: p.rot === 90 })) }, null, 1);
   const fb = () => { const ta = $('copyFallback'); ta.hidden = false; ta.value = txt; ta.select(); toast('Text markiert, bitte kopieren'); };
@@ -1451,7 +1783,7 @@ function loop(now) {
 // ---------- Start ----------
 if (!load()) ST.plants = VARIANTS.find(v => v.id === 'A').plants();
 renderVariantSelect();
-buildHouse27(); buildHouse25(); buildContext(); buildCtxTrees(); drawGround();
+buildTerrain(); buildHouse27(); buildHouse25(); buildContext(); buildSite(); buildCtxTrees(); drawGround();
 rebuildPlants(); rebuildSight(); updateSun();
 renderCoverage(); renderPlants(); renderSpecies(); renderInsights(); renderAssume();
 resize();
@@ -1459,7 +1791,7 @@ const P0 = viewPose('overview'); persp.position.copy(P0.pos); ctlP.target.copy(P
 setView('overview');
 requestAnimationFrame(loop);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawGround(); buildHouse27(); buildHouse25(); rebuildPlants(); });
-window.__app = { ST, CFG, setView, loadVariant, coverage, setSeason, persp, ctlP };
+window.__app = { ST, CFG, setView, loadVariant, coverage, setSeason, persp, ctlP, rebuildSite, groundH };
 })();
 </script>
 
