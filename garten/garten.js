@@ -63,7 +63,7 @@ const CFG = {
     pav: { u: -15.3, v: 18.7, r: 0.95 },                                         // achteckiger Pavillon an der Grenze (Foto)
     // Nachbarhaus NW: Ostecke (u, v), Richtung der Fassade zur Südecke (Grad), Länge, Tiefe, Höhen (Lageplan + Fotos)
     nb: { u: -19.3, v: 18.7, ang: 255.4, len: 10.3, dep: 10.0, floor: 0.3, og: 3.0, eave: 5.8, ridge: 8.6 },
-    zaun: { typ: 'bau', h: 1.8, v0: -2.6, v1: 28.4, off: 0.1 },                   // Zaun an der Grenze NW (Planung)
+    zaun: { typ: 'stak', h: 1.8, v0: -2.6, v1: 28.4, off: 0.1 },                  // Zaun an der Grenze NW (Planung: Staketenzaun Lärche)
     car: true,
     b1: { zaun: true, h: 0.9, mulch: true, tree: 'fireglow' },
     // Beet 3: Wiese mit rechteckigem Trampolin, teilweise versenkt. L × B = Sprungtuch-Außenmaß, matH = Höhe des Rahmens unversenkt
@@ -541,10 +541,12 @@ function plantChecks(p) {
 const VP = {
   // Betonpodest am Fuß der Außentreppe: jenseits der NW-Hauskante, die Stahltreppe endet bündig mit der Hauskante (Angabe).
   // Breite so, dass zwischen Podest und Beet B2 ca. 1,2 m zum Vorbeigehen bleiben; Stufen Richtung Hof.
-  podest: { u0: -14.84, u1: -13.54, v0: 9.95, v1: 11.15, steps: 2, stepD: 0.3 },
+  // An der NW-Seite (zum Nachbarn) ein blickdichter Sichtschutz aus Lärche über Podest und Stufen, screenH ab Gelände.
+  podest: { u0: -14.84, u1: -13.54, v0: 9.95, v1: 11.15, steps: 2, stepD: 0.3, screenH: 2.5 },
   beete: [ // nur 90°- und 45°-Kanten (Angabe)
     { id: 'B1', name: 'Beet vor der Hausfront', pts: [[-11.7, 10.8], [-6.9, 10.8], [-6.9, 12.4], [-8.2, 13.7], [-11.7, 13.7]] },
-    { id: 'B2', name: 'Beet an der Grenze NW', pts: [[nwU(11.15) + 0.55, 11.15], [nwU(11.15) + 2.75, 13.35], [nwU(11.15) + 2.75, 16.5], [nwU(16.5), 16.5], [nwU(11.15), 11.15]] },
+    // B2: 45°-Kante von der Grenze (2,0 m vor der Hausfront) bis zur inneren Kante; vor dem Podest bleibt das Pflaster frei (Angabe 23.11.)
+    { id: 'B2', name: 'Beet an der Grenze NW', pts: [[nwU(11.6), 11.6], [nwU(11.15) + 2.75, 11.6 + nwU(11.15) + 2.75 - nwU(11.6)], [nwU(11.15) + 2.75, 16.5], [nwU(16.5), 16.5]] },
     { id: 'B3', name: 'Wiese mit Trampolin (zwischen Haus und Nebengebäude)', pts: [[-3.6, 11.05], [0.5, 11.05], [0.5, 13.75], [-3.6, 13.75]] },
     { id: 'B4', name: 'Streifen an der Grenze NW zur Straße', pts: [[nwU(19.9), 19.9], [-15.5, 19.9], [-13.4, 28.3], [nwU(28.3), 28.3]] },
   ],
@@ -576,7 +578,7 @@ function polyArea(P) { let a = 0; for (let i = 0, j = P.length - 1; i < P.length
 const ZAUN = {
   bau: { name: 'Bauzaun (heute)', k: 6, h: 2.0, note: 'Gitter, teils mit kaputten Schilfmatten. Im Modell rund 30 % blickdicht.' },
   kein: { name: 'Kein Zaun', k: 0 },
-  stak: { name: 'Staketenzaun (Holz, halb offen)', k: 10.5, bw: 0.04, sp: 0.085, note: 'Senkrechte Staketen, gut halb offen. Grenzt ab, schützt kaum vor Blicken.' },
+  stak: { name: 'Staketenzaun (Lärche, 2,5 × 4 cm, 9 cm Lücke)', k: 6.2, bw: 0.04, bd: 0.025, sp: 0.13, note: 'Eckige Staketen aus Lärche, 4 cm breit, 2,5 cm tief, 9 cm Lücke (Achsmaß 13 cm). Von vorne etwa zu 30 % blickdicht, schräg mehr. Grenzt ab, schützt kaum vor Blicken.' },
   latt: { name: 'Lattenzaun (Lärche, 3 cm Fuge)', k: 23, bw: 0.09, sp: 0.12, note: 'Senkrechte Latten mit Fuge. Von vorne zu etwa drei Vierteln dicht, schräg fast ganz.' },
   dicht: { name: 'Sichtschutzzaun (Lärche, blickdicht)', k: 80, bw: 0.12, sp: 0.12, note: 'Geschlossene Fläche. Wirkt an der Grenze hart; mit Pflanzen davor weicher.' },
 };
@@ -649,6 +651,7 @@ function vpCrowns() {
   { const F = garFrame(), cs = [F.S, F.Wc, F.N, F.E], us = cs.map(p => p[0]), vs = cs.map(p => p[1]);
     opaque([Math.min(...us), Math.min(...vs), 0], [Math.max(...us), Math.max(...vs), (G.eave + G.ridge) / 2]); }
   out.push({ cr: { shape: 'cyl', c: [P.u, P.v], r: P.r, h0: 0, h1: 2.9 }, k: 80 });
+  { const Q = VP.podest; opaque([Q.u0 - 0.1, Q.v0, 0], [Q.u0 - 0.02, Q.v1 + Q.steps * Q.stepD, Q.screenH]); }
   opaque([-26.5, 23.0, 0], [-18.8, 28.2, 4.0]);
   if (CFG.vp.car) { const C = VP.car; opaque([C.u - C.B / 2, C.v - C.L / 2, 0.2], [C.u + C.B / 2, C.v + C.L / 2, 1.0]); opaque([C.u - C.B / 2 + 0.1, C.v - 1.2, 1.0], [C.u + C.B / 2 - 0.1, C.v + 1.4, 1.55], 4); }
   return out;
@@ -718,7 +721,7 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
     <section class="tabpane" id="p-vp" role="tabpanel" aria-labelledby="t-vp" hidden>
       <div class="vdesc">
         <h2>Straßenseite und Grenze Nordwest</h2>
-        <p class="small muted">Hof, Beete, Nebengebäude, Wärmepumpe, Podest an der Außentreppe, Pavillon und Bauzaun grob nach den Fotos vom 23.11. Die Lage der Grenze stammt aus dem Kataster. Genaue Maße folgen; geschätzte Werte stehen im Tab „Annahmen“.</p>
+        <p class="small muted">Hof, Beete, Nebengebäude, Wärmepumpe, Podest an der Außentreppe, Pavillon grob nach den Fotos vom 23.11. Zaun NW als Planung (Staketenzaun), der Bauzaun ist unter „Zaun“ wählbar. Die Lage der Grenze stammt aus dem Kataster. Genaue Maße folgen; geschätzte Werte stehen im Tab „Annahmen“.</p>
         <div class="row"><button class="btn" id="vpPlan">Draufsicht Straßenseite</button><button class="btn" id="vpOver">Übersicht</button><label class="small"><input type="checkbox" id="vp-car" style="accent-color:var(--accent)"> Auto zeigen</label></div>
       </div>
       <div class="vdesc">
@@ -1598,9 +1601,15 @@ function buildPodest(g) {
   g.add(box(P.u0, P.u1, P.v0, P.v1, 0, zTop, MAT.concrete));
   for (let i = 1; i <= P.steps; i++) g.add(box(P.u0, P.u1, P.v1, P.v1 + i * P.stepD, 0, zTop * (n - i) / n, MAT.concrete));
   const rl = (a, b, h) => { const du = b[0] - a[0], dv = b[1] - a[1], L = Math.hypot(du, dv), m = new THREE.Mesh(new THREE.BoxGeometry(L, 0.04, 0.12), MAT.larch); m.position.copy(W((a[0] + b[0]) / 2, h, (a[1] + b[1]) / 2)); m.rotation.y = Math.atan2(dv, du); m.castShadow = true; g.add(m); };
-  const A = [P.u1 - 0.04, P.v0 + 0.04], A2 = [P.u0 + 0.04, P.v0 + 0.04], B = [P.u0 + 0.04, P.v1 - 0.04], C = [P.u0 + 0.45, P.v1 - 0.04];
-  for (const [u, v] of [A, A2, B, C]) g.add(box(u - 0.04, u + 0.04, v - 0.04, v + 0.04, zTop, zTop + 1.0, MAT.larch));
-  for (const h of [zTop + 0.5, zTop + 0.97]) { rl(A, A2, h); rl(A2, B, h); rl(B, C, h); }
+  // Geländer nur an der Seite zum Giebelweg; die Stufen zum Hof bleiben auf ganzer Breite frei
+  const A = [P.u1 - 0.04, P.v0 + 0.04], A2 = [P.u0 + 0.12, P.v0 + 0.04];
+  g.add(box(A[0] - 0.04, A[0] + 0.04, A[1] - 0.04, A[1] + 0.04, zTop, zTop + 1.0, MAT.larch));
+  for (const h of [zTop + 0.5, zTop + 0.97]) rl(A, A2, h);
+  // Sichtschutz an der NW-Seite über Podest und Stufen: Pfosten 9 × 9 cm, waagrechte Lärchenbretter, oben Abdeckleiste
+  const sv1 = P.v1 + P.steps * P.stepD, su = P.u0 - 0.06, H = P.screenH;
+  for (const v of [P.v0 + 0.045, (P.v0 + sv1) / 2, sv1 - 0.045]) g.add(box(su - 0.045, su + 0.045, v - 0.045, v + 0.045, 0, H + 0.03, MAT.larchDark));
+  for (let z = 0.05; z < H - 0.05; z += 0.12) g.add(box(su + 0.045, su + 0.065, P.v0, sv1, z, Math.min(H, z + 0.115), MAT.larch));
+  g.add(box(su - 0.05, su + 0.07, P.v0 - 0.01, sv1 + 0.01, H, H + 0.03, MAT.larchDark));
 }
 function buildPavillon(g) {
   const P = CFG.vp.pav, wall = new THREE.Mesh(new THREE.CylinderGeometry(P.r, P.r, 2.1, 8), MAT.pavWood);
@@ -1625,22 +1634,30 @@ function buildZaunNW(g) {
   const Z = CFG.vp.zaun, T = ZAUN[Z.typ];
   if (!T || Z.typ === 'kein') return;
   if (Z.typ === 'bau') { buildBauzaun(g, Z.v0, Z.v1); return; }
-  const n = Math.max(1, Math.floor((Z.v1 - Z.v0) / T.sp)), im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.022, 1, T.bw), MAT.fenceNew, n);
+  const n = Math.max(1, Math.floor((Z.v1 - Z.v0) / T.sp)), im = new THREE.InstancedMesh(new THREE.BoxGeometry(T.bd || 0.022, 1, T.bw), Z.typ === 'stak' ? MAT.larch : MAT.fenceNew, n);
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
   for (let i = 0; i < n; i++) {
     const v = Z.v0 + (i + 0.5) * (Z.v1 - Z.v0) / n, u = nwU(v) + Z.off, z = groundH(u, v), hh = Z.h - 0.05;
     sc.set(1, hh, 1); M.compose(W(u, z + 0.05 + hh / 2, v), q, sc); im.setMatrixAt(i, M);
   }
   im.castShadow = true; im.receiveShadow = true; g.add(im);
-  const np = Math.max(1, Math.round((Z.v1 - Z.v0) / 1.9));
+  const np = Math.max(1, Math.round((Z.v1 - Z.v0) / 1.9)), T0 = VP.wegNb, tv0 = (T0.v0 + T0.v1) / 2 - 0.55, tv1 = tv0 + 1.1;
   for (let i = 0; i <= np; i++) {
     const v = Z.v0 + (Z.v1 - Z.v0) * i / np, u = nwU(v) + Z.off + 0.06, z = groundH(u, v);
+    if (v > tv0 - 0.3 && v < tv1 + 0.3) { if (i < np) { const v2 = Z.v0 + (Z.v1 - Z.v0) * (i + 1) / np; for (const hh of [0.3, Z.h - 0.3]) g.add(box(u - 0.035, u + 0.015, v, v2, z + hh - 0.035, z + hh + 0.035, MAT.larchDark, false)); } continue; } // kein Zaunpfosten im Tor
     g.add(box(u - 0.045, u + 0.045, v - 0.045, v + 0.045, z, z + Z.h + 0.04, MAT.larchDark));
     if (i < np) { const v2 = Z.v0 + (Z.v1 - Z.v0) * (i + 1) / np; for (const hh of [0.3, Z.h - 0.3]) g.add(box(u - 0.035, u + 0.015, v, v2, z + hh - 0.035, z + hh + 0.035, MAT.larchDark, false)); }
   }
-  // Tor zum Nachbarn NW vor dem Pavillon: stärkere Pfosten
-  const T0 = VP.wegNb, tv0 = (T0.v0 + T0.v1) / 2 - 0.55, tv1 = tv0 + 1.1;
-  if (tv0 > Z.v0 && tv1 < Z.v1) for (const v of [tv0, tv1]) { const u = nwU(v) + Z.off + 0.06; g.add(box(u - 0.06, u + 0.06, v - 0.06, v + 0.06, 0, Z.h + 0.12, MAT.larchDark)); }
+  // Tor zum Nachbarn NW vor dem Pavillon (1,1 m): stärkere Pfosten
+  if (tv0 > Z.v0 && tv1 < Z.v1) {
+    for (const v of [tv0, tv1]) { const u = nwU(v) + Z.off + 0.06; g.add(box(u - 0.06, u + 0.06, v - 0.06, v + 0.06, 0, Z.h + 0.12, MAT.larchDark)); }
+    // Torflügel: eigene Querriegel und Z-Strebe auf der Hofseite, Band am Pfosten zum Haus
+    const u = nwU((tv0 + tv1) / 2) + Z.off + 0.05, z0 = groundH(u, tv0), a = [tv1 - 0.08, z0 + 0.3], b = [tv0 + 0.08, z0 + Z.h - 0.3];  // Strebe steigt vom Band zum Schloss
+    for (const hh of [0.3, Z.h - 0.3]) g.add(box(u - 0.01, u + 0.035, tv0 + 0.06, tv1 - 0.06, z0 + hh - 0.05, z0 + hh + 0.05, MAT.larchDark, false));
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]), st = new THREE.Mesh(new THREE.BoxGeometry(0.035, L, 0.09), MAT.larchDark);
+    st.position.copy(W(u + 0.012, (a[1] + b[1]) / 2, (a[0] + b[0]) / 2)); st.rotation.x = Math.atan2(-(b[0] - a[0]), b[1] - a[1]); st.castShadow = true; g.add(st);
+    for (const hh of [0.3, Z.h - 0.3]) g.add(box(u + 0.035, u + 0.045, tv1 - 0.35, tv1 - 0.02, z0 + hh - 0.02, z0 + hh + 0.02, MAT.galv, false));
+  }
 }
 function buildNbNW(g) { // Nachbarhaus NW: altes Bauernhaus, Fensterläden, Balkon an der Hofseite (Fotos, Maße geschätzt)
   const N = CFG.vp.nb, F = nbFrame(), h = new THREE.Group();
@@ -2438,6 +2455,7 @@ function renderVPNotes() {
     'Hecken bis 2 m Höhe brauchen 0,5 m Grenzabstand und passen in den Streifen neben dem Kiesweg und ins Beet B2.',
     'Einfriedungen bis 2 m Höhe sind in Bayern verfahrensfrei (Art. 57 Abs. 1 Nr. 7a BayBO), wenn kein Bebauungsplan und keine Ortssatzung etwas anderes regeln. Ein Zaun direkt auf der Grenze braucht die Zustimmung des Nachbarn. Keine Rechtsberatung.',
     'Vor dem Pavillon führt ein Weg zum Nachbarn NW. Im Zaun ist dort ein Tor mit 1,1 m Breite vorgesehen.',
+    'Am Podest der Außentreppe steht zur Grenze NW ein blickdichter Sichtschutz aus Lärche, 2,5 m hoch ab Gelände und 1,8 m lang (Podest und Stufen). Er steht ca. 1,7 m von der Grenze. Über 2 m Höhe ist er nicht mehr verfahrensfrei als Einfriedung; ob er als Teil der Treppe gilt, bitte mit dem Bauamt klären. Die Stufen zum Hof sind auf ganzer Breite frei.',
   ].map(t => `<li>${t}</li>`).join('');
 }
 const B1_LIST = [ // [Pflanze, botanisch, Höhe, Blüte, Menge, Platz im Beet]
