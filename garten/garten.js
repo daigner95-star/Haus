@@ -1418,7 +1418,7 @@ function rebuildSight() {
 
 // ---------- Sonne ----------
 function sunDir(season, clock) {
-  const lat = 48 * Math.PI / 180, lon = 12; // gerundet (keine Koordinaten im Repo), Fehler unter 0,3°
+  const lat = 47.75 * Math.PI / 180, lon = 11.82; // Lage auf ca. 1 km gerundet (keine genaue Adresse im Repo); für den Sonnenstand ohne Einfluss
   const dec = (season === 'W' ? -23.44 : 23.44) * Math.PI / 180;
   const dst = season === 'W' ? 0 : 1;
   const solar = clock - dst - (15 - lon) / 15;
