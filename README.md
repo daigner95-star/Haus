@@ -19,6 +19,9 @@ Wände, Türen und Fenster stammen aus dem Fensterplan EG. Die Küche ist nach F
 
 **Neues Projekt hinzufügen:** in `index.html` ein Modul nach dem Muster von `KK` (Kinderküche) anlegen: Maße `S`, Regler `sliderDefs`, `build()`, `report()`. Dazu eine eigene Gruppe in `G` und einen Abschnitt in `renderPanelEG()`.
 
+## Garten
+Ordner `garten/`, übernommen aus dem früheren Repo „Garten“ (mit Historie). Modell: `garten/sichtschutz/index.html`, im Haus-Modell oben über „Garten →“ erreichbar. Inhalt und Datengrundlage stehen in `garten/README.md`: Sichtschutz Giebelgarten, Bachseite nach Aufmaß des Vermessers, Treppe zum Bach. Das Gartenmodell nutzt dasselbe three.js aus `vendor/`. Es hat noch ein eigenes, vereinfachtes Hausmodell und ist nicht in die Szene von `index.html` eingebaut.
+
 ## Veröffentlichen (GitHub Pages)
 Settings → Pages → *Deploy from a branch* → Branch wählen (z. B. `main`), Ordner `/ (root)`.
 

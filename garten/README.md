@@ -2,7 +2,7 @@
 
 ## Sichtschutz Giebelgarten (Nr. 27 | Nr. 25)
 
-Interaktives 3D-Modell: `sichtschutz/index.html` im Browser öffnen (braucht Internet für three.js).
+Interaktives 3D-Modell: `sichtschutz/index.html` im Browser öffnen (three.js aus `../vendor/`, nur die Schriften kommen von Google Fonts).
 
 - Haus Nr. 27 nach Werkplan (13,54 × 9,60 m, OG +2,78 m, Fenster lt. Fensterplan), Grenze und Versatz nach BayernAtlas/Lageplan.
 - Nachbarhaus Nr. 25 mit Balkon als Schätzung aus Fotos (im Tab „Annahmen“ anpassbar).
