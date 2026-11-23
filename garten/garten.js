@@ -59,7 +59,7 @@ const CFG = {
   // zwischen Terrassenmauer und Kalksteinmauer hinunter, im Bogen nach Westen und hinunter auf die Ebene am Bach.
   // ---- Straßenseite (Hof) und Grenze zum Nachbarn Nordwest: Lage aus Kataster, Bauteile grob nach Fotos vom 23.11. ----
   vp: {
-    garage: { u0: -5.4, u1: 0.85, v0: 15.0, v1: 22.95, eave: 2.6, ridge: 4.4 },  // Nebengebäude: v aus Kartenmessung (5,4 m ab Hausfront, 7,3 m bis Straße), Breite Lageplan, Höhen geschätzt
+    garage: { gap: 0.5, v0: 15.0, L: 7.95, W: 6.25, oh: 0.5, eave: 2.6, ridge: 4.4 }, // Nebengebäude parallel zur Grenze SO: 0,5 m Abstand, 0,5 m Dachüberstand (Angabe); 5,4 m ab Hausfront, 7,3 m bis Straße (Karte); Breite Lageplan, Höhen geschätzt
     pav: { u: -15.3, v: 18.7, r: 0.95 },                                         // achteckiger Pavillon an der Grenze (Foto)
     // Nachbarhaus NW: Ostecke (u, v), Richtung der Fassade zur Südecke (Grad), Länge, Tiefe, Höhen (Lageplan + Fotos)
     nb: { u: -19.3, v: 18.7, ang: 255.4, len: 10.3, dep: 10.0, floor: 0.3, og: 3.0, eave: 5.8, ridge: 8.6 },
@@ -500,27 +500,38 @@ function plantChecks(p) {
 // ---- Straßenseite: Beete, Kies, Wege (grob nach Fotos vom 23.11.; werden durch Maße ersetzt) ----
 // Lage im Gartensystem: Hausfront Straßenseite v = 9,60, Nordecke des Hauses u = −13,54 (NW-Giebel).
 const VP = {
-  podest: { u0: -13.54, u1: -12.44, v0: 9.6, v1: 11.15, steps: 2, stepD: 0.3 },  // Betonpodest am Fuß der Außentreppe, Stufen Richtung Hof
-  beete: [
-    { id: 'B1', name: 'Beet vor der Hausfront', pts: [[-11.7, 10.8], [-6.9, 10.8], [-6.9, 12.4], [-7.9, 13.7], [-11.7, 13.1]] },
-    { id: 'B2', name: 'Beet an der Grenze NW', pts: [[-15.0, 11.15], [-13.0, 14.4], [-15.4, 17.5], [nwU(17.5), 17.5], [nwU(11.15), 11.15]] },
+  // Betonpodest am Fuß der Außentreppe: jenseits der NW-Hauskante, die Stahltreppe endet bündig mit der Hauskante (Angabe).
+  // Breite so, dass zwischen Podest und Beet B2 ca. 1,2 m zum Vorbeigehen bleiben; Stufen Richtung Hof.
+  podest: { u0: -14.84, u1: -13.54, v0: 9.95, v1: 11.15, steps: 2, stepD: 0.3 },
+  beete: [ // nur 90°- und 45°-Kanten (Angabe)
+    { id: 'B1', name: 'Beet vor der Hausfront', pts: [[-11.7, 10.8], [-6.9, 10.8], [-6.9, 12.4], [-8.2, 13.7], [-11.7, 13.7]] },
+    { id: 'B2', name: 'Beet an der Grenze NW', pts: [[nwU(11.15) + 0.55, 11.15], [nwU(11.15) + 2.75, 13.35], [nwU(11.15) + 2.75, 16.5], [nwU(16.5), 16.5], [nwU(11.15), 11.15]] },
     { id: 'B3', name: 'Beet zwischen Haus und Nebengebäude', pts: [[-3.6, 11.05], [0.5, 11.05], [0.5, 13.75], [-3.6, 13.75]] },
     { id: 'B4', name: 'Streifen an der Grenze NW zur Straße', pts: [[nwU(19.9), 19.9], [-15.5, 19.9], [-13.4, 28.3], [nwU(28.3), 28.3]] },
   ],
-  kiesWP: [[-5.4, 17.1], [-6.75, 17.1], [-6.75, 15.4], [-5.1, 13.95], [-3.95, 15.0], [-5.4, 15.0]], // Kiesbett unter der Wärmepumpe
-  wp: { u0: -6.12, u1: -5.52, v0: 15.35, v1: 16.6, h0: 0.15, h1: 1.55 },        // Wärmepumpe (Außengerät) auf Konsole
+  wegNb: { v0: 16.5, v1: 17.75 },                                               // Pflaster vor dem Pavillon: Weg zum Nachbarn NW, Tor im Zaun
   schacht: [-6.7, 13.7],                                                        // Schachtdeckel
-  wegNW: { u0: -15.15, v0: 0, v1: 11.15 },                                      // Kiesweg am NW-Giebel (bis zur Grenze Wiese)
-  holz: [[-14.0, -9.6, 28.5, 29.7]],                                            // Holzstapel an der Straße
-  tonnen: [-7.6, 29.8],
+  wegNW: [[-15.15, 0], [-13.54, 0], [-13.54, 11.15], [-16.2, 11.15], [-16.2, 9.4], [-15.15, 9.4]], // Kiesweg am NW-Giebel, am Podest vorbei
   stufe: { u0: -6.1, u1: -4.2, v0: 9.6, v1: 10.75, h: 0.14 },                   // Granit-Podest vor der Haustür (Foto)
   verteiler: [1.25, 29.2],                                                      // Verteilerkasten an der Straßenecke (Foto)
   car: { u: -8.6, v: 18.8, L: 4.75, B: 1.92 },
 };
-// Pflaster im Hof: bis 0,55 m vor den SO-Giebel, neben dem Nebengebäude bis zur Bordsteinkante 0,5 m vor seiner SO-Wand
+// Nebengebäude parallel zur Grenze SO. Lokal: a = quer ab SO-Wand Richtung Hof, b = längs ab Giebel zum Haus
+function garFrame() {
+  const G = CFG.vp.garage, B0 = CFG.boundary[1], B1 = CFG.boundary[0], dl = Math.hypot(B1[0] - B0[0], B1[1] - B0[1]);
+  const e = [(B1[0] - B0[0]) / dl, (B1[1] - B0[1]) / dl], c = [-e[1], e[0]], bu = boundaryUAt(G.v0);
+  const O = [bu + c[0] * G.gap, G.v0 + c[1] * G.gap], P = (a, b) => [O[0] + a * c[0] + b * e[0], O[1] + a * c[1] + b * e[1]];
+  return { G, O, e, c, P, phi: Math.atan2(-e[0], e[1]), S: P(0, 0), Wc: P(G.W, 0), N: P(G.W, G.L), E: P(0, G.L) };
+}
+// Kiesbett und Wärmepumpe an der Ecke Hofseite/Giebel zum Haus (lokal a, b)
+function kiesWP() { const F = garFrame(), W = F.G.W; return [[W, 2.1], [W + 1.35, 2.1], [W + 1.35, 0.4], [W - 0.3, -1.05], [W - 1.45, 0], [W, 0]].map(([a, b]) => F.P(a, b)); }
+const WP_LOC = { a0: 0.12, a1: 0.72, b0: 0.35, b1: 1.6, h0: 0.15, h1: 1.55 };     // a ab Hofseite der Garage nach außen
+// Stellplätze 1–3 vor dem Giebel zur Straße (Aufteilungsplan: je 2,3 × 5,0 m, 0,7 m vor dem Giebel, 0,6 m von der Grenze)
+function stellplaetze() { const F = garFrame(), b0 = F.G.L + 0.7; return [[3, 0.1], [2, 2.4], [1, 4.7]].map(([nr, a]) => ({ nr, pts: [F.P(a, b0), F.P(a + 2.3, b0), F.P(a + 2.3, b0 + 5.0), F.P(a, b0 + 5.0)] })); }
+// Pflaster im Hof: bis 0,55 m vor den SO-Giebel, vom Nebengebäude bis zur Straße an der Grenze SO
 function hofPoly() {
-  const H = CFG.haus, G = CFG.vp.garage, e = G.u1 + 0.5;
-  return [[H.u0, H.v1], [0.55, H.v1], [0.55, G.v0], [G.u1, G.v0], [G.u1, G.v1], [e, G.v1], [e, 30.2], [-12.43, 30.64], [nwU(30.6), 30.6], [nwU(11.15), 11.15], [H.u0, 11.15]];
+  const H = CFG.haus, F = garFrame();
+  return [[H.u0, H.v1], [0.55, H.v1], [0.55, F.S[1]], F.S, F.E, [boundaryUAt(F.E[1]), F.E[1]], [0.71, 30.17], [-12.43, 30.64], [nwU(30.6), 30.6], [nwU(11.15), 11.15], [H.u0, 11.15]];
 }
 function polyArea(P) { let a = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) a += (P[j][0] + P[i][0]) * (P[j][1] - P[i][1]); return Math.abs(a) / 2; }
 const ZAUN = {
@@ -576,8 +587,8 @@ function vpTargets(id) {
   } else {
     const walk = (a, b, h = 1.65) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(L / 1.5)); for (let i = 0; i <= n; i++) out.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n, h]); };
     walk([-4.0, 29.5], [-5.1, 10.4]);        // Straße → Haustür
-    walk([-6.2, 10.25], [-11.9, 10.25]);     // an der Hausfront entlang zur Treppe
-    walk([-9.6, 19.0], [-12.6, 12.0]);       // aus dem Hof zwischen den Beeten zur Treppe
+    walk([-6.2, 10.25], [-13.3, 10.25]);     // an der Hausfront entlang zur Treppe
+    walk([-9.6, 19.0], [-14.2, 12.0]);       // aus dem Hof zwischen den Beeten zur Treppe
   }
   return out;
 }
@@ -589,10 +600,10 @@ function vpCrowns() {
     out.push({ cr: { shape: 'box', min: [fu - 0.03, v, z], max: [fu + 0.03, v1, z + (T.h || Z.h)] }, k: T.k });
   }
   const opaque = (min, max, k = 80) => out.push({ cr: { shape: 'box', min, max }, k });
-  opaque([G.u0, G.v0, 0], [G.u1, G.v1, (G.eave + G.ridge) / 2]);
+  { const F = garFrame(), cs = [F.S, F.Wc, F.N, F.E], us = cs.map(p => p[0]), vs = cs.map(p => p[1]);
+    opaque([Math.min(...us), Math.min(...vs), 0], [Math.max(...us), Math.max(...vs), (G.eave + G.ridge) / 2]); }
   out.push({ cr: { shape: 'cyl', c: [P.u, P.v], r: P.r, h0: 0, h1: 2.9 }, k: 80 });
   opaque([-26.5, 23.0, 0], [-18.8, 28.2, 4.0]);
-  for (const [a, b, c, d] of VP.holz) opaque([a, c, 0], [b, d, 1.9]);
   if (CFG.vp.car) { const C = VP.car; opaque([C.u - C.B / 2, C.v - C.L / 2, 0.2], [C.u + C.B / 2, C.v + C.L / 2, 1.0]); opaque([C.u - C.B / 2 + 0.1, C.v - 1.2, 1.0], [C.u + C.B / 2 - 0.1, C.v + 1.4, 1.55], 4); }
   return out;
 }
@@ -870,6 +881,7 @@ function load() {
     if (typeof s.floor0 === 'number') CFG.haus.floor0 = s.floor0;
     if (typeof s.lattice === 'boolean') CFG.lattice = s.lattice;
     if (s.vp && typeof s.vp === 'object') {
+      if (s.vp.garage && !('gap' in s.vp.garage)) delete s.vp.garage;
       for (const k of ['garage', 'pav', 'nb', 'zaun']) if (s.vp[k]) for (const [f, x] of Object.entries(s.vp[k])) if (f in CFG.vp[k] && typeof x === typeof CFG.vp[k][f] && (typeof x === 'string' || isFinite(x))) CFG.vp[k][f] = x;
       if (!ZAUN[CFG.vp.zaun.typ]) CFG.vp.zaun.typ = 'bau';
       if (typeof s.vp.car === 'boolean') CFG.vp.car = s.vp.car;
@@ -1481,34 +1493,34 @@ function doorAt(face, plane, a0, a1, h, glass = true) { // Holztür mit kleinem 
   return g;
 }
 function buildGarage(g) {
-  const G = CFG.vp.garage, ang = Math.atan2(G.ridge - G.eave, (G.u1 - G.u0) / 2), oh = 0.7, eaveOut = G.eave - oh * Math.tan(ang);
-  g.add(texBox(G.u0, G.u1, G.v0, G.v1, 0, G.eave, MAT.boards, 1.0));
-  g.add(prismV(G.u0, G.u1, G.v0, G.v1, G.eave, G.eave, G.ridge, MAT.boards));
-  g.add(roof('v', G.u0, G.u1, G.v0, G.v1, G.eave, G.ridge, oh, 0.6, MAT.roofRed, 0.18));
-  const L = G.v1 - G.v0;
-  g.add(doorAt('-u', G.u0, G.v0 + 0.30 * L, G.v0 + 0.30 * L + 0.95, 2.05));  // Türen an der Hofseite (Foto)
-  g.add(doorAt('-u', G.u0, G.v0 + 0.55 * L, G.v0 + 0.55 * L + 1.1, 2.1));
-  g.add(doorAt('-v', G.v0, G.u0 + 2.1, G.u0 + 3.05, 2.05));                   // Tür zum Haus (Foto)
-  for (const uu of [G.u0 - oh + 0.05, G.u1 + oh - 0.05]) g.add(box(uu - 0.06, uu + 0.06, G.v0 - 0.6, G.v1 + 0.6, eaveOut - 0.12, eaveOut, MAT.gutter, false)); // Rinnen
-  g.add(cyl(G.u0 - 0.15, G.v0 + 0.15, 0.045, 0, eaveOut - 0.05, MAT.gutter, 8));                                                    // Fallrohr an der Ecke (Foto)
-  g.add(box(G.u0 - oh + 0.05, G.u0 - 0.15, G.v0 + 0.11, G.v0 + 0.19, eaveOut - 0.25, eaveOut - 0.15, MAT.gutter, false));
-  // Wärmepumpe auf Konsole, Lüfter zur Hofseite
-  const P = VP.wp;
-  g.add(box(P.u0, P.u1, P.v0, P.v1, P.h0, P.h1, MAT.hp));
-  g.add(box(P.u1, G.u0, P.v0 + 0.15, P.v1 - 0.15, 0, 0.5, MAT.hpDark));
+  const F = garFrame(), G = F.G, Wd = G.W, L = G.L, oh = G.oh, ang = Math.atan2(G.ridge - G.eave, Wd / 2), eaveOut = G.eave - oh * Math.tan(ang);
+  const h = new THREE.Group(); h.position.copy(W(F.O[0], 0, F.O[1])); h.rotation.y = F.phi; g.add(h);
+  // lokal: u = −a (0 = SO-Wand, −W = Hofseite), v = b (0 = Giebel zum Haus, L = Giebel zur Straße)
+  h.add(texBox(-Wd, 0, 0, L, 0, G.eave, MAT.boards, 1.0));
+  h.add(prismV(-Wd, 0, 0, L, G.eave, G.eave, G.ridge, MAT.boards));
+  h.add(roof('v', -Wd, 0, 0, L, G.eave, G.ridge, oh, oh, MAT.roofRed, 0.18));
+  h.add(doorAt('-u', -Wd, 2.9, 5.9, 2.2, false));                                  // Garagentor zur Hofseite (Angabe; Lage geschätzt)
+  h.add(doorAt('-v', 0, -(Wd - 1.0), -(Wd - 1.95), 2.05));                         // zwei Türen im Giebel zum Haus (Angabe)
+  h.add(doorAt('-v', 0, -1.45, -0.5, 2.05));
+  for (const uu of [-Wd - oh + 0.05, oh - 0.05]) h.add(box(uu - 0.06, uu + 0.06, -oh, L + oh, eaveOut - 0.12, eaveOut, MAT.gutter, false));
+  h.add(cyl(-Wd - 0.15, 0.15, 0.045, 0, eaveOut - 0.05, MAT.gutter, 8));
+  h.add(box(-Wd - oh + 0.05, -Wd - 0.15, 0.11, 0.19, eaveOut - 0.25, eaveOut - 0.15, MAT.gutter, false));
+  const P = WP_LOC;
+  h.add(box(-(Wd + P.a1), -(Wd + P.a0), P.b0, P.b1, P.h0, P.h1, MAT.hp));
+  h.add(box(-(Wd + P.a0), -Wd, P.b0 + 0.15, P.b1 - 0.15, 0, 0.5, MAT.hpDark));
   const fan = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.02, 28), MAT.hpDark); fan.rotation.z = Math.PI / 2;
-  fan.position.copy(W(P.u0 - 0.01, (P.h0 + P.h1) / 2 + 0.08, (P.v0 + P.v1) / 2)); g.add(fan);
-  const lw = label('Wärmepumpe', { size: 0.3 }); lw.position.copy(W(P.u0 - 0.2, P.h1 + 0.4, (P.v0 + P.v1) / 2)); g.add(lw);
-  const ln = label('Nebengebäude', { size: 0.4 }); ln.position.copy(W((G.u0 + G.u1) / 2, G.ridge + 0.7, (G.v0 + G.v1) / 2)); g.add(ln);
+  fan.position.copy(W(-(Wd + P.a1) - 0.01, (P.h0 + P.h1) / 2 + 0.08, (P.b0 + P.b1) / 2)); h.add(fan);
+  const lw = label('Wärmepumpe', { size: 0.3 }); lw.position.copy(W(-(Wd + P.a1) - 0.2, P.h1 + 0.4, (P.b0 + P.b1) / 2)); h.add(lw);
+  const ln = label('Nebengebäude', { size: 0.4 }); ln.position.copy(W(-Wd / 2, G.ridge + 0.7, L / 2)); h.add(ln);
 }
 function buildPodest(g) {
-  const P = VP.podest, zTop = CFG.haus.floor0 + 2 * 2.74 / 15, n = P.steps + 1;   // 2 Steigungen der Außentreppe unter dem Podest, dann 3 Stufen zum Hof
+  const P = VP.podest, n = P.steps + 1, zTop = n * (2.74 + CFG.haus.floor0) / 17;   // Außentreppe mit 17 gleichen Steigungen: 13 Stahlstufen, Podest, 2 Betonstufen zum Hof
   g.add(box(P.u0, P.u1, P.v0, P.v1, 0, zTop, MAT.concrete));
   for (let i = 1; i <= P.steps; i++) g.add(box(P.u0, P.u1, P.v1, P.v1 + i * P.stepD, 0, zTop * (n - i) / n, MAT.concrete));
   const rl = (a, b, h) => { const du = b[0] - a[0], dv = b[1] - a[1], L = Math.hypot(du, dv), m = new THREE.Mesh(new THREE.BoxGeometry(L, 0.04, 0.12), MAT.larch); m.position.copy(W((a[0] + b[0]) / 2, h, (a[1] + b[1]) / 2)); m.rotation.y = Math.atan2(dv, du); m.castShadow = true; g.add(m); };
-  const A = [P.u0 + 0.04, P.v0 + 0.15], B = [P.u0 + 0.04, P.v1 - 0.04], C = [P.u0 + 0.45, P.v1 - 0.04];
-  for (const [u, v] of [A, B, C]) g.add(box(u - 0.04, u + 0.04, v - 0.04, v + 0.04, zTop, zTop + 1.0, MAT.larch));
-  for (const h of [zTop + 0.5, zTop + 0.97]) { rl(A, B, h); rl(B, C, h); }
+  const A = [P.u1 - 0.04, P.v0 + 0.04], A2 = [P.u0 + 0.04, P.v0 + 0.04], B = [P.u0 + 0.04, P.v1 - 0.04], C = [P.u0 + 0.45, P.v1 - 0.04];
+  for (const [u, v] of [A, A2, B, C]) g.add(box(u - 0.04, u + 0.04, v - 0.04, v + 0.04, zTop, zTop + 1.0, MAT.larch));
+  for (const h of [zTop + 0.5, zTop + 0.97]) { rl(A, A2, h); rl(A2, B, h); rl(B, C, h); }
 }
 function buildPavillon(g) {
   const P = CFG.vp.pav, wall = new THREE.Mesh(new THREE.CylinderGeometry(P.r, P.r, 2.1, 8), MAT.pavWood);
@@ -1546,6 +1558,9 @@ function buildZaunNW(g) {
     g.add(box(u - 0.045, u + 0.045, v - 0.045, v + 0.045, z, z + Z.h + 0.04, MAT.larchDark));
     if (i < np) { const v2 = Z.v0 + (Z.v1 - Z.v0) * (i + 1) / np; for (const hh of [0.3, Z.h - 0.3]) g.add(box(u - 0.035, u + 0.015, v, v2, z + hh - 0.035, z + hh + 0.035, MAT.larchDark, false)); }
   }
+  // Tor zum Nachbarn NW vor dem Pavillon: stärkere Pfosten
+  const T0 = VP.wegNb, tv0 = (T0.v0 + T0.v1) / 2 - 0.55, tv1 = tv0 + 1.1;
+  if (tv0 > Z.v0 && tv1 < Z.v1) for (const v of [tv0, tv1]) { const u = nwU(v) + Z.off + 0.06; g.add(box(u - 0.06, u + 0.06, v - 0.06, v + 0.06, 0, Z.h + 0.12, MAT.larchDark)); }
 }
 function buildNbNW(g) { // Nachbarhaus NW: altes Bauernhaus, Fensterläden, Balkon an der Hofseite (Fotos, Maße geschätzt)
   const N = CFG.vp.nb, F = nbFrame(), h = new THREE.Group();
@@ -1588,15 +1603,13 @@ function buildVorplatz() {
   buildGarage(g); buildPodest(g); buildPavillon(g); buildZaunNW(g); buildNbNW(g);
   if (CFG.vp.car) buildCar(g);
   const [su, sv] = VP.schacht; g.add(cyl(su, sv, 0.36, 0, 0.02, MAT.frame, 20));
-  for (const [a, b, c0, d] of VP.holz) for (let uu = a; uu < b - 0.5; uu += 1.2) { const e = Math.min(b, uu + 1.15); g.add(box(uu, e, c0, d, 0, 1.75, MAT.pallet)); g.add(box(uu - 0.05, e + 0.05, c0 - 0.1, d + 0.1, 1.75, 1.82, MAT.galv)); }
   { const S = VP.stufe; g.add(box(S.u0, S.u1, S.v0, S.v1, 0, S.h, MAT.granite)); }
   { const [vu, vv] = VP.verteiler; g.add(box(vu - 0.45, vu + 0.45, vv - 0.22, vv + 0.22, 0, 1.3, MAT.foot)); }
-  const [tu, tv] = VP.tonnen; for (const du of [0, 0.7]) g.add(box(tu + du, tu + du + 0.6, tv, tv + 0.72, 0, 1.07, MAT.bin));
   req();
 }
 // ---------- Straßenseite: Bodentextur ----------
 function drawVorplatz(c, X, Y, poly, winter) {
-  const P = GA.px, H = CFG.haus, G = CFG.vp.garage, R = rng(23);
+  const P = GA.px, H = CFG.haus, GF = garFrame(), R = rng(23);
   const path = (pts) => { c.beginPath(); pts.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.closePath(); };
   const speckle = (pts, base, cols, per) => { poly(pts, base); c.save(); path(pts); c.clip(); let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity; for (const [u, v] of pts) { u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v); } const n = Math.round((u1 - u0) * (v1 - v0) * per); for (let i = 0; i < n; i++) { c.fillStyle = cols[i % cols.length]; c.fillRect(X(u0 + R() * (u1 - u0)), Y(v0 + R() * (v1 - v0)), 2, 2); } c.restore(); };
   const curb = (pts) => { c.strokeStyle = '#dcdbd5'; c.lineWidth = 0.1 * P; c.lineJoin = 'miter'; path(pts); c.stroke(); };
@@ -1617,25 +1630,26 @@ function drawVorplatz(c, X, Y, poly, winter) {
   }
   c.restore();
   // alter Plattenweg entlang der Grenze SO bis zur Straße, Kiesstreifen an der SO-Wand des Nebengebäudes (Fotos)
-  const e = G.u1 + 0.5, pl = [[0.55, H.v1], [2.2, H.v1], [2.2, 30.1], [e, 30.2], [e, G.v0], [0.55, G.v0]];
+  const bS = [boundaryUAt(GF.S[1]), GF.S[1]], bE = [boundaryUAt(GF.E[1]), GF.E[1]], pl = [[0.55, H.v1], [2.2, H.v1], [2.2, 30.1], [0.71, 30.17], bS, [0.55, GF.S[1]]];
   poly(pl, '#a6a29a'); c.strokeStyle = 'rgba(60,56,50,0.35)'; c.lineWidth = 1; c.save(); path(pl); c.clip();
   for (let v = H.v1; v < 30.3; v += 0.5) { c.beginPath(); c.moveTo(X(0.5), Y(v)); c.lineTo(X(2.3), Y(v)); c.stroke(); }
   for (let u = 0.55; u < 2.3; u += 0.5) { c.beginPath(); c.moveTo(X(u), Y(H.v1)); c.lineTo(X(u), Y(30.3)); c.stroke(); }
   c.restore();
-  speckle([[G.u1, G.v0], [e, G.v0], [e, G.v1], [G.u1, G.v1]], '#b3aea5', ['#8f8a82', '#cfcbc4'], 400);
-  curb([[e, H.v1 + 0.0], [e, 30.2]]);
-  curb([[0.55, H.v1], [0.55, G.v0], [e, G.v0]]);
+  speckle([GF.S, GF.E, bE, bS], '#b3aea5', ['#8f8a82', '#cfcbc4'], 400);
+  curb([bS, [0.71, 30.17]]);
+  curb([[0.55, H.v1], [0.55, GF.S[1]], bS]);
   // NW-Giebel: Kiesweg, daneben Wiese bis zur Grenze
-  const W0 = VP.wegNW, weg = [[W0.u0, W0.v0], [H.u0, W0.v0], [H.u0, W0.v1], [W0.u0, W0.v1]];
-  speckle(weg, '#aaa397', ['#8f887c', '#c4beb3', '#7d776d'], 260);
+  speckle(VP.wegNW, '#aaa397', ['#8f887c', '#c4beb3', '#7d776d'], 260);
   // Beete (Erde), Kiesbett unter der Wärmepumpe, Rinnen, Schacht
   for (const b of VP.beete) speckle(b.pts, winter ? '#6a5a4a' : '#6e5c49', ['#5a4a3b', '#857260', '#4c3f33'], 160);
-  speckle(VP.kiesWP, '#bdb9b1', ['#9c978e', '#d6d3cc', '#86817a'], 400);
+  const kw = kiesWP(); speckle(kw, '#bdb9b1', ['#9c978e', '#d6d3cc', '#86817a'], 400);
   for (const b of VP.beete) curb(b.pts);
-  curb(VP.kiesWP.slice(0, 5));
-  c.fillStyle = '#26282a';
-  c.fillRect(X(G.u0 - 0.12), Y(G.v1), 0.12 * P, (G.v1 - 16.9) * P);
-  c.fillRect(X(G.u0 + 1.0), Y(G.v0), (G.u1 - G.u0 - 1.0) * P, 0.12 * P);
+  curb(kw.slice(0, 5));
+  poly([GF.P(0.3, 0), GF.P(GF.G.W - 0.4, 0), GF.P(GF.G.W - 0.4, -0.12), GF.P(0.3, -0.12)], '#26282a');   // Rinne vor dem Giebel zum Haus
+  // Stellplätze 1–3 vor dem Giebel zur Straße (Aufteilungsplan)
+  c.strokeStyle = 'rgba(255,255,255,0.95)'; c.lineWidth = 0.08 * P; c.setLineDash([]);
+  for (const sp of stellplaetze()) { path(sp.pts); c.stroke(); const m = sp.pts.reduce((a, q) => [a[0] + q[0] / 4, a[1] + q[1] / 4], [0, 0]);
+    c.save(); c.fillStyle = 'rgba(255,255,255,0.95)'; c.font = `700 ${Math.round(0.7 * P)}px "Source Sans 3", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(sp.nr), X(m[0]), Y(m[1])); c.restore(); }
   const [su, sv] = VP.schacht; c.fillStyle = '#6f6a62'; c.beginPath(); c.arc(X(su), Y(sv), 0.52 * P, 0, 7); c.fill();
   // Garten des Nachbarn NW: Plattenweg und Sitzplatz vor der Hofseite (Fotos)
   const F = nbFrame(), sitz = [F.P(0.4, 0.15), F.P(9.6, 0.15), F.P(9.6, 2.9), F.P(0.4, 2.9)];
@@ -2267,15 +2281,16 @@ function renderVPList() {
   el.querySelectorAll('.prow').forEach(b => b.addEventListener('click', () => { ST.sel = ST.sel === b.dataset.id ? null : b.dataset.id; rebuildPlants(); renderPlants(); renderVPList(); }));
 }
 function renderVPAreas() {
-  const H = CFG.haus, G = CFG.vp.garage, Pd = VP.podest, row = (a, b) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`;
+  const H = CFG.haus, G = CFG.vp.garage, kw = kiesWP(), Pd = VP.podest, row = (a, b) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`;
   const hof = hofPoly();
   const inHof = VP.beete.filter(b => b.id === 'B1' || b.id === 'B3').reduce((a, b) => a + polyArea(b.pts), 0);
   const other = VP.beete.filter(b => b.id === 'B2' || b.id === 'B4').reduce((a, b) => a + polyArea(b.pts), 0);
-  const pflaster = polyArea(hof) - inHof - other - (G.u1 - G.u0) * (G.v1 - G.v0) - polyArea(VP.kiesWP) - (Pd.u1 - Pd.u0) * (Pd.v1 - Pd.v0);
+  const pflaster = polyArea(hof) - inHof - other - G.W * G.L - polyArea(kw);
   $('vpAreas').innerHTML = '<tr><th>Fläche</th><th>ca.</th></tr>' + VP.beete.map(b => row(`${b.id} · ${b.name}`, `${fmt(polyArea(b.pts))} m²`)).join('')
-    + row('Kiesbett Wärmepumpe', `${fmt(polyArea(VP.kiesWP))} m²`)
+    + row('Kiesbett Wärmepumpe', `${fmt(polyArea(kw))} m²`)
+    + row('Stellplätze 1–3 vor dem Nebengebäude', 'je 2,3 × 5,0 m')
     + row('Pflaster im Hof (ohne Beete, Nebengebäude, Kies)', `${fmt(pflaster, 0)} m²`)
-    + row('Nebengebäude', `${fmt(G.u1 - G.u0, 2)} × ${fmt(G.v1 - G.v0, 2)} m`)
+    + row('Nebengebäude (Abstand zur Grenze SO, Dachüberstand)', `${fmt(G.W, 2)} × ${fmt(G.L, 2)} m (${fmt(G.gap, 2)} m, ${fmt(G.oh, 2)} m)`)
     + row('Grenze NW von der Terrasse bis zur Straße', `${fmt(Math.hypot(NWB[3][0] - NWB[0][0], 30.6 - (-2.9)))} m`)
     + row('NW-Giebel bis Grenze NW (Kataster-Aufmaß; Karte misst 2,9 m)', `${fmt(H.u0 - nwU(0), 2)} m (Gartenseite) · ${fmt(H.u0 - nwU(H.v1), 2)} m (Hausfront)`);
 }
@@ -2291,7 +2306,7 @@ function renderVPNotes() {
     'Für OG und DG braucht es Laub zwischen etwa 2,5 und 6 m. Bäume über 2 m müssen 2 m von der Grenze weg (Art. 47 AGBGB). Am Giebel bleibt dann rund 1 m bis zur Hauswand: dort passen nur schmale Säulen oder Spaliere, oder es geht mit Zustimmung des Nachbarn näher an die Grenze.',
     'Hecken bis 2 m Höhe brauchen 0,5 m Grenzabstand und passen in den Streifen neben dem Kiesweg und ins Beet B2.',
     'Einfriedungen bis 2 m Höhe sind in Bayern verfahrensfrei (Art. 57 Abs. 1 Nr. 7a BayBO), wenn kein Bebauungsplan und keine Ortssatzung etwas anderes regeln. Ein Zaun direkt auf der Grenze braucht die Zustimmung des Nachbarn. Keine Rechtsberatung.',
-    'Der Pavillon steht nach den Fotos an der Grenze. Er unterbricht den Zaun; im Modell läuft der Zaun dahinter durch.',
+    'Vor dem Pavillon führt ein Weg zum Nachbarn NW. Im Zaun ist dort ein Tor mit 1,1 m Breite vorgesehen.',
   ].map(t => `<li>${t}</li>`).join('');
 }
 function renderVP() {
@@ -2302,10 +2317,10 @@ function renderVP() {
 const AS_VP = (() => {
   const H = CFG.haus, G = () => CFG.vp.garage, P = () => CFG.vp.pav, N = () => CFG.vp.nb;
   return [
-    ['v-gv0', 'Nebengebäude: Hausfront bis Giebel (m, Karte 5,4)', 'p', () => G().v0 - H.v1, (x) => { const L = G().v1 - G().v0; G().v0 = H.v1 + x; G().v1 = G().v0 + L; }, 0.05, 2, 12],
-    ['v-gL', 'Nebengebäude: Länge (m, aus Karte: Giebel bis Straße 7,3)', 'p', () => G().v1 - G().v0, (x) => { G().v1 = G().v0 + x; }, 0.05, 3, 14],
-    ['v-gu0', 'Nebengebäude: Hofseite ab Hausecke Nord (m)', 'g', () => G().u0 - H.u0, (x) => { const B = G().u1 - G().u0; G().u0 = H.u0 + x; G().u1 = G().u0 + B; }, 0.05, 3, 13],
-    ['v-gB', 'Nebengebäude: Breite (m)', 'g', () => G().u1 - G().u0, (x) => { G().u1 = G().u0 + x; }, 0.05, 3, 9],
+    ['v-gv0', 'Nebengebäude: Hausfront bis Giebel (m, Karte 5,4)', 'p', () => G().v0 - H.v1, (x) => { G().v0 = H.v1 + x; }, 0.05, 2, 12],
+    ['v-gL', 'Nebengebäude: Länge (m, aus Karte: Giebel bis Straße 7,3)', 'p', () => G().L, (x) => { G().L = x; }, 0.05, 3, 14],
+    ['v-gg', 'Nebengebäude: Abstand zur Grenze SO (m)', 'm', () => G().gap, (x) => { G().gap = x; }, 0.05, 0, 3],
+    ['v-gB', 'Nebengebäude: Breite (m)', 'g', () => G().W, (x) => { G().W = x; }, 0.05, 3, 9],
     ['v-ge', 'Nebengebäude: Traufhöhe (m)', 'g', () => G().eave, (x) => { G().eave = Math.min(x, G().ridge - 0.3); }, 0.05, 2, 4],
     ['v-gr', 'Nebengebäude: Firsthöhe (m)', 'g', () => G().ridge, (x) => { G().ridge = Math.max(x, G().eave + 0.3); }, 0.05, 3, 7],
     ['v-pa', 'Pavillon: Mitte ab Hausecke Nord (m, negativ = Richtung Nachbar NW)', 'g', () => P().u - H.u0, (x) => { P().u = H.u0 + x; }, 0.05, -4, 2],
