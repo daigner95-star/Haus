@@ -102,7 +102,8 @@ aside h4{font-size:14px;margin:14px 0 4px}
       <button class="chip" data-k="lvl" data-v="EG">EG</button>
       <button class="chip" data-k="lvl" data-v="OG">OG</button>
       <button class="chip" data-k="lvl" data-v="DG">DG</button></div>
-    <div class="grp"><button class="chip" id="furnBtn" aria-pressed="true" title="Beispielmöblierung ein/aus">Möbel</button></div>
+    <div class="grp"><button class="chip" id="furnBtn" aria-pressed="true" title="Beispielmöblierung ein/aus">Möbel</button>
+      <button class="chip" id="extBtn" aria-pressed="true" title="Außenwände ein/aus, um besser in die Räume zu schauen">Außenwände</button></div>
     <div class="grp" role="group" aria-label="Ansicht"><span>Ansicht</span>
       <button class="chip" data-k="view" data-v="aussen">Außen</button>
       <button class="chip" data-k="view" data-v="puppe">Puppenhaus</button>
@@ -524,7 +525,14 @@ function buildAllWalls(){
     else buildWall(w,M.wall,grp);
   });
 }
+let SHOW_EXT=true; // Außenwände sichtbar (nur Anzeige, im Rundgang bleiben sie fest)
+function applyExt(){Object.values(G).forEach(g=>g.children.forEach(c=>{if(c.userData.ext)c.visible=SHOW_EXT;}));}
 function buildExtWall(w,grp){
+  const n0=grp.children.length;
+  buildExtWallParts(w,grp);
+  for(let i=n0;i<grp.children.length;i++){grp.children[i].userData.ext=true;grp.children[i].visible=SHOW_EXT;}
+}
+function buildExtWallParts(w,grp){
   const S=0.025;
     {
       const r=w.r;let core=r.slice(),skin=r.slice();
@@ -1602,6 +1610,7 @@ document.querySelectorAll('.chip[data-k]').forEach(b=>b.addEventListener('click'
   setView(state.view,true);
 }));
 document.getElementById('furnBtn').addEventListener('click',()=>{state.furn=!state.furn;setView(state.view,true);});
+document.getElementById('extBtn').addEventListener('click',e=>{SHOW_EXT=!SHOW_EXT;e.currentTarget.setAttribute('aria-pressed',String(SHOW_EXT));applyExt();requestRender();});
 
 /* Start */
 renderPanel();resize();setView('puppe');resize();
