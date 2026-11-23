@@ -1228,8 +1228,8 @@ buildGround();buildAllWalls();buildFloors();buildRoof();buildBalconies();
    2 = geschlossener Hängeschrank in Eiche mit zwei offenen Nischen und Spots nach unten.
    Längs über der Halbinsel, an Stangen von der Decke abgehängt. Maße in cm. */
 const HS=(function(){
-  const S={len:180,dep:40,wall:40,uk:160,h:40};
-  const st={v:'1'};
+  const S={len:180,dep:50,wall:40,uk:160,h:40};
+  const st={v:'2'};
   const sliderDefs=[
     {k:'len',label:'Länge (entlang der Halbinsel)',min:100,max:240,step:1,hint:'Geschätzt nach dem Entwurfsbild.'},
     {k:'dep',label:'Tiefe (quer zur Halbinsel)',min:30,max:60,step:1,hint:'Halbinsel 99 cm breit.'},
@@ -1249,6 +1249,10 @@ const HS=(function(){
     const xc=q.xc,step=0.08;
     if(what==='glas'){for(let y=ya+0.05;y<yb-0.04;y+=step){[-0.06,0.07].forEach(dx=>{cyl(g,xc+dx,y,z,0.004,0.11,mat.glass,8);cyl(g,xc+dx,y,z+0.11,0.035,0.09,mat.glass,14);});}}
     if(what==='flasche'){const ms=[mat.bottle1,mat.bottle2,mat.bottle3];let i=0;for(let y=ya+0.06;y<yb-0.05;y+=0.09,i++){const m=ms[i%3];cyl(g,xc,y,z,0.035,0.2,m);cyl(g,xc,y,z+0.2,0.013,0.09,m);cyl(g,xc+0.001,y,z+0.06,0.036,0.07,mat.label);}}
+    if(what==='vase'){const cols=[0xd9c7b0,0x8fa39a,0xb56f4e,0xe8e4dc];const n=Math.max(1,Math.floor((yb-ya)/0.13));
+      for(let i=0;i<n;i++){const y=ya+(i+0.5)*(yb-ya)/n,hh=[0.22,0.15,0.27,0.18][i%4],r=[0.05,0.065,0.045,0.06][i%4],m=lam(cols[i%4]);
+        const body=new THREE.Mesh(new THREE.CylinderGeometry(r*0.6,r*0.8,hh,18),m);body.position.copy(P(xc+(i%2?0.06:-0.06),y,z+hh/2));body.castShadow=true;g.add(body);
+        const bel=new THREE.Mesh(new THREE.SphereGeometry(r,18,12),m);bel.scale.set(1,0.8,1);bel.position.copy(P(xc+(i%2?0.06:-0.06),y,z+hh*0.35));bel.castShadow=true;g.add(bel);}}
     if(what==='pflanze'){const y=(ya+yb)/2;cyl(g,xc,y,z,0.08,0.13,mat.pot,16);const l=new THREE.Mesh(new THREE.SphereGeometry(0.13,14,10),mat.leaf);l.position.copy(P(xc,y,z+0.22));l.castShadow=true;g.add(l);
       for(let k=0;k<5;k++){cyl(g,xc+(k%2?0.09:-0.09),y-0.08+k*0.04,z-0.35-k*0.04,0.012,0.45+k*0.04,mat.leaf,6);}}
   }
@@ -1270,20 +1274,20 @@ const HS=(function(){
       deco(g,q,m+0.02,q.y1-0.25,zs,'glas');deco(g,q,q.y0+0.3,m-0.02,zs,'flasche');deco(g,q,q.y1-0.25,q.y1-0.03,zs,'pflanze');deco(g,q,q.y0+0.03,q.y0+0.28,zs,'pflanze');
     } else {
       const t=0.02,z0=q.z0,z1=q.z1;
-      // Korpus: Boden, Deckel, Seiten, Rückwand (Raumseite +x geschlossen, Nischen und Türen zur Essseite −x)
+      // Korpus: Boden, Deckel, Stirnseiten; Nischen zu beiden Seiten offen, Türen auf beiden Seiten
       ebox(g,q.x0,q.y0,q.x1,q.y1,z0,z0+t,mat.oak);ebox(g,q.x0,q.y0,q.x1,q.y1,z1-t,z1,mat.oak);
       ebox(g,q.x0,q.y0,q.x1,q.y0+t,z0,z1,mat.oak);ebox(g,q.x0,q.y1-t,q.x1,q.y1,z0,z1,mat.oak);
-      ebox(g,q.x1-t,q.y0,q.x1,q.y1,z0,z1,mat.oak);
       const a=[q.y0,q.y0+L*0.25,q.y0+L*0.5,q.y0+L*0.75,q.y1];
-      [a[1],a[2],a[3]].forEach(y=>ebox(g,q.x0,y-t/2,q.x1-t,y+t/2,z0+t,z1-t,mat.oak));
+      [a[1],a[2],a[3]].forEach(y=>ebox(g,q.x0,y-t/2,q.x1,y+t/2,z0+t,z1-t,mat.oak));
       // Türen außen, Nischen innen
-      [[a[0],a[1]],[a[3],a[4]]].forEach(([y0,y1])=>{ebox(g,q.x0-0.02,y0+0.002,q.x0,y1-0.002,z0+0.002,z1-0.002,mat.oak);
-        const yy=y0<q.y0+0.01?y1-0.05:y0+0.05;ebox(g,q.x0-0.035,yy-0.008,q.x0-0.02,yy+0.008,z0+0.04,z0+0.16,mat.steel,false);});
-      ebox(g,q.x0+0.01,a[1]+t/2,q.x1-t,a[3]-t/2,z0+t,z0+t+0.002,mat.oakIn,false);
+      [[a[0],a[1]],[a[3],a[4]]].forEach(([y0,y1])=>{const yy=y0<q.y0+0.01?y1-0.05:y0+0.05;
+        [[q.x0,-1],[q.x1,1]].forEach(([xs,d])=>{ebox(g,xs,y0+0.002,xs+d*0.02,y1-0.002,z0+0.002,z1-0.002,mat.oak);
+          ebox(g,xs+d*0.02,yy-0.008,xs+d*0.035,yy+0.008,z0+0.04,z0+0.16,mat.steel,false);});});
+      ebox(g,q.x0+0.01,a[1]+t/2,q.x1-0.01,a[3]-t/2,z0+t,z0+t+0.002,mat.oakIn,false);
       [(a[1]+a[2])/2,(a[2]+a[3])/2].forEach(y=>{const s=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.004,16),mat.led);s.position.copy(P(q.xc,y,z1-t-0.002));g.add(s);});
       for(let i=0;i<4;i++){const y=q.y0+L*(i+0.5)/4;const s=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.004,16),mat.led);s.position.copy(P(q.xc,y,z0-0.002));g.add(s);}
       [q.y0+0.3,q.y1-0.3].forEach(y=>rod(g,q.xc,y,z1));
-      deco(g,q,a[1]+0.02,a[2]-0.02,z0+t,'glas');deco(g,q,a[2]+0.02,a[3]-0.02,z0+t,'flasche');
+      deco(g,q,a[1]+0.02,a[2]-0.02,z0+t,'vase');deco(g,q,a[2]+0.02,a[3]-0.02,z0+t,'vase');
     }
     report();
   }
@@ -1590,11 +1594,11 @@ function renderPanelEG(){
      [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal']]
      .map(([k,n])=>'<button class="chip" data-cam="'+k+'">'+n+'</button>').join('')+'</div>'+
    '<h3>Projekt 3 · Hängeregal über der Halbinsel</h3>'+
-   '<div class="chips" role="group" aria-label="Variante">'+[['1','Alternative 1: Regal mit Rahmen'],['2','Alternative 2: Hängeschrank'],['aus','Ausblenden']]
+   '<div class="chips" role="group" aria-label="Variante">'+[['2','Alternative 2: Hängeschrank'],['1','Alternative 1: Regal mit Rahmen'],['aus','Ausblenden']]
      .map(([k,n])=>'<button class="chip" data-hv="'+k+'" aria-pressed="'+(HS.st.v===k)+'">'+n+'</button>').join('')+'</div>'+
    '<div id="hsSl"></div><h4>Ergebnis</h4><table class="res" id="hsOut"></table>'+
-   '<p class="note"><b>Nach dem Entwurfsbild:</b> Alternative 1 offenes Regal im schwarzen Stahlrahmen mit Holzboden und LED-Streifen darunter. Alternative 2 Hängeschrank in Eiche wie die Küchenfronten, Türen außen, zwei offene Nischen in der Mitte, Spots nach unten. Beide hängen an Stangen von der Decke.</p>'+
-   '<p class="note"><b>Geschätzt, bitte prüfen:</b> alle Maße (Länge 180, Tiefe 40, Höhe 40 cm, Unterkante 160 cm, 40 cm Abstand zur Wand). Nischen und Türen zur Essseite.</p>'+
+   '<p class="note"><b>Nach dem Entwurfsbild:</b> Alternative 1 offenes Regal im schwarzen Stahlrahmen mit Holzboden und LED-Streifen darunter. Alternative 2 Hängeschrank in Eiche wie die Küchenfronten, Türen außen auf beiden Seiten, zwei zu beiden Seiten offene Nischen für Vasen, Spots nach unten. Beide hängen an Stangen von der Decke.</p>'+
+   '<p class="note"><b>Geschätzt, bitte prüfen:</b> alle Maße (Länge 180, Höhe 40 cm, Unterkante 160 cm, 40 cm Abstand zur Wand). Gesetzt: Tiefe 50 cm, Alternative 2 als Standard.</p>'+
    '<h3>Projekt 2 · Kinderküche an der Halbinsel</h3>'+
    '<p class="note">Bank, Trittstufe und Kinder-Arbeitsplatz in einem. Steht an der Stirnseite der Halbinsel, wo jetzt die Truhe steht.</p>'+
    '<div class="chips" role="group" aria-label="Kind zeigen">'+[['steht','Steht oben'],['sitzt','Sitzt'],['schneidet','Schneidet'],['aus','Ohne Kind']]

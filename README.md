@@ -12,7 +12,7 @@ Seite: `index.html`. three.js 0.147 (MIT-Lizenz) liegt lokal in `vendor/`, es we
 Wände, Türen und Fenster stammen aus dem Fensterplan EG. Die Küche ist nach Fotos und Aufmaß gebaut. In der rechten Leiste stehen:
 - **Ansichten:** Wohnraum, Essecke, Von vorne, Von oben, Linkes Fach, Küche, Kinderküche
 - **Projekt 1 · Wohnzimmer-Einbauten:** Rückkasten mit Klappen, Trennwand mit Balken, Eckbank mit Rollkästen und Ablage, Ofen, Sofa und Tisch. Alle Regler und Schalter aus dem Einzelmodell sind übernommen.
-- **Projekt 3 · Hängeregal über der Halbinsel:** zwei Varianten zum Umschalten (offenes Regal im Stahlrahmen oder geschlossener Hängeschrank mit Nischen), Maße per Regler.
+- **Projekt 3 · Hängeregal über der Halbinsel:** zwei Varianten zum Umschalten. Standard ist der Hängeschrank (50 cm tief) mit zwei zu beiden Seiten offenen Nischen für Vasen, die zweite Variante ein offenes Regal im Stahlrahmen. Maße per Regler.
 - **Projekt 2 · Kinderküche an der Halbinsel:** Bank, Trittstufe und Kinder-Arbeitsplatz in einem (45 cm hoch, höchstens 40 cm tief, runde Ecken vorn). Ein Kind lässt sich stehend, sitzend oder schneidend zeigen.
 
 `wohnzimmer.html` ist das ursprüngliche Einzelmodell der Wohnzimmer-Einbauten. Es bleibt zum Vergleich erhalten.
