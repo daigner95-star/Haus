@@ -1430,12 +1430,12 @@ const HS=(function(){
    Aufmaß: 1,99 × 1,25 m. Matratze 190 × 120 cm. Schlichtes Bett von Wand zu Wand: Bettkasten mit zwei Schubladen,
    Rausfallgitter mit senkrechten Stäben über die ganze Länge, darüber drei ruhige Bilder. Maße in cm. */
 const KB=(function(){
-  const S={kbW:199,kbD:125,kbTop:42,kbRail:25,kbGap:6};
-  const st={head:'aussen',on:true,pics:true,back:false,under:'schub',pull:false};
+  const S={kbW:199,kbD:125,kbGM:20,kbRail:25,kbGap:6};
+  const st={head:'aussen',on:true,pics:true,back:true,pull:false};
   const sliderDefs=[
     {k:'kbW',label:'Nische: Breite (Außenwand bis Badwand)',min:190,max:210,step:1,hint:'Aufmaß 199 cm. Im Werkplan 200 cm.'},
     {k:'kbD',label:'Nische: Tiefe (bis Außenwand Straßenseite)',min:121,max:140,step:1,hint:'Aufmaß 125 cm. Im Werkplan 135 cm.'},
-    {k:'kbTop',label:'Liegehöhe (Oberkante Matratze)',min:30,max:60,step:1,hint:'Bettkasten mit Schubladen plus 16 cm Matratze.'},
+    {k:'kbGM',label:'Auszug: Platz für eine Matratze dieser Höhe',min:10,max:25,step:1,hint:'Bestimmt die Liegehöhe oben. 20 cm passt für die meisten Kaltschaum- und Federkernmatratzen 190 × 120.'},
     {k:'kbRail',label:'Bettgitter: Höhe über der Matratze',min:16,max:40,step:1,hint:'Norm für Kinderbetten: mindestens 16 cm. Für ein sehr bewegliches Kind lieber 25 cm oder mehr.'},
     {k:'kbGap',label:'Bettgitter: lichter Abstand der Stäbe',min:4.5,max:7.5,step:0.5,hint:'Kein Kopf durch: höchstens 7,5 cm; 6 cm ist sicher und lässt die Hand durch.'}
   ];
@@ -1457,7 +1457,10 @@ const KB=(function(){
         x.fillStyle=col;x.beginPath();x.ellipse(bx+(i%2?35:-30),60+i*8,5,14,(i%2?0.5:-0.5),0,7);x.fill();}}
     const t=new THREE.CanvasTexture(c);t.anisotropy=4;return new THREE.MeshLambertMaterial({map:t});}
   const PICS={berge:picTex('berge'),mond:picTex('mond'),gras:picTex('gras')};
-  const geo=()=>{const x0=T,x1=T+S.kbW/100,y1=B-T,y0=y1-S.kbD/100;return {x0,x1,y0,y1,xc:(x0+x1)/2,yc:(y0+y1)/2,top:S.kbTop/100};};
+  // Höhen von unten: Rollen 3 cm, Boden 1,8 cm, Gästematratze, 2 cm Luft, Bettrahmen vorne 8 cm hoch, oben Matratze 16 cm
+  const H={roll:0.03,floor:0.018,air:0.02,rail:0.08,mt:0.16};
+  const geo=()=>{const x0=T,x1=T+S.kbW/100,y1=B-T,y0=y1-S.kbD/100,zm=H.roll+H.floor+S.kbGM/100,base=zm+H.air+H.rail;
+    return {x0,x1,y0,y1,xc:(x0+x1)/2,yc:(y0+y1)/2,zm,base,top:base+H.mt};};
   // Bild an der Rückwand (Ebene y = yw, Blick Richtung −y): Mitte xc, Unterkante zb, Breite w, Höhe h
   function picture(g,yw,xc,zb,w,h,m){const fd=0.025,fw=0.025;
     ebox(g,xc-w/2,yw-fd,xc+w/2,yw,zb,zb+h,mat.frame,false);
@@ -1465,27 +1468,28 @@ const KB=(function(){
     const pw=w-2*fw-0.07,ph=h-2*fw-0.07,pg=new THREE.PlaneGeometry(pw,ph);const p=new THREE.Mesh(pg,m);p.position.copy(P(xc,yw-fd-0.004,zb+h/2));g.add(p);}
   function build(){
     const g=G.egBed;clearGroup(g);dropColl('kb');if(!st.on){report();return;}
-    const q=geo(),bt=0.025,mt=0.16,base=q.top-mt,gap=0.005;
+    const q=geo(),bt=0.025,base=q.base,gap=0.005;
     const mx0=q.x0+(q.x1-q.x0-1.90)/2,mx1=mx0+1.90,my1=q.y1-0.025,my0=my1-1.20;   // Matratze 190 × 120, hinten 2,5 cm Luft
     // Bettkasten: Front mit zwei Schubladen, Stirnbretter an den Wänden, Lattenrost-Auflage
     const fy0=Math.min(my0-0.002,q.y0+gap)-0.02,fy1=fy0+bt;
-    ebox(g,q.x0+gap,fy0,q.x1-gap,fy1,0.06,base,mat.front);
-    ebox(g,q.x0+gap,fy0+0.03,q.x1-gap,q.y1-gap,0,0.06,mat.woodDk,false);
-    ebox(g,q.x0+gap,fy0,q.x0+gap+bt,q.y1-gap,0.06,q.top+0.2,mat.wood);                           // Kopf- und Fußteil an den Wänden
-    ebox(g,q.x1-gap-bt,fy0,q.x1-gap,q.y1-gap,0.06,q.top+0.2,mat.wood);
+    ebox(g,q.x0+gap,fy0,q.x1-gap,fy1,base-H.rail,base,mat.front);                                 // Bettrahmen vorne über dem Auszug
+    ebox(g,q.x0+gap,fy0,q.x0+gap+bt,q.y1-gap,base-H.rail,q.top+0.2,mat.wood);                     // Kopf- und Fußteil, auf Wandleisten
+    ebox(g,q.x1-gap-bt,fy0,q.x1-gap,q.y1-gap,base-H.rail,q.top+0.2,mat.wood);
     ebox(g,q.x0+gap+bt,fy1,q.x1-gap-bt,q.y1-gap,base-0.02,base,mat.woodDk,false);
-    if(st.under==='schub'){                                                                         // zwei große Schubladen auf Rollen
-      const dw=(q.x1-q.x0-0.08)/2;
-      [0,1].forEach(i=>{const a=q.x0+0.04+i*dw;ebox(g,a+0.01,fy0-0.018,a+dw-0.01,fy0,0.09,base-0.03,mat.front);
-        const kx=a+dw/2;ebox(g,kx-0.06,fy0-0.03,kx+0.06,fy0-0.018,(0.09+base-0.03)/2-0.012,(0.09+base-0.03)/2+0.012,mat.knob,false);});
-    } else {                                                                                        // Gästebett-Auszug über die ganze Länge
-      const pu=st.pull?0.92:0,ax0=q.x0+gap+bt+0.01,ax1=q.x1-gap-bt-0.01,zr=0.03,zf=zr+0.04,zm=zf+0.10;
-      ebox(g,ax0,fy0-0.018-pu,ax1,fy0-pu,0.02,base-0.03,mat.front);
-      ebox(g,(ax0+ax1)/2-0.15,fy0-0.03-pu,(ax0+ax1)/2+0.15,fy0-0.018-pu,(base+0.0)/2-0.012,(base+0.0)/2+0.012,mat.knob,false);
-      if(st.pull){ebox(g,ax0+0.02,fy0-pu,ax1-0.02,fy0-pu+0.86,zr,zf,mat.woodDk);
-        ebox(g,ax0+0.02,fy0-pu+0.02,ax0+0.02+1.80,fy0-pu+0.82,zf,zm,mat.mattress);
-        ebox(g,ax0+0.55,fy0-pu+0.05,ax0+1.78,fy0-pu+0.79,zm,zm+0.05,mat.cushB,false);
-        const p2=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.1,0.5),mat.pillow);p2.position.copy(P(ax0+0.25,fy0-pu+0.42,zm+0.05));g.add(p2);}
+    // Ein großer Auszug auf Rollen von Wand zu Wand: heute Stauraum, später Platz für eine Gästematratze 190 × 120
+    { const ax0=q.x0+gap,ax1=q.x1-gap,sd=0.012,fr=0.018,ay1=q.y1-0.01,dep=ay1-fy0,pu=st.pull?dep-0.03:0,zt=q.zm+0.005;
+      const f0=fy0-fr-pu;
+      ebox(g,ax0+0.003,f0,ax1-0.003,fy0-pu,0.012,base-H.rail-0.008,mat.front);                       // Front
+      ebox(g,(ax0+ax1)/2-0.2,f0-0.012,(ax0+ax1)/2+0.2,f0,(0.012+base-H.rail)/2-0.012,(0.012+base-H.rail)/2+0.012,mat.knob,false);
+      if(st.pull){
+        ebox(g,ax0,fy0-pu,ax1,ay1-pu,H.roll,H.roll+H.floor,mat.woodDk);                              // Boden (gelocht)
+        ebox(g,ax0,fy0-pu,ax0+sd,ay1-pu,H.roll,zt,mat.wood);ebox(g,ax1-sd,fy0-pu,ax1,ay1-pu,H.roll,zt,mat.wood);   // Seiten
+        ebox(g,ax0,ay1-pu-sd,ax1,ay1-pu,H.roll,zt,mat.wood);                                         // Rückwand
+        const gx0=ax0+sd+(ax1-ax0-2*sd-1.90)/2;
+        ebox(g,gx0,fy0-pu+0.01,gx0+1.90,fy0-pu+1.21,H.roll+H.floor,q.zm,mat.mattress);               // Gästematratze 190 × 120
+        ebox(g,gx0+0.5,fy0-pu+0.05,gx0+1.85,fy0-pu+1.16,q.zm,q.zm+0.05,mat.cushB,false);
+        const p2=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.1,0.6),mat.pillow);p2.position.copy(P(gx0+0.25,fy0-pu+0.61,q.zm+0.05));g.add(p2);
+      }
     }
     // Matratze, Bettwäsche, Kissen
     ebox(g,mx0,my0,mx1,my1,base,q.top,mat.mattress);
@@ -1521,12 +1525,13 @@ const KB=(function(){
       ['Bett (L × T)',`${fmt(S.kbW)} × ${fmt(S.kbD)} cm, Wand zu Wand`],
       ['Matratze',`190 × 120 cm, Kopfende ${st.head==='aussen'?'an der Außenwand (Giebel)':'an der Badwand'}`],
       ['Luft an den Enden / hinten',`<span class="${cls(endGap>=2)}">je ${fmt(endGap)} cm</span> / 2,5 cm`],
-      ['Liegehöhe',`${fmt(S.kbTop)} cm`],
-      ['Bettgitter',`über die ganze Länge (ca. ${fmt(len)} cm), <span class="${cls(S.kbRail>=16)}">${fmt(S.kbRail)} cm über der Matratze</span>, Oberkante ${fmt(S.kbTop+S.kbRail)} cm über dem Boden`],
+      ['Liegehöhe oben',`${fmt(q.top*100)} cm (Gästematratze ${fmt(S.kbGM)} cm + Luft + Rahmen 8 cm + Matratze 16 cm)`],
+      ['Bettgitter',`über die ganze Länge (ca. ${fmt(len)} cm), <span class="${cls(S.kbRail>=16)}">${fmt(S.kbRail)} cm über der Matratze</span>, Oberkante ${fmt(q.top*100+S.kbRail)} cm über dem Boden`],
       ['Stäbe',`rund 2,5 cm, <span class="${cls(S.kbGap<=7.5)}">${fmt(S.kbGap)} cm Abstand</span> (Raster ${fmt(pitch)} cm)`],
       ['Gitter hinten',st.back?'ja, wie vorne; sitzt im Spalt zwischen Matratze und Wand (2,5 cm). Die Kissen lehnen dann am Gitter.':'nein'],
-      ...(st.under==='schub'?[['Unterbau','2 Schubladen auf Rollen, je ca. '+fmt((S.kbW-8)/2-4)+' × '+fmt(S.kbD-12)+' cm, innen ca. '+fmt((S.kbTop-16-12))+' cm hoch: je ca. '+fmt(((S.kbW-8)/2-4)*(S.kbD-12)*(S.kbTop-16-12)/1000)+' Liter']]:
-        [['Unterbau','Gästebett-Auszug über die ganze Länge, '+fmt(S.kbTop-16-3)+' cm lichte Höhe unter dem Lattenrost'],['Gästematratze','180 × 80 × 10 cm (Kinder-Gästematratze); 190 cm passt zwischen den Wänden nicht'],['Platz vor dem Bett','Auszug ca. 90 cm tief, davor bleiben im Zimmer rund 2,9 m']]),
+      ['Auszug innen',`${fmt(S.kbW-1-2.4)} × ${fmt(S.kbD-0.7)} × ${fmt(S.kbGM)} cm, Vollauszug auf Rollen; heute ca. ${fmt(Math.round((S.kbW-3.4)*(S.kbD-0.7)*S.kbGM/1000))} Liter Stauraum`],
+      ['Später: Gästematratze','<span class="ok">190 × 120 cm bis '+fmt(S.kbGM)+' cm hoch passt</span>, '+fmt((S.kbW-3.4-190)/2)+' cm Luft an den Enden'],
+      ['Platz vor dem Bett',`Auszug ca. ${fmt(S.kbD-3)} cm tief, davor bleiben im Zimmer rund ${fmt(390-S.kbD+3+2)} cm`],
       ['Bilder',st.pics?'3 × 40 × 50 cm, Unterkante 55 cm über der Matratze':'ohne']
     ];
     el.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
@@ -1828,11 +1833,11 @@ function renderPanelEG(){
    '<h3>Projekt 4 · Kinderbett in der Nische, Kinderzimmer 1</h3>'+
    '<div class="chips" role="group" aria-label="Kopfende">'+[['aussen','Kopfende Außenwand'],['bad','Kopfende Badwand']].map(([k,n])=>'<button class="chip" data-kbh="'+k+'" aria-pressed="'+(KB.st.head===k)+'">'+n+'</button>').join('')+'</div>'+
    '<div class="chips">'+tb('kbBack',KB.st.back)+'Gitter auch hinten</button>'+tb('kbPics',KB.st.pics)+'Bilder</button>'+tb('kbOn',KB.st.on)+'Bett zeigen</button></div>'+
-   '<div class="chips" role="group" aria-label="Unterbau">'+[['schub','Unterbau: 2 Schubladen'],['gast','Unterbau: Gästebett-Auszug']].map(([k,n])=>'<button class="chip" data-kbu="'+k+'" aria-pressed="'+(KB.st.under===k)+'">'+n+'</button>').join('')+tb('kbPull',KB.st.pull)+'Auszug herausziehen</button></div>'+
+   '<div class="chips">'+tb('kbPull',KB.st.pull)+'Auszug herausziehen (mit Gästematratze)</button></div>'+
    '<div id="kbSl"></div><h4>Ergebnis</h4><table class="res" id="kbOut"></table>'+
-   '<p class="note"><b>Idee:</b> Ein schlichtes Bett von Wand zu Wand, damit die Nische ruhig wirkt. Unten ein Bettkasten mit zwei großen Schubladen, darauf die Matratze 190 × 120. Vorne ein Bettgitter mit runden Holzstäben über die ganze Länge: Eure Tochter klettert darüber, nachts fällt sie nicht heraus. Darüber drei Bilder in gleichen hellen Rahmen und ruhigen Farben: Berge in der Dämmerung, Mond über dem See, Gräser.</p>'+
-   '<p class="note"><b>Gemessen:</b> Nische 1,99 × 1,25 m. <b>Gesetzt:</b> Matratze 190 × 120 cm, Liegehöhe 42 cm, Gitter 25 cm über der Matratze, Stäbe 2,5 cm mit 6 cm Abstand, Bilder 40 × 50 cm. <b>Hinweis:</b> Im Werkplan ist die Nische 1,35 m tief; das Bett richtet sich nach eurem Aufmaß an der Rückwand aus.</p>'+
-   '<p class="note"><b>Bauen:</b> Bettkasten als Korpus aus Multiplex oder Fichte-Leimholz, Lattenrost auf Leisten. Das Gitter fest an Kopf- und Fußteil verschraubt (oder aushängbar, wenn sie größer ist). 2,5 cm Luft hinter der Matratze an der Außenwand gegen Feuchte.</p>'+
+   '<p class="note"><b>Idee:</b> Ein schlichtes Bett von Wand zu Wand, damit die Nische ruhig wirkt. Unten ein großer Auszug auf Rollen von Wand zu Wand: heute Stauraum, später Platz für eine Gästematratze 190 × 120 bis 20 cm Höhe. Darauf die Matratze 190 × 120. Vorne und hinten ein Bettgitter mit runden Holzstäben über die ganze Länge: Eure Tochter klettert darüber, nachts fällt sie nicht heraus. Darüber drei Bilder in gleichen hellen Rahmen und ruhigen Farben: Berge in der Dämmerung, Mond über dem See, Gräser.</p>'+
+   '<p class="note"><b>Gemessen:</b> Nische 1,99 × 1,25 m. <b>Gesetzt:</b> Matratze 190 × 120 cm, Auszug für 20 cm hohe Gästematratze, Gitter 25 cm über der Matratze, Stäbe 2,5 cm mit 6 cm Abstand, Bilder 40 × 50 cm. <b>Hinweis:</b> Im Werkplan ist die Nische 1,35 m tief; das Bett richtet sich nach eurem Aufmaß an der Rückwand aus.</p>'+
+   '<p class="note"><b>Bauen:</b> Bettkasten als Korpus aus Multiplex oder Fichte-Leimholz, Lattenrost auf Leisten; vorne ein 8 cm hoher Rahmen (Buche oder Eiche), seitlich und hinten Wandleisten, damit der Auszug ohne Mittelfuß von Wand zu Wand laufen kann. Boden des Auszugs gelocht, damit die Gästematratze lüftet. Das Gitter fest an Kopf- und Fußteil verschraubt (oder aushängbar, wenn sie größer ist). 2,5 cm Luft hinter der Matratze an der Außenwand gegen Feuchte.</p>'+
    '<h3>Projekt 3 · Hängeregal über der Halbinsel</h3>'+
    '<div class="chips" role="group" aria-label="Variante">'+[['2','Alternative 2: Hängeschrank'],['1','Alternative 1: Regal mit Rahmen'],['aus','Ausblenden']]
      .map(([k,n])=>'<button class="chip" data-hv="'+k+'" aria-pressed="'+(HS.st.v===k)+'">'+n+'</button>').join('')+'</div>'+
@@ -1876,8 +1881,7 @@ function renderPanelEG(){
   panel.querySelectorAll('[data-hv]').forEach(b=>b.addEventListener('click',()=>{HS.st.v=b.dataset.hv;
     panel.querySelectorAll('[data-hv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));HS.build();egChanged();}));
   tog('kbPics',KB.st,'pics',KB.build);tog('kbBack',KB.st,'back',KB.build);tog('kbPull',KB.st,'pull',KB.build);
-  panel.querySelectorAll('[data-kbu]').forEach(b=>b.addEventListener('click',()=>{KB.st.under=b.dataset.kbu;
-    panel.querySelectorAll('[data-kbu]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));KB.build();egChanged();}));tog('kbOn',KB.st,'on',KB.build);
+tog('kbOn',KB.st,'on',KB.build);
   tog('kkOpen',KK.st,'open');tog('kkCush',KK.st,'cushion',KK.build);
   tog('tOpen',WZ.st,'open');tog('tXray',WZ.st,'xray',WZ.applyXray);tog('tSofa',WZ.st,'sofa',WZ.build);tog('tBeam',WZ.st,'beamFull',WZ.build);
   panel.querySelectorAll('[data-pose]').forEach(b=>b.addEventListener('click',()=>{KK.st.pose=b.dataset.pose;
