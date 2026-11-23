@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Holzhaus 3D-Modell</title>
+<title>Holzhaus mit Garten</title>
 <meta name="description" content="3D-Modell des Holzhauses: Wohnung 1 im Erdgeschoss mit Einbau-Projekten, Maisonette-Wohnungen 2 und 3 (OG + DG).">
 <style>
 :root{
@@ -88,16 +88,110 @@ aside h4{font-size:14px;margin:14px 0 4px}
   body.v-plan #hint{display:none}
   .chip{padding:6px 10px;font-size:13.5px}
 }
+
+/* ---------- Garten: rechte Leiste (.garden) und Einblendungen über der Szene (.gv) ---------- */
+.garden,.gv{--surface:var(--panel);--surface-2:var(--chip);--fg:var(--text);--ok:#2c7843;--warn:#a8701a;--bad:#b23f2c;--scrim:var(--label-bg);--r:10px;
+  --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .garden,:root:not([data-theme="light"]) .gv{--ok:#5fbe7c;--warn:#e2aa4c;--bad:#e57560}}
+:root[data-theme="dark"] .garden,:root[data-theme="dark"] .gv{--ok:#5fbe7c;--warn:#e2aa4c;--bad:#e57560}
+aside.g{padding:0}
+.garden{font-size:15px}
+.garden .gtitle{font-size:16px;margin:0;padding:14px 16px 0}
+.garden .gctl{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;padding:10px 16px 12px}
+.garden .ctl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.garden .ctl:first-child{flex:1 1 100%}
+.garden .ctl label,.garden .glbl,.gv .glbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.garden select,.garden input[type="number"]{font:inherit;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-height:34px;max-width:100%}
+.garden .ctl:first-child select{width:100%}
+.garden button{font:inherit;color:inherit}
+.garden .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.garden .seg button{border:0;background:transparent;padding:6px 12px;min-height:34px;cursor:pointer}
+.garden .seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.garden .tabs{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--line);border-top:1px solid var(--line);overflow-x:auto;position:sticky;top:0;background:var(--panel);z-index:3}
+.garden .tabs button{border:0;background:transparent;padding:9px 10px;cursor:pointer;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.garden .tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.garden .tabpane{padding:14px 16px 24px;display:flex;flex-direction:column;gap:14px}
+.garden .tabpane[hidden]{display:none}
+.garden h2{font-size:16px;margin:0}
+.garden h3{font-size:14px;margin:0;font-weight:700;color:var(--text);text-transform:none;letter-spacing:0}
+.garden p{margin:0}
+.garden .muted{color:var(--muted)} .garden .small{font-size:13px}
+.garden .pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.garden .pill.ok{color:var(--ok)} .garden .pill.warn{color:var(--warn)} .garden .pill.bad{color:var(--bad)}
+.garden .vdesc{display:flex;flex-direction:column;gap:6px}
+.garden .wins{display:flex;flex-direction:column;gap:8px}
+.garden .win{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);cursor:pointer;width:100%}
+.garden .win[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.garden .win .t{font-weight:700} .garden .win .r{font-size:12.5px;color:var(--muted)}
+.garden .bars{grid-column:1/-1;display:grid;grid-template-columns:56px minmax(0,1fr) 42px;gap:3px 8px;align-items:center;font-size:12.5px}
+.garden .track{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.garden .fill{height:100%;border-radius:4px;transition:width .3s}
+.garden .num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px}
+.garden .dgrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;font-size:13px;color:var(--muted);padding:2px}
+.garden .plist{display:flex;flex-direction:column;gap:6px}
+.garden .prow{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);cursor:pointer;text-align:left;width:100%}
+.garden .prow[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.garden .badge{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--fg);color:var(--bg);font-weight:700;font-size:12.5px;font-family:var(--font-mono)}
+.garden .prow .meta{font-size:12.5px;color:var(--muted);font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.garden .editor{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.garden .editor .full{grid-column:1/-1}
+.garden .field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.garden .field input[type="range"]{width:100%;accent-color:var(--accent)}
+.garden .field .val{font-family:var(--font-mono);font-size:12.5px}
+.garden .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.garden .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:600;min-height:34px}
+.garden .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.garden .btn.danger{color:var(--bad)}
+.garden .btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.garden .checks{font-size:13px;display:flex;flex-direction:column;gap:3px}
+.garden .checks .ok{color:var(--ok)} .garden .checks .warn{color:var(--warn)} .garden .checks .bad{color:var(--bad)}
+.garden table{font-size:13px}
+.garden td,.garden th{padding:5px 6px}
+.garden th{font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.garden td.n{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:left;white-space:normal}
+.garden .tablewrap{overflow-x:auto}
+.garden ul.tight{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.garden .note{border-left:3px solid var(--warn);padding:6px 10px;background:var(--bg);border-radius:0 8px 8px 0;font-size:13.5px;color:var(--text);margin:0}
+.garden .assume{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:6px 10px;align-items:center;font-size:13.5px}
+.garden .assume input{width:100%}
+.garden .src{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.garden .src.m,.garden .src.v{color:var(--ok)} .garden .src.g{color:var(--warn)} .garden .src.p{color:var(--muted)}
+.garden #stSec svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.garden #stSec text{font-family:var(--font-mono);font-size:.36px;fill:var(--fg)}
+.gv[hidden]{display:none}
+.gv .views{position:absolute;left:10px;right:10px;top:10px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;z-index:2}
+.gv .views::-webkit-scrollbar{display:none}
+.gv .chip{flex:none;border:1px solid var(--line);background:var(--scrim);backdrop-filter:blur(6px);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13.5px;font-weight:600;white-space:nowrap;color:var(--text)}
+.gv .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.gv .hud{position:absolute;left:10px;bottom:10px;display:flex;flex-direction:column;gap:6px;max-width:min(360px,calc(100% - 20px));z-index:2}
+.gv .card-float{background:var(--scrim);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;color:var(--text)}
+.gv .sun{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;font-size:13px}
+.gv .sun input{width:100%;accent-color:var(--accent)}
+.gv .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.gv .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted)}
+.gv .legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.gv .ghint{position:absolute;right:10px;bottom:10px;font-size:12.5px;color:var(--label-text);background:var(--label-bg);padding:5px 9px;border-radius:8px;max-width:230px;text-align:right;pointer-events:none}
+.gv .toast{position:absolute;left:50%;top:56px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:6px 12px;border-radius:8px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:3}
+.gv .toast.show{opacity:1}
+body.v-garten #hint{display:none}
+@media (max-width:820px){
+  .gv .ghint{display:none}
+  .gv .hud{left:8px;right:8px;bottom:8px;max-width:none;gap:4px}
+  .gv .card-float{padding:5px 8px}
+  .gv .legend{font-size:11.5px;gap:2px 8px}
+}
+@media (prefers-reduced-motion: reduce){.garden .fill,.gv .toast{transition:none}}
 </style>
 </head>
 <body>
 <header id="hdr">
-  <h1>Holzhaus · 3D-Modell</h1>
+  <h1>Holzhaus mit Garten · 3D-Modell</h1>
   <div class="bar">
-    <div class="grp" role="group" aria-label="Wohnung">
+    <div class="grp" role="group" aria-label="Bereich">
       <button class="chip" data-k="unit" data-v="1">Wohnung 1</button>
       <button class="chip" data-k="unit" data-v="2">Wohnung 2</button>
-      <button class="chip" data-k="unit" data-v="3">Wohnung 3</button></div>
+      <button class="chip" data-k="unit" data-v="3">Wohnung 3</button>
+      <button class="chip" data-k="view" data-v="garten">Garten</button></div>
     <div class="grp" role="group" aria-label="Etage">
       <button class="chip" data-k="lvl" data-v="EG">EG</button>
       <button class="chip" data-k="lvl" data-v="OG">OG</button>
@@ -125,6 +219,7 @@ aside h4{font-size:14px;margin:14px 0 4px}
 
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
+<script src="garten/garten.js"></script>
 <script>
 (function(){
 'use strict';
@@ -401,7 +496,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0xcfe2f0);
-const camera=new THREE.PerspectiveCamera(45,1,0.05,300);
+scene.fog=new THREE.Fog(0xcfe2f0,90,240);
+const camera=new THREE.PerspectiveCamera(45,1,0.05,600);
 const P=(x,y,z)=>new THREE.Vector3(x,z,-y);
 
 const hemi=new THREE.HemisphereLight(0xf2f6ff,0xa8977a,0.85); scene.add(hemi);
@@ -657,9 +753,9 @@ function buildBalconies(){
   railing(G.DG,[[CX0,0],[CX0,-BAL_D],[CX1,-BAL_D],[CX1,0]],zD,1.0,'lattice',true);
   box(G.DG,SEP0,-BAL_D,SEP1,0,zD,RIDGE-RT-0.24,M.larch);COLL.push({x0:SEP0,x1:SEP1,y0:-BAL_D,y1:0,z0:zD,z1:RIDGE});
   // Stützen
-  [[CX0,-BAL_D],[CX1,-BAL_D]].forEach(([x,y])=>box(G.DG,x-0.08,y-0.08,x+0.08,y+0.08,0,zCross(x)-RT,M.larch));
-  [[T+0.06,-BAL_S],[L-T-0.06,-BAL_S]].forEach(([x,y])=>box(G.balOG,x-0.07,y-0.07,x+0.07,y+0.07,0,zO-0.22,M.larch));
-  [[CX0,-BAL_D],[CX1,-BAL_D]].forEach(([x,y])=>box(G.balOG,x-0.08,y-0.08,x+0.08,y+0.08,0,zO,M.larch));
+  [[CX0,-BAL_D],[CX1,-BAL_D]].forEach(([x,y])=>box(G.DG,x-0.08,y-0.08,x+0.08,y+0.08,-0.25,zCross(x)-RT,M.larch));
+  [[T+0.06,-BAL_S],[L-T-0.06,-BAL_S]].forEach(([x,y])=>box(G.balOG,x-0.07,y-0.07,x+0.07,y+0.07,-0.25,zO-0.22,M.larch));
+  [[CX0,-BAL_D],[CX1,-BAL_D]].forEach(([x,y])=>box(G.balOG,x-0.08,y-0.08,x+0.08,y+0.08,-0.25,zO,M.larch));
   // Begehbar
   SURF.push({poly:[[T,0],[SEP0,0],[SEP0,-BAL_D],[CX0,-BAL_D],[CX0,-BAL_S],[T,-BAL_S]],z:zO,lvl:'OG'});
   SURF.push({poly:mPoly([[T,0],[SEP0,0],[SEP0,-BAL_D],[CX0,-BAL_D],[CX0,-BAL_S],[T,-BAL_S]]),z:zO,lvl:'OG'});
@@ -751,8 +847,8 @@ function buildFurniture(u,which){
 
 /* ---------- Umgebung ---------- */
 function buildGround(){
-  const g=new THREE.PlaneGeometry(90,90);g.rotateX(-Math.PI/2);g.translate(MID,-0.03,-B/2);
-  const m=new THREE.Mesh(g,M.ground);m.receiveShadow=true;scene.add(m);
+  if(!window.GartenModul){const g=new THREE.PlaneGeometry(90,90);g.rotateX(-Math.PI/2);g.translate(MID,-0.03,-B/2);
+    const m=new THREE.Mesh(g,M.ground);m.receiveShadow=true;scene.add(m);}
   box(G.EG,-0.05,-0.05,L+0.05,B+0.05,-0.25,0.0,M.slab);
 }
 
@@ -1316,6 +1412,8 @@ flushSlats();
 const state={unit:1,lvl:'EG',view:'puppe',furn:true};
 const controls=new THREE.OrbitControls(camera,canvas);
 controls.enableDamping=false;controls.maxPolarAngle=Math.PI/2-0.04;controls.minDistance=0.4;controls.maxDistance=60;
+/* ---------- Garten (garten/garten.js): Gelände, Terrasse, Hang, Nachbargrundstück, Pflanzen, Treppe zum Bach ---------- */
+let GARTEN=null;
 controls.addEventListener('change',()=>requestRender());
 
 function applyVisibility(){
@@ -1436,6 +1534,7 @@ function frame(t){
   if(state.view==='walk')again=walkStep(dt);
   if(WZ.step(dt))again=true;
   if(KK.step(dt))again=true;
+  if(GARTEN&&GARTEN.step(t))again=true;
   renderer.render(scene,camera);updateLabels();if(state.view==='walk')drawMini();
   if(again||keys.size)requestRender();else lastT=0;
 }
@@ -1643,6 +1742,8 @@ function renderPanelEG(){
     if(window.innerWidth<=820)document.getElementById('view').scrollIntoView({behavior:'smooth'});}));
 }
 function renderPanel(){
+  panel.classList.toggle('g',state.view==='garten'&&!!GARTEN);
+  if(state.view==='garten'&&GARTEN){panel.innerHTML='';panel.appendChild(GARTEN.panel);return;}
   if(state.unit===1){renderPanelEG();return;}
   const u=UNITS[state.unit];
   const og=u.rooms.filter(r=>r.lvl==='OG'),dg=u.rooms.filter(r=>r.lvl==='DG');
@@ -1674,24 +1775,34 @@ function renderPanel(){
 const HINTS={aussen:'Ziehen = drehen · Zoomen mit zwei Fingern oder Mausrad',
   puppe:'Blick von oben in die Räume · Etage oben wählen · ziehen = drehen',
   walk:'Wischen = umsehen · auf den Boden tippen = hingehen · am Computer W A S D',
-  plan:'Grundriss mit anrechenbaren Flächen · gestrichelt: lichte Höhe 1 m und 2 m'};
+  plan:'Grundriss mit anrechenbaren Flächen · gestrichelt: lichte Höhe 1 m und 2 m',
+  garten:'Ziehen = drehen · Pflanze antippen und ziehen = verschieben'};
 function syncChips(){
-  document.querySelectorAll('.chip[data-k]').forEach(b=>{b.setAttribute('aria-pressed',String(String(state[b.dataset.k])===b.dataset.v));
-    if(b.dataset.k==='lvl')b.style.display=(b.dataset.v==='EG')===(state.unit===1)?'':'none';});
+  const inG=state.view==='garten';
+  document.querySelectorAll('.chip[data-k]').forEach(b=>{b.setAttribute('aria-pressed',String(String(state[b.dataset.k])===b.dataset.v&&!(inG&&b.dataset.k!=='view')));
+    if(b.dataset.k==='lvl')b.style.display=!inG&&(b.dataset.v==='EG')===(state.unit===1)?'':'none';});
   document.getElementById('furnBtn').setAttribute('aria-pressed',String(state.furn));
   document.getElementById('hintTxt').textContent=HINTS[state.view];
 }
+let lastView='puppe';
 function setView(v,keepPlayer){
+  if(v==='garten'&&!GARTEN)v='aussen';
+  const was=state.view;
+  if(v!=='garten')lastView=v;
   state.view=v;document.body.className='v-'+v;
+  if(was==='garten'&&v!=='garten'){GARTEN.leave();controls.maxPolarAngle=Math.PI/2-0.04;controls.maxDistance=60;}
+  if((was==='garten')!==(v==='garten'))renderPanel();
   const planEl=document.getElementById('plan');
   planEl.style.display=v==='plan'?'block':'none';
   canvas.style.visibility=v==='plan'?'hidden':'visible';
-  controls.enabled=(v==='aussen'||v==='puppe');
+  controls.enabled=(v==='aussen'||v==='puppe'||v==='garten');
   document.getElementById('walkbtns').style.display=v==='walk'?'flex':'none';
   miniBox.style.display=v==='walk'?'block':'none';
   if(v==='walk'){camera.fov=70;camera.updateProjectionMatrix();
     if(!keepPlayer){const r=startRoom();placePlayer(r.sp[0],r.sp[1],state.lvl,r.look);}
     applyWalkCam();}
+  else if(v==='garten'){controls.maxPolarAngle=Math.PI*0.88;controls.maxDistance=140;camera.fov=45;camera.updateProjectionMatrix();
+    if(was!=='garten'||!keepPlayer)GARTEN.enter();}
   else if(v!=='plan')setCameraFor();
   if(v==='plan')planEl.innerHTML=planSVG(state.unit,state.lvl,state.furn,false);
   lblBox.innerHTML='';
@@ -1701,7 +1812,8 @@ document.querySelectorAll('.chip[data-k]').forEach(b=>b.addEventListener('click'
   const k=b.dataset.k,v=b.dataset.v;
   if(k==='view'){setView(v);return;}
   state[k]=k==='unit'?+v:v;
-  if(k==='unit'){if(state.unit===1)state.lvl='EG';else if(state.lvl==='EG')state.lvl='OG';renderPanel();}
+  if(k==='unit'){if(state.unit===1)state.lvl='EG';else if(state.lvl==='EG')state.lvl='OG';
+    if(state.view==='garten'){setView(lastView);return;}renderPanel();}
   if(state.view==='walk'){const r=startRoom();placePlayer(r.sp[0],r.sp[1],state.lvl,r.look);applyWalkCam();}
   setView(state.view,true);
 }));
@@ -1709,8 +1821,16 @@ document.getElementById('furnBtn').addEventListener('click',()=>{state.furn=!sta
 document.getElementById('extBtn').addEventListener('click',e=>{SHOW_EXT=!SHOW_EXT;e.currentTarget.setAttribute('aria-pressed',String(SHOW_EXT));applyExt();requestRender();});
 
 /* Start */
+try{
+  if(window.GartenModul){const root=new THREE.Group();scene.add(root);
+    GARTEN=window.GartenModul({root,houseLength:L,canvas,camera,controls,sun,hemi,requestRender:()=>requestRender(),
+      active:()=>state.view==='garten',overlayHost:document.getElementById('view')});
+    const t=GARTEN.terrace(); // Terrasse vor der Gartenfassade im Rundgang begehbar (durch die Schiebetür)
+    SURF.push({poly:rect(t.x0,t.y0,t.x1,t.y1),z:t.z,lvl:'EG'});
+    SURF.push({poly:rect(KU.door[0]+0.05,-0.01,KU.door[1]-0.05,T+0.01),z:0,lvl:'EG'});} // Schwelle der Schiebetür
+}catch(err){console.error('Garten konnte nicht geladen werden',err);GARTEN=null;}
 renderPanel();resize();setView('puppe');resize();
-window.__tour={cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,G};
+window.__tour={GARTEN,cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,G};
 })();
 </script>
 </body>
