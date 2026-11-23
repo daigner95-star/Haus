@@ -636,8 +636,11 @@ const OVERLAY_HTML = `
     <div class="toast" id="toast" role="status"></div>
     <div class="hud">
       <div class="card-float sun">
-        <span class="glbl">Sonne</span>
-        <input type="range" id="sunT" min="5" max="21" step="0.25" value="11" aria-label="Uhrzeit Sonnenstand">
+        <span class="glbl">Datum</span>
+        <input type="range" id="sunD" min="1" max="365" step="1" value="172" aria-label="Datum für den Sonnenstand">
+        <span class="mono" id="sunDLbl">21. Jun</span>
+        <span class="glbl">Uhrzeit</span>
+        <input type="range" id="sunT" min="4.5" max="21.5" step="0.25" value="11" aria-label="Uhrzeit Sonnenstand">
         <span class="mono" id="sunLbl">11:00</span>
       </div>
       <div class="card-float legend" id="legend">
@@ -685,7 +688,7 @@ const VARIANTS = [
 
 // ---------- Zustand ----------
 const ST = {
-  variant: 'H', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, target: 'balcony',
+  variant: 'H', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, sunDay: 172, target: 'balcony',
 };
 const LS_KEY = 'haus-garten-v1';
 const SITE_KEYS = ['terrasse', 'kalk', 'bach', 'zaunNb', 'stair', 'survey'];
@@ -1417,11 +1420,16 @@ function rebuildSight() {
 }
 
 // ---------- Sonne ----------
-function sunDir(season, clock) {
+// Tag im Jahr (1–365, ohne Schaltjahr) → „21. Jun“
+const MON = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'], MLEN = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+function dayText(n) { let m = 0; while (n > MLEN[m]) { n -= MLEN[m]; m++; } return `${n}. ${MON[m]}`; }
+// Sonnenstand für Tag im Jahr und Uhrzeit (MEZ, im Sommer MESZ): Deklination und Zeitgleichung nach den üblichen Näherungen (±0,5°)
+function sunDir(day, clock) {
   const lat = 47.75 * Math.PI / 180, lon = 11.82; // Lage auf ca. 1 km gerundet (keine genaue Adresse im Repo); für den Sonnenstand ohne Einfluss
-  const dec = (season === 'W' ? -23.44 : 23.44) * Math.PI / 180;
-  const dst = season === 'W' ? 0 : 1;
-  const solar = clock - dst - (15 - lon) / 15;
+  const dec = 23.44 * Math.sin(2 * Math.PI * (284 + day) / 365) * Math.PI / 180;
+  const dst = day >= 87 && day <= 300 ? 1 : 0;                 // Sommerzeit etwa Ende März bis Ende Oktober
+  const Bq = 2 * Math.PI * (day - 81) / 364, eot = 9.87 * Math.sin(2 * Bq) - 7.53 * Math.cos(Bq) - 1.5 * Math.sin(Bq); // Zeitgleichung in Minuten
+  const solar = clock - dst - (15 - lon) / 15 + eot / 60;
   const H = (solar - 12) * 15 * Math.PI / 180;
   const alt = Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(H));
   const az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(lat) - Math.tan(dec) * Math.cos(lat)) + Math.PI;
@@ -1429,7 +1437,7 @@ function sunDir(season, clock) {
   return { u: Math.cos(alt) * Math.sin(b), v: Math.cos(alt) * Math.cos(b), h: Math.sin(alt), alt: alt * 180 / Math.PI, az: az * 180 / Math.PI };
 }
 function updateSun() {
-  const s = sunDir(ST.season, ST.sunT);
+  const s = sunDir(ST.sunDay, ST.sunT);
   const c = W(-3, 0, 3);
   sun.position.copy(toWorld(W(-3 + s.u * 80, Math.max(s.h, 0.02) * 80, 3 + s.v * 80)));
   sun.target.position.copy(toWorld(c)); sun.target.updateMatrixWorld();
@@ -1438,6 +1446,7 @@ function updateSun() {
   const hh = Math.floor(ST.sunT), mm = Math.round((ST.sunT - hh) * 60);
   $('sunLbl').textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}` + (s.alt < 0 ? ' · Nacht' : '');
   $('sunT').setAttribute('aria-valuetext', `${hh} Uhr ${mm}, Sonnenhöhe ${Math.round(s.alt)} Grad`);
+  $('sunD').value = String(ST.sunDay); $('sunDLbl').textContent = dayText(ST.sunDay); $('sunD').setAttribute('aria-valuetext', dayText(ST.sunDay));
   req();
 }
 
@@ -1812,12 +1821,13 @@ function loadVariant(id) {
 
 // ---------- Ereignisse ----------
 $('variant').addEventListener('change', (e) => { if (e.target.value !== 'eigen') loadVariant(e.target.value); });
-const setSeason = (s) => { ST.season = s; $('sS').setAttribute('aria-pressed', String(s === 'S')); $('sW').setAttribute('aria-pressed', String(s === 'W')); drawGround(); buildCtxTrees(); rebuildPlants(); rebuildSight(); updateSun(); };
+const setSeason = (s) => { ST.season = s; ST.sunDay = s === 'W' ? 355 : 172; $('sS').setAttribute('aria-pressed', String(s === 'S')); $('sW').setAttribute('aria-pressed', String(s === 'W')); drawGround(); buildCtxTrees(); rebuildPlants(); rebuildSight(); updateSun(); };
 $('sS').onclick = () => setSeason('S'); $('sW').onclick = () => setSeason('W');
 $('tgB').onclick = () => setTarget('balcony'); $('tgT').onclick = () => setTarget('terrace');
 $('stage').innerHTML = STAGES.map((s, i) => `<option value="${i}">${s}</option>`).join(''); $('stage').value = String(ST.stage);
 $('stage').addEventListener('change', (e) => { ST.stage = +e.target.value; rebuildPlants(); rebuildSight(); renderCoverage(); });
 $('sunT').addEventListener('input', (e) => { ST.sunT = +e.target.value; updateSun(); });
+$('sunD').addEventListener('input', (e) => { ST.sunDay = +e.target.value; updateSun(); });
 $('addSp').innerHTML = Object.entries(SPECIES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
 $('addBtn').onclick = () => { const p = mk($('addSp').value, 2.4, 1.0); ST.plants.push(p); ST.sel = p.id; markCustom(); rebuildPlants(); afterEdit(); toast('Pflanze ' + ST.plants.length + ' eingefügt. In der Draufsicht verschieben.'); };
 $('resetBtn').onclick = () => { const id = ST.variant === 'eigen' ? 'H' : ST.variant; $('variant').value = id; loadVariant(id); toast('Variante zurückgesetzt'); };

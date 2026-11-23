@@ -28,7 +28,7 @@ Oben auf **Garten** tippen. Das Haus ist dasselbe Modell wie in den Wohnungen, d
 - **Treppe zum Bach:** Beton-Blockstufen auf dem bestehenden Weg, mit Podesten in den Bögen. Stufenhöhe, Auftritt, Bogenradius und Breite sind einstellbar; geprüft werden Steigung, Auftritt, Schrittmaß, Trittfläche innen und Lauflänge, dazu ein Längsschnitt.
 - **Annahmen:** Im Tab „Annahmen“ steht, was aus dem Aufmaß stammt, was am Meterstab abgelesen und was geschätzt ist. Nachbarhaus und Nachbarbalkon sind aus Fotos geschätzt.
 
-Gartenkoordinaten: „vor Giebel“ = Abstand von der Südost-Hauswand Richtung Nachbar, „ab Gartenecke“ = Abstand von der Hausecke Süd Richtung Straße. Umrechnung ins Hausmodell: Gartenkoordinate = Hauskoordinate x − 13,54 m; Höhe 0 im Garten = Gelände am Südost-Giebel, 0,25 m unter FFB EG. Der Sonnenstand wird mit der auf etwa 1 km gerundeten Lage des Hauses gerechnet. Eigene Pflanzanordnungen speichert der Browser.
+Gartenkoordinaten: „vor Giebel“ = Abstand von der Südost-Hauswand Richtung Nachbar, „ab Gartenecke“ = Abstand von der Hausecke Süd Richtung Straße. Umrechnung ins Hausmodell: Gartenkoordinate = Hauskoordinate x − 13,54 m; Höhe 0 im Garten = Gelände am Südost-Giebel, 0,25 m unter FFB EG. Der Sonnenstand wird für Datum und Uhrzeit (Regler im Garten) mit der auf etwa 1 km gerundeten Lage des Hauses gerechnet, mit Sommerzeit. Sommer/Winter stellt Laub und Datum (21. Juni bzw. 21. Dezember) um. Eigene Pflanzanordnungen speichert der Browser.
 
 ## Veröffentlichen (GitHub Pages)
 Settings → Pages → *Deploy from a branch* → Branch wählen (z. B. `main`), Ordner `/ (root)`.
