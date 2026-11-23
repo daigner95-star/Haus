@@ -57,6 +57,15 @@ const CFG = {
   zaunNb: { newV0: -2.6, newV1: 1.0 },            // die zwei neuen Sichtschutzelemente des Nachbarn (aus Fotos)
   // Geplante Treppe: Beton-Blockstufen auf dem bestehenden Weg. Oben ein Podest auf Terrassenhöhe, dann in der Lücke
   // zwischen Terrassenmauer und Kalksteinmauer hinunter, im Bogen nach Westen und hinunter auf die Ebene am Bach.
+  // ---- Straßenseite (Hof) und Grenze zum Nachbarn Nordwest: Lage aus Kataster, Bauteile grob nach Fotos vom 23.11. ----
+  vp: {
+    garage: { u0: -5.0, u1: 1.25, v0: 14.8, v1: 23.0, eave: 2.6, ridge: 4.4 },   // Nebengebäude (Lageplan; Höhen geschätzt)
+    pav: { u: -15.3, v: 18.7, r: 0.95 },                                         // achteckiger Pavillon an der Grenze (Foto)
+    // Nachbarhaus NW: Ostecke (u, v), Richtung der Fassade zur Südecke (Grad), Länge, Tiefe, Höhen (Lageplan + Fotos)
+    nb: { u: -19.3, v: 18.7, ang: 255.4, len: 10.3, dep: 10.0, floor: 0.3, og: 3.0, eave: 5.8, ridge: 8.6 },
+    zaun: { typ: 'bau', h: 1.8, v0: -2.6, v1: 28.4, off: 0.1 },                   // Zaun an der Grenze NW (Planung)
+    car: true,
+  },
   stair: {
     on: true,
     w: 0.80,       // Laufbreite
@@ -162,9 +171,15 @@ function distPointSeg(pu, pv, a, b) {
   const qu = a[0] + t * du - pu, qv = a[1] + t * dv - pv;
   return Math.hypot(qu, qv);
 }
-function distToBoundary(u, v) {
-  const B = CFG.boundary; let m = Infinity;
-  for (let i = 0; i < B.length - 1; i++) m = Math.min(m, distPointSeg(u, v, B[i], B[i + 1]));
+// Grenze zum Nachbarn Nordwest = Parzellenkante aus dem Kataster, von der Bachseite zur Straße
+const NWB = [9, 10, 11, 0].map(i => CFG.parcel[i]);
+function nwU(v) { // u der Grenze NW auf Höhe v
+  let i = 1; while (i < NWB.length - 1 && v > NWB[i][1]) i++;
+  const a = NWB[i - 1], b = NWB[i]; return a[0] + (b[0] - a[0]) * (v - a[1]) / (b[1] - a[1]);
+}
+function distToBoundary(u, v) { // Abstand zur nächsten Grenze mit einem Nachbarn (Südost oder Nordwest)
+  let m = Infinity;
+  for (const B of [CFG.boundary, NWB]) for (let i = 0; i < B.length - 1; i++) m = Math.min(m, distPointSeg(u, v, B[i], B[i + 1]));
   return m;
 }
 function inPoly(u, v, P) {
@@ -448,8 +463,8 @@ function rayT(o, t, crowns) {
   for (const c of crowns) { const L = segLen(o, d, c.cr); if (L > 0) tau += L * c.k; }
   return Math.exp(-tau);
 }
-function prepCrowns(plants, season, stage) {
-  return plants.map(p => { const S = SPECIES[p.sp]; return { cr: crown(p, stage), k: season === 'W' ? S.densW : S.densS }; }).concat(fixedCrowns());
+function prepCrowns(plants, season, stage, extra) {
+  return plants.map(p => { const S = SPECIES[p.sp]; return { cr: crown(p, stage), k: season === 'W' ? S.densW : S.densS }; }).concat(fixedCrowns(), extra || []);
 }
 function coverage(plants, season, stage, wins, level, targets) {
   const crowns = prepCrowns(plants, season, stage), T = targets === 'terrace' ? terraceTargets() : balconyTargets();
@@ -470,7 +485,7 @@ function plantChecks(p) {
   const need = hLegal > 2.0 ? 2.0 : 0.5;
   const own = inPoly(p.u, p.v, CFG.parcel);
   const H = CFG.haus;
-  const dHouse = (p.v >= H.v0 && p.v <= H.v1) ? p.u - H.u1 : Math.hypot(Math.max(0, p.u - H.u1), Math.max(0, H.v0 - p.v, p.v - H.v1));
+  const dHouse = Math.hypot(Math.max(0, H.u0 - p.u, p.u - H.u1), Math.max(0, H.v0 - p.v, p.v - H.v1));
   // Kronen-Grundriss bei Endgröße (Schnittformen: Zielgröße): Überhang zum Nachbarn und an die Hauswand
   const D = dims(p, 3), cr = crown(p, 3), pts = [];
   if (cr.shape === 'box') { for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) pts.push([cr.min[0] + (cr.max[0] - cr.min[0]) * i / 4, cr.min[1] + (cr.max[1] - cr.min[1]) * j / 4]); }
@@ -478,11 +493,109 @@ function plantChecks(p) {
   let overhang = 0, facade = 0;
   for (const [u, v] of pts) {
     if (!inPoly(u, v, CFG.parcel)) overhang = Math.max(overhang, distToBoundary(u, v));
-    if (u < H.u1 && v > H.v0 && v < H.v1) facade = Math.max(facade, H.u1 - u);
+    if (u > H.u0 && u < H.u1 && v > H.v0 && v < H.v1) facade = Math.max(facade, Math.min(u - H.u0, H.u1 - u, v - H.v0, H.v1 - v));
   }
   return { dB, need, hLegal, ok: own && dB >= need - 1e-6, own, dHouse, overhang, facade, maxTop: D.top, maxW: D.w };
 }
-if (typeof module !== 'undefined') module.exports = { CFG, SPECIES, STAGES, coverage, terraceTargets, plantChecks, distToBoundary, boundaryUAt, crown, crown0, dims, inPoly, groundH, groundNat, surveyH, waterV, h0, bachLevel, stairPlan, stairAt, stairZ, stairChecks, TIN, SURVEY };
+// ---- Straßenseite: Beete, Kies, Wege (grob nach Fotos vom 23.11.; werden durch Maße ersetzt) ----
+// Lage im Gartensystem: Hausfront Straßenseite v = 9,60, Nordecke des Hauses u = −13,54 (NW-Giebel).
+const VP = {
+  podest: { u0: -13.54, u1: -12.44, v0: 9.6, v1: 11.15, steps: 2, stepD: 0.3 },  // Betonpodest am Fuß der Außentreppe, Stufen Richtung Hof
+  beete: [
+    { id: 'B1', name: 'Beet vor der Hausfront', pts: [[-11.7, 10.8], [-6.9, 10.8], [-6.9, 12.4], [-7.9, 13.7], [-11.7, 13.1]] },
+    { id: 'B2', name: 'Beet an der Grenze NW', pts: [[-15.0, 11.15], [-13.0, 14.4], [-15.4, 17.5], [nwU(17.5), 17.5], [nwU(11.15), 11.15]] },
+    { id: 'B3', name: 'Beet zwischen Haus und Nebengebäude', pts: [[-3.6, 11.05], [0.5, 11.05], [0.5, 13.55], [-3.6, 13.55]] },
+    { id: 'B4', name: 'Streifen an der Grenze NW zur Straße', pts: [[nwU(19.9), 19.9], [-15.5, 19.9], [-13.4, 28.3], [nwU(28.3), 28.3]] },
+  ],
+  kiesWP: [[-5.0, 16.9], [-6.35, 16.9], [-6.35, 15.2], [-4.7, 13.75], [-3.55, 14.8], [-5.0, 14.8]], // Kiesbett unter der Wärmepumpe
+  wp: { u0: -5.72, u1: -5.12, v0: 15.15, v1: 16.4, h0: 0.15, h1: 1.55 },        // Wärmepumpe (Außengerät) auf Konsole
+  schacht: [-6.6, 13.6],                                                        // Schachtdeckel
+  wegNW: { u0: -15.15, v0: 0, v1: 11.15 },                                      // Kiesweg am NW-Giebel (bis zur Grenze Wiese)
+  holz: [[-14.0, -9.6, 28.5, 29.7]],                                            // Holzstapel an der Straße
+  tonnen: [-7.6, 29.8],
+  car: { u: -8.6, v: 18.8, L: 4.75, B: 1.92 },
+};
+function polyArea(P) { let a = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) a += (P[j][0] + P[i][0]) * (P[j][1] - P[i][1]); return Math.abs(a) / 2; }
+const ZAUN = {
+  bau: { name: 'Bauzaun (heute)', k: 6, h: 2.0, note: 'Gitter, teils mit kaputten Schilfmatten. Im Modell rund 30 % blickdicht.' },
+  kein: { name: 'Kein Zaun', k: 0 },
+  stak: { name: 'Staketenzaun (Holz, halb offen)', k: 10.5, bw: 0.04, sp: 0.085, note: 'Senkrechte Staketen, gut halb offen. Grenzt ab, schützt kaum vor Blicken.' },
+  latt: { name: 'Lattenzaun (Lärche, 3 cm Fuge)', k: 23, bw: 0.09, sp: 0.12, note: 'Senkrechte Latten mit Fuge. Von vorne zu etwa drei Vierteln dicht, schräg fast ganz.' },
+  dicht: { name: 'Sichtschutzzaun (Lärche, blickdicht)', k: 80, bw: 0.12, sp: 0.12, note: 'Geschlossene Fläche. Wirkt an der Grenze hart; mit Pflanzen davor weicher.' },
+};
+// Nachbarhaus NW: Rahmen an der Fassade zum Hof. s = entlang der Fassade ab Ostecke, o = nach außen (negativ = im Haus)
+function nbFrame() {
+  const N = CFG.vp.nb, a = N.ang * Math.PI / 180, dA = [Math.cos(a), Math.sin(a)], nO = [-dA[1], dA[0]];
+  return { dA, nO, P: (s, o) => [N.u + dA[0] * s + nO[0] * o, N.v + dA[1] * s + nO[1] * o], phi: Math.atan2(dA[1], dA[0]) };
+}
+// Fenster am NW-Giebel und an der Straßenseite (Hauskoordinate x → u = x − 13,54), Höhen ab FFB EG
+const VP_WIN = {
+  EG: [[1.778, 2.793, 'Schlafzimmer'], [4.293, 5.308, 'Kinderzimmer 1'], [6.808, 7.823, 'Kinderzimmer 1']],
+  OG: [[1.778, 2.793, 'Wohnen'], [4.293, 5.308, 'Wohnen'], [6.808, 7.823, 'Bad']],
+  DG: [[2.853, 4.705, 'Schlafzimmer'], [4.895, 6.748, 'Kind / Büro']],
+  sEG: [[4.192, 5.207, 'Bad'], [11.214, 12.229, 'Büro']],
+  sOG: [[2.547, 3.177, 'Bad W2', 1.25], [5.515, 6.145, 'Flur W2', 0.87], [7.395, 8.025, 'Flur W3', 0.87], [10.363, 10.993, 'Bad W3', 1.25]],
+};
+const LVL_F = { EG: 0, OG: 2.78, DG: 5.54 };
+function vpGroups() {
+  const H = CFG.haus, f = (l) => H.floor0 + LVL_F[l], uN = H.u0 - 0.05, vS = H.v1 + 0.05, X = (x) => x + H.u0;
+  const eyes = [CFG.eyeSit, CFG.eyeStand];
+  const gable = (l) => VP_WIN[l].map(([a, b, room]) => ({ room, pts: [a + 0.2, (a + b) / 2, b - 0.2].flatMap(v => eyes.map(e => [uN, v, f(l) + e])) }));
+  const street = (list, l) => list.map(([a, b, room]) => ({ room, pts: [X(a) + 0.15, X((a + b) / 2), X(b) - 0.15].flatMap(u => eyes.map(e => [u, vS, f(l) + e])) }));
+  const lb = []; for (let x = 4.5; x <= 12.3; x += 1.3) lb.push([X(x), H.v1 + 0.75, f('OG') - 0.04 + CFG.eyeStand]);
+  return [
+    { id: 'gEG', name: 'NW-Giebel EG', room: 'Wohnung 1: Schlafzimmer, Kinderzimmer 1', wins: gable('EG') },
+    { id: 'gOG', name: 'NW-Giebel OG', room: 'Wohnung 2: Wohnen, Bad', wins: gable('OG') },
+    { id: 'gDG', name: 'NW-Giebel DG', room: 'Wohnung 2: Schlafzimmer, Kind / Büro', wins: gable('DG') },
+    { id: 'sEG', name: 'Hausfront EG', room: 'Wohnung 1: Bad, Büro', wins: street(VP_WIN.sEG, 'EG') },
+    { id: 'sOG', name: 'Laubengang OG', room: 'Wohnungstüren, Flur- und Badfenster', wins: [{ room: 'Laubengang', pts: lb, line: lb }].concat(street(VP_WIN.sOG, 'OG')) },
+  ];
+}
+const VP_TGT = {
+  haus: { name: 'Haus NW', long: 'Nachbarhaus NW', expl: 'zu den Fenstern im Erdgeschoss und zum Balkon des Nachbarhauses NW (Augenhöhe sitzend und stehend)' },
+  garten: { name: 'Garten NW', long: 'Sitzplatz des Nachbarn NW', expl: 'zum Sitzplatz des Nachbarn NW vor seinem Haus (Tisch-, Sitz- und Stehhöhe)' },
+  strasse: { name: 'Straße', long: 'Straße', expl: 'zur Straße (Fußgänger 1,65 m, Autofahrer 1,2 m)' },
+  hof: { name: 'Hof', long: 'Wege im Hof', expl: 'zu den Wegen im Hof: von der Straße zur Haustür und zur Außentreppe (Augenhöhe 1,65 m)' },
+};
+function vpTargets(id) {
+  const N = CFG.vp.nb, F = nbFrame(), out = [];
+  if (id === 'haus') {
+    for (const s of [1.6, 3.4, 5.2, 7.0, 8.8]) for (const h of [1.2, 1.65]) out.push([...F.P(s, 0.15), N.floor + h]);
+    for (const s of [5.6, 7.3, 9.0]) for (const h of [1.2, 1.65]) out.push([...F.P(s, 0.7), N.og + h]);
+  } else if (id === 'garten') {
+    for (const s of [2.0, 4.0, 6.0, 8.0]) for (const o of [1.2, 2.3]) for (const h of [0.75, 1.2, 1.65]) out.push([...F.P(s, o), h]);
+  } else if (id === 'strasse') {
+    for (let u = -16; u <= 0.01; u += 2) { out.push([u, 31.6, 1.65]); out.push([u, 33.5, 1.2]); }
+  } else {
+    const walk = (a, b, h = 1.65) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(L / 1.5)); for (let i = 0; i <= n; i++) out.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n, h]); };
+    walk([-4.0, 29.5], [-5.1, 10.4]);        // Straße → Haustür
+    walk([-6.2, 10.25], [-11.9, 10.25]);     // an der Hausfront entlang zur Treppe
+    walk([-9.6, 19.0], [-12.6, 12.0]);       // aus dem Hof zwischen den Beeten zur Treppe
+  }
+  return out;
+}
+// Feste Hindernisse auf der Straßenseite: Zaun NW (Planung), Nebengebäude, Pavillon, Schuppen NW, Holzstapel, Auto
+function vpCrowns() {
+  const out = [], Z = CFG.vp.zaun, T = ZAUN[Z.typ] || ZAUN.kein, G = CFG.vp.garage, P = CFG.vp.pav;
+  if (T.k) for (let v = Z.v0; v < Z.v1 - 1e-6; v += 0.5) {
+    const v1 = Math.min(Z.v1, v + 0.5), vm = (v + v1) / 2, fu = nwU(vm) + Z.off, z = groundH(fu, vm);
+    out.push({ cr: { shape: 'box', min: [fu - 0.03, v, z], max: [fu + 0.03, v1, z + (T.h || Z.h)] }, k: T.k });
+  }
+  const opaque = (min, max, k = 80) => out.push({ cr: { shape: 'box', min, max }, k });
+  opaque([G.u0, G.v0, 0], [G.u1, G.v1, (G.eave + G.ridge) / 2]);
+  out.push({ cr: { shape: 'cyl', c: [P.u, P.v], r: P.r, h0: 0, h1: 2.9 }, k: 80 });
+  opaque([-26.5, 23.0, 0], [-18.8, 28.2, 4.0]);
+  for (const [a, b, c, d] of VP.holz) opaque([a, c, 0], [b, d, 1.9]);
+  if (CFG.vp.car) { const C = VP.car; opaque([C.u - C.B / 2, C.v - C.L / 2, 0.2], [C.u + C.B / 2, C.v + C.L / 2, 1.0]); opaque([C.u - C.B / 2 + 0.1, C.v - 1.2, 1.0], [C.u + C.B / 2 - 0.1, C.v + 1.4, 1.55], 4); }
+  return out;
+}
+function vpCoverage(plants, season, stage, grp, tgt) {
+  const crowns = prepCrowns(plants, season, stage, vpCrowns()), T = vpTargets(tgt);
+  let s = 0, n = 0;
+  for (const w of grp.wins) for (const o of w.pts) for (const t of T) { s += 1 - rayT(o, t, crowns); n++; }
+  return n ? s / n : 0;
+}
+if (typeof module !== 'undefined') module.exports = { CFG, NWB, nwU, VP, ZAUN, vpGroups, vpTargets, vpCrowns, vpCoverage, nbFrame, polyArea, SPECIES, STAGES, coverage, terraceTargets, plantChecks, distToBoundary, boundaryUAt, crown, crown0, dims, inPoly, groundH, groundNat, surveyH, waterV, h0, bachLevel, stairPlan, stairAt, stairZ, stairChecks, TIN, SURVEY };
 // ===== CORE ENDE =====
 
 // ===== APP =====
@@ -497,6 +610,7 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
     <div class="tabs" role="tablist" aria-label="Planung">
       <button role="tab" id="t-cov" aria-selected="true" aria-controls="p-cov">Sichtschutz</button>
       <button role="tab" id="t-pl" aria-selected="false" aria-controls="p-pl">Pflanzen</button>
+      <button role="tab" id="t-vp" aria-selected="false" aria-controls="p-vp">Straßenseite</button>
       <button role="tab" id="t-st" aria-selected="false" aria-controls="p-st">Treppe</button>
       <button role="tab" id="t-as" aria-selected="false" aria-controls="p-as">Annahmen</button>
       <button role="tab" id="t-hi" aria-selected="false" aria-controls="p-hi">Hinweise</button>
@@ -537,6 +651,40 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
       <textarea id="copyFallback" hidden rows="5" style="width:100%;font-family:var(--font-mono);font-size:12px" aria-label="Plan als Text"></textarea>
     </section>
 
+    <section class="tabpane" id="p-vp" role="tabpanel" aria-labelledby="t-vp" hidden>
+      <div class="vdesc">
+        <h2>Straßenseite und Grenze Nordwest</h2>
+        <p class="small muted">Hof, Beete, Nebengebäude, Wärmepumpe, Podest an der Außentreppe, Pavillon und Bauzaun grob nach den Fotos vom 23.11. Die Lage der Grenze stammt aus dem Kataster. Genaue Maße folgen; geschätzte Werte stehen im Tab „Annahmen“.</p>
+        <div class="row"><button class="btn" id="vpPlan">Draufsicht Straßenseite</button><button class="btn" id="vpOver">Übersicht</button><label class="small"><input type="checkbox" id="vp-car" style="accent-color:var(--accent)"> Auto zeigen</label></div>
+      </div>
+      <div class="vdesc">
+        <h2>Zaun zum Nachbarn Nordwest</h2>
+        <div class="ctl"><label for="vz-typ" class="glbl">Zaun</label><select id="vz-typ"></select></div>
+        <div class="editor" id="vzFields"></div>
+        <p class="small" id="vzInfo"></p>
+      </div>
+      <div class="vdesc">
+        <h2 id="vpCovTitle">Verdeckte Blickachsen</h2>
+        <div class="row"><span class="glbl" id="vpTgtLbl">Ziel</span>
+          <div class="seg" role="group" aria-labelledby="vpTgtLbl" id="vpTgt"></div></div>
+        <p class="small muted" id="vpExplain"></p>
+      </div>
+      <div class="wins" id="vpWins"></div>
+      <p class="small muted" id="vpNote"></p>
+      <div>
+        <h3>Pflanzen auf der Straßenseite</h3>
+        <p class="small muted">Neue Pflanzen kommen ins Beet an der Grenze NW. Verschieben in der Draufsicht, Maße im Tab „Pflanzen“. Lage: <b>ab Nordecke</b> = entlang der Hausfront ab der Hausecke Nord (negativ = über den NW-Giebel hinaus Richtung Nachbar), <b>vor Hausfront</b> = Abstand von der Hausfront Richtung Straße.</p>
+      </div>
+      <div class="row">
+        <select id="vpSp" aria-label="Pflanzenart für die Straßenseite"></select>
+        <button class="btn primary" id="vpAdd">Pflanze hinzufügen</button>
+      </div>
+      <div class="plist" id="vpList"></div>
+      <div><h3>Bestand und Flächen</h3></div>
+      <div class="tablewrap"><table id="vpAreas"></table></div>
+      <ul class="tight small" id="vpNotes"></ul>
+    </section>
+
     <section class="tabpane" id="p-st" role="tabpanel" aria-labelledby="t-st" hidden>
       <div class="vdesc">
         <h2>Treppe zum Bach</h2>
@@ -565,6 +713,11 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
         <p class="small muted">Lage und Höhen von Mauer, Hang, Bach und Grenzen stammen aus dem Aufmaß des Vermessers vom 16.01.2024 und sind fest hinterlegt. Änderbar ist, was seither gebaut wurde oder nur geschätzt ist. <span class="src v">Aufmaß</span> = vom Vermesser. <span class="src m">Meterstab</span> = im Foto abgelesen (± 5 cm). <span class="src g">geschätzt</span> = bitte nachmessen. <span class="src p">Plan</span> = aus dem Werkplan abgeleitet.</p>
       </div>
       <div class="assume" id="assume2"></div>
+      <div>
+        <h2>Straßenseite</h2>
+        <p class="small muted">Aus Lageplan und Fotos geschätzt, bis die Maße da sind. Beete, Kiesbett und Podest sind fest hinterlegt und werden mit den Maßen ersetzt.</p>
+      </div>
+      <div class="assume" id="assume3"></div>
       <button class="btn" id="asReset">Annahmen zurücksetzen</button>
       <div>
         <h3>Aus Plänen und Karte übernommen</h3>
@@ -689,11 +842,14 @@ const VARIANTS = [
 // ---------- Zustand ----------
 const ST = {
   variant: 'H', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, sunDay: 172, target: 'balcony',
+  tab: 't-cov', vpTgt: 'haus', vpShow: 'gOG',
 };
+// Pflanzen auf der Straßenseite bzw. am NW-Giebel gehören nicht zu den Sichtschutz-Varianten am Südost-Giebel
+const isVP = (p) => p.v > CFG.haus.v1 + 0.05 || p.u < CFG.haus.u0 - 0.05;
 const LS_KEY = 'haus-garten-v1';
 const SITE_KEYS = ['terrasse', 'kalk', 'bach', 'zaunNb', 'stair', 'survey'];
 function save() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ variant: ST.variant, plants: ST.plants, balcony: CFG.balcony, terrace: CFG.terrace, floor0: CFG.haus.floor0, lattice: CFG.lattice, site2: Object.fromEntries(SITE_KEYS.map(k => [k, CFG[k]])) })); } catch (e) { /* ignorieren */ }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ variant: ST.variant, plants: ST.plants, balcony: CFG.balcony, terrace: CFG.terrace, floor0: CFG.haus.floor0, lattice: CFG.lattice, site2: Object.fromEntries(SITE_KEYS.map(k => [k, CFG[k]])), vp: CFG.vp })); } catch (e) { /* ignorieren */ }
 }
 function load() {
   try {
@@ -706,6 +862,11 @@ function load() {
     if (s.terrace) Object.assign(CFG.terrace, s.terrace);
     if (typeof s.floor0 === 'number') CFG.haus.floor0 = s.floor0;
     if (typeof s.lattice === 'boolean') CFG.lattice = s.lattice;
+    if (s.vp && typeof s.vp === 'object') {
+      for (const k of ['garage', 'pav', 'nb', 'zaun']) if (s.vp[k]) for (const [f, x] of Object.entries(s.vp[k])) if (f in CFG.vp[k] && typeof x === typeof CFG.vp[k][f] && (typeof x === 'string' || isFinite(x))) CFG.vp[k][f] = x;
+      if (!ZAUN[CFG.vp.zaun.typ]) CFG.vp.zaun.typ = 'bau';
+      if (typeof s.vp.car === 'boolean') CFG.vp.car = s.vp.car;
+    }
     if (s.site2) for (const k of SITE_KEYS) if (s.site2[k]) for (const [f, x] of Object.entries(s.site2[k])) if (f in CFG[k] && typeof x === typeof CFG[k][f] && (typeof x === 'boolean' || isFinite(x))) CFG[k][f] = x;
     return true;
   } catch (e) { return false; }
@@ -911,8 +1072,6 @@ function drawGround() {
   c.fillStyle = winter ? '#8a917a' : '#7b955a'; c.fillRect(0, 0, gCanvas.width, gCanvas.height);
   MAT.outer.color.set(winter ? 0x8a917a : 0x7b955a);
   poly(CFG.parcel, winter ? '#8f977f' : '#809c5d');
-  // Strasse
-  poly([[GA.u0, 30.6], [GA.u1, 30.6], [GA.u1, 37.4], [GA.u0, 37.4]], '#9b9a94');
   // Hang: Treppe/Rampe zwischen Terrassenmauer und Kalksteinmauer, Beet im Giebelgarten (Gründüngung)
   const T27 = CFG.terrasse, K = CFG.kalk, Bc = CFG.bach, ub = T27.over, uK = kalkU0(), kv = Math.max(K.v, -T27.depth + 0.3), vP = kv + K.d + 0.15;
   poly([[ub, -T27.depth - 0.5], [uK, -T27.depth - 0.5], [uK, vP], [uK + 0.45, vP], [uK + 0.45, 0.6], [ub, 0.6]], '#b2a792');
@@ -929,8 +1088,8 @@ function drawGround() {
   for (const pl of SURVEY.treppe.concat(SURVEY.kanten)) { c.beginPath(); pl.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.stroke(); }
   c.fillStyle = 'rgba(28,36,29,0.8)'; c.font = `600 ${Math.round(0.3 * P)}px "Source Sans 3", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillText('Grillplatz 741,7', X(-7.3), Y(-7.25)); c.fillText('Ebene am Bach 741,5', X(-1.7), Y(-8.7));
-  // Zufahrt / Gemeinschaftsfläche G
-  poly([[-16.6, 9.6], [boundaryUAt(9.6), 9.6], [boundaryUAt(30.17), 30.17], [-16.4, 30.2]], '#aaa598');
+  // Straßenseite: Straße, Bahn, Hof mit Pflaster, Beete, Kies, Nachbargarten NW
+  drawVorplatz(c, X, Y, poly, winter);
   // Terrasse des Nachbarn (Annahme)
   const T = CFG.terrace; poly([[T.u0, T.v0], [T.u1, T.v0], [T.u1, T.v1], [T.u0, T.v1]], winter ? '#a59d8e' : '#b8ad99');
   c.strokeStyle = 'rgba(90,80,64,0.35)'; c.lineWidth = 1;
@@ -939,10 +1098,11 @@ function drawGround() {
   // Kiesstreifen am Giebel
   poly([[0, 0], [ub, 0], [ub, 0.6], [1.6, 0.6], [1.6, 7.9], [boundaryUAt(9.6), 9.6], [0, 9.6]], '#bcae97');
   // Grenzabstands-Zonen (Art. 47 AGBGB)
-  const img = c.getImageData(X(-0.6), Y(30.2), Math.ceil(7.2 * P), Math.ceil(42 * P));
+  for (const [zu0, zv1, zw, zh] of [[-0.6, 30.2, 7.2, 42], [-16.9, 32.6, 2.4, 40.6]]) {
+  const img = c.getImageData(X(zu0), Y(zv1), Math.ceil(zw * P), Math.ceil(zh * P));
   const d = img.data, wpx = img.width;
   for (let j = 0; j < img.height; j++) for (let i = 0; i < wpx; i++) {
-    const u = -0.6 + (i + 0.5) / P, v = 30.2 - (j + 0.5) / P;
+    const u = zu0 + (i + 0.5) / P, v = zv1 - (j + 0.5) / P;
     if (!inPoly(u, v, CFG.parcel) || v < waterV(u) + 0.3) continue;
     const dd = distToBoundary(u, v);
     let a = 0, rgb = null;
@@ -951,7 +1111,8 @@ function drawGround() {
     const k = (j * wpx + i) * 4;
     d[k] = d[k] * (1 - a) + rgb[0] * a; d[k + 1] = d[k + 1] * (1 - a) + rgb[1] * a; d[k + 2] = d[k + 2] * (1 - a) + rgb[2] * a;
   }
-  c.putImageData(img, X(-0.6), Y(30.2));
+  c.putImageData(img, X(zu0), Y(zv1));
+  }
   // 1-m-Raster im Giebelgarten
   c.strokeStyle = 'rgba(255,255,255,0.32)'; c.lineWidth = 1;
   for (let u = 0; u <= 5; u++) { c.beginPath(); c.moveTo(X(u), Y(u < uK + 0.45 ? 0 : kv + K.d)); c.lineTo(X(u), Y(u <= 1.5 ? 9.6 : 7.6)); c.stroke(); }
@@ -963,8 +1124,11 @@ function drawGround() {
   for (let v = 0; v <= 8; v += 2) c.fillText(v + ' m', X(1.12), Y(v));
   // Grenze
   c.strokeStyle = '#8c2f22'; c.lineWidth = 0.12 * P; c.setLineDash([0.5 * P, 0.25 * P]);
-  c.beginPath(); CFG.boundary.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.stroke(); c.setLineDash([]);
-  c.fillStyle = '#8c2f22'; CFG.boundary.forEach(([u, v]) => { c.beginPath(); c.arc(X(u), Y(v), 0.16 * P, 0, 7); c.fill(); });
+  c.beginPath(); CFG.boundary.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.stroke();
+  c.beginPath(); NWB.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.stroke(); c.setLineDash([]);
+  c.fillStyle = '#8c2f22'; CFG.boundary.concat(NWB).forEach(([u, v]) => { c.beginPath(); c.arc(X(u), Y(v), 0.16 * P, 0, 7); c.fill(); });
+  c.save(); c.translate(X(nwU(6.0) - 0.3), Y(6.0)); c.rotate(-Math.PI / 2); c.fillStyle = '#8c2f22'; c.textAlign = 'center';
+  c.font = `700 ${Math.round(0.36 * P)}px "Source Sans 3", sans-serif`; c.fillText('Grenze zum Nachbarn NW', 0, 0); c.restore();
   // Beschriftung entlang der 2-m-Linie
   const bA = CFG.boundary[CFG.boundary.length - 2], bB = CFG.boundary[CFG.boundary.length - 1], bRot = -Math.PI / 2 - Math.atan2(bA[0] - bB[0], bA[1] - bB[1]);
   c.save(); c.translate(X(boundaryUAt(-4.8) - 2.3), Y(-4.8)); c.rotate(bRot); c.fillStyle = 'rgba(120,80,14,0.95)'; c.textAlign = 'center';
@@ -1230,19 +1394,15 @@ function buildSite() {
   req();
 }
 function buildContext() {
-  // Garage
-  statics.add(box(-5.0, 1.25, 14.8, 23.0, 0, 2.6, MAT.larchDark));
-  statics.add(prismV(-5.0, 1.25, 14.8, 23.0, 2.6, 2.6, 4.4, MAT.larchDark));
-  statics.add(roof('v', -5.0, 1.25, 14.8, 23.0, 2.6, 4.4, 0.6, 0.6, MAT.roofRed, 0.2));
-  statics.add(windowAt('-v', 14.8, -0.6, 0.3, 0.02, 2.0, true));
-  // weitere Nachbarhäuser (nur Volumen)
-  for (const [a0, a1, b0, b1] of [[-28.5, -19.5, 9.0, 18.0], [22.0, 31.0, 9.5, 19.0]]) {
+  // weiteres Nachbarhaus (nur Volumen)
+  for (const [a0, a1, b0, b1] of [[22.0, 31.0, 9.5, 19.0]]) {
     statics.add(box(a0, a1, b0, b1, 0, 5.4, MAT.house));
     statics.add(prismU(a0, a1, b0, b1, 5.4, 5.4, 7.6, MAT.house));
     statics.add(roof('u', a0, a1, b0, b1, 5.4, 7.6, 0.9, 0.7, MAT.roofGrey, 0.24));
   }
-  // Strasse
-  const st = box(-60, 70, 30.6, 37.4, 0, 0.03, MAT.street, false); statics.add(st);
+  // Straße und Bahn außerhalb des Lageplan-Ausschnitts (innerhalb: Bodentextur)
+  for (const [a, b] of [[-150, GA.u0], [GA.u1, 150]]) { statics.add(box(a, b, 31.0, 36.0, -0.02, 0.03, MAT.street, false)); statics.add(box(a, b, 37.6, 40.6, -0.02, 0.06, MAT.ballast, false)); }
+  for (const rv of [38.4, 39.835]) statics.add(box(-150, 150, rv - 0.035, rv + 0.035, 0.06, 0.2, MAT.rail, false));
   // Berge (Richtung Sueden, mit Dunst)
   const mts = [[-60, -150, 48, 70], [10, -175, 60, 85], [80, -140, 40, 65], [-120, -95, 35, 55], [140, -110, 45, 60]];
   for (const [u, v, h, r] of mts) {
@@ -1260,7 +1420,7 @@ function buildCtxTrees() {
   const spots = [];
   // Bäume am Gegenufer
   for (let u = -30; u <= 34; u += 4.2) { const uu = u + R() * 2, vv = waterV(uu) - CFG.bach.width - 0.8 - R() * 2.0, hh = 9 + R() * 8; if (uu < -27 || uu > 23) spots.push([uu, vv, hh]); } // vor Haus und Giebelgarten ausgespart (Blick von der Bachseite)
-  spots.push([16.5, 20, 13], [-14, 26, 8], [27, -2, 10], [-22, -1, 9]);
+  spots.push([16.5, 20, 13], [-18.0, 21.5, 7], [-18.2, 4.5, 7.5], [27, -2, 10], [-22, -1, 9]); // NW: Baum hinter dem Pavillon, alter Obstbaum am Kiesweg (Fotos)
   for (const [u, v, h] of spots) {
     const g = new THREE.Group(); g.position.copy(W(u, groundH(u, v), v));
     const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, h * 0.6, 6), MAT.trunk); tr.position.y = h * 0.3; tr.castShadow = true; g.add(tr);
@@ -1282,6 +1442,194 @@ function buildCtxTrees() {
   req();
 }
 
+// ---------- Straßenseite: Bauteile in 3D (Bestand nach Fotos vom 23.11., Zaun NW als Planung) ----------
+const vpGrp = new THREE.Group(); root.add(vpGrp);
+function boardTexture() { // Lärchenschalung senkrecht, Boden-Deckel-Schalung
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), R = rng(5);
+  for (let i = 0; i < 8; i++) { x.fillStyle = `hsl(${26 + R() * 6}, ${42 + R() * 10}%, ${44 + R() * 8}%)`; x.fillRect(i * 16, 0, 16, 128); }
+  for (let i = 0; i < 8; i++) { x.fillStyle = 'rgba(70,40,20,0.35)'; x.fillRect(i * 16 + 13, 0, 3, 128); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+}
+function meshTexture() { // Bauzaun-Gitter, Maschen ca. 10 × 25 cm
+  const c = document.createElement('canvas'); c.width = 32; c.height = 64; const x = c.getContext('2d');
+  x.clearRect(0, 0, 32, 64); x.fillStyle = '#c3c8ca'; x.fillRect(0, 0, 3, 64); x.fillRect(0, 0, 32, 3);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+Object.assign(MAT, {
+  boards: lam(0xffffff, { map: boardTexture() }), door: lam(0x7a4a2a), gutter: lam(0x3a3d40),
+  hp: lam(0x9a9ea2), hpDark: lam(0x2a2d30), car: lam(0x1c1e21), carGlass: lam(0x2c3742), tyre: lam(0x151515),
+  mesh: new THREE.MeshLambertMaterial({ map: meshTexture(), transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }),
+  reed: lam(0xa08c63, { transparent: true, opacity: 0.6, side: THREE.DoubleSide }), foot: lam(0x9a968e),
+  pavWood: lam(0x7b5a3d), pavRoof: lam(0x7d8082), bin: lam(0x2d68a8), ballast: lam(0x8a857c), rail: lam(0x5b534c),
+  shutter: lam(0x8a5a32), white: lam(0xf2f0ea), grill: lam(0x1d1d1d),
+});
+function cyl(u, v, r, h0, h1, mat, seg = 10) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h1 - h0, seg), mat); m.position.copy(W(u, (h0 + h1) / 2, v)); m.castShadow = true; m.receiveShadow = true; return m; }
+function doorAt(face, plane, a0, a1, h, glass = true) { // Holztür mit kleinem Glasfeld
+  const g = new THREE.Group(), mk = (b0, b1, c0, c1, e0, e1, mat) => {
+    if (face === '+u' || face === '-u') { const sg = face === '+u' ? 1 : -1; g.add(box(plane + (sg > 0 ? b0 : -b1), plane + (sg > 0 ? b1 : -b0), c0, c1, e0, e1, mat, false)); }
+    else { const sg = face === '+v' ? 1 : -1; g.add(box(c0, c1, plane + (sg > 0 ? b0 : -b1), plane + (sg > 0 ? b1 : -b0), e0, e1, mat, false)); }
+  };
+  mk(0, 0.05, a0, a1, 0.02, h, MAT.door);
+  if (glass) mk(0.05, 0.06, a0 + 0.15, a1 - 0.15, h * 0.62, h - 0.15, MAT.glass);
+  return g;
+}
+function buildGarage(g) {
+  const G = CFG.vp.garage, ang = Math.atan2(G.ridge - G.eave, (G.u1 - G.u0) / 2), oh = 0.7, eaveOut = G.eave - oh * Math.tan(ang);
+  g.add(texBox(G.u0, G.u1, G.v0, G.v1, 0, G.eave, MAT.boards, 1.0));
+  g.add(prismV(G.u0, G.u1, G.v0, G.v1, G.eave, G.eave, G.ridge, MAT.boards));
+  g.add(roof('v', G.u0, G.u1, G.v0, G.v1, G.eave, G.ridge, oh, 0.6, MAT.roofRed, 0.18));
+  const L = G.v1 - G.v0;
+  g.add(doorAt('-u', G.u0, G.v0 + 0.30 * L, G.v0 + 0.30 * L + 0.95, 2.05));  // Türen an der Hofseite (Foto)
+  g.add(doorAt('-u', G.u0, G.v0 + 0.55 * L, G.v0 + 0.55 * L + 1.1, 2.1));
+  g.add(doorAt('-v', G.v0, G.u0 + 2.1, G.u0 + 3.05, 2.05));                   // Tür zum Haus (Foto)
+  for (const uu of [G.u0 - oh + 0.05, G.u1 + oh - 0.05]) g.add(box(uu - 0.06, uu + 0.06, G.v0 - 0.6, G.v1 + 0.6, eaveOut - 0.12, eaveOut, MAT.gutter, false)); // Rinnen
+  g.add(cyl(G.u0 - 0.15, G.v0 + 0.15, 0.045, 0, eaveOut - 0.05, MAT.gutter, 8));                                                    // Fallrohr an der Ecke (Foto)
+  g.add(box(G.u0 - oh + 0.05, G.u0 - 0.15, G.v0 + 0.11, G.v0 + 0.19, eaveOut - 0.25, eaveOut - 0.15, MAT.gutter, false));
+  // Wärmepumpe auf Konsole, Lüfter zur Hofseite
+  const P = VP.wp;
+  g.add(box(P.u0, P.u1, P.v0, P.v1, P.h0, P.h1, MAT.hp));
+  g.add(box(P.u1, G.u0, P.v0 + 0.15, P.v1 - 0.15, 0, 0.5, MAT.hpDark));
+  const fan = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.02, 28), MAT.hpDark); fan.rotation.z = Math.PI / 2;
+  fan.position.copy(W(P.u0 - 0.01, (P.h0 + P.h1) / 2 + 0.08, (P.v0 + P.v1) / 2)); g.add(fan);
+  const lw = label('Wärmepumpe', { size: 0.3 }); lw.position.copy(W(P.u0 - 0.2, P.h1 + 0.4, (P.v0 + P.v1) / 2)); g.add(lw);
+  const ln = label('Nebengebäude', { size: 0.4 }); ln.position.copy(W((G.u0 + G.u1) / 2, G.ridge + 0.7, (G.v0 + G.v1) / 2)); g.add(ln);
+}
+function buildPodest(g) {
+  const P = VP.podest, zTop = CFG.haus.floor0 + 2 * 2.74 / 15, n = P.steps + 1;   // 2 Steigungen der Außentreppe unter dem Podest, dann 3 Stufen zum Hof
+  g.add(box(P.u0, P.u1, P.v0, P.v1, 0, zTop, MAT.concrete));
+  for (let i = 1; i <= P.steps; i++) g.add(box(P.u0, P.u1, P.v1, P.v1 + i * P.stepD, 0, zTop * (n - i) / n, MAT.concrete));
+  const rl = (a, b, h) => { const du = b[0] - a[0], dv = b[1] - a[1], L = Math.hypot(du, dv), m = new THREE.Mesh(new THREE.BoxGeometry(L, 0.04, 0.12), MAT.larch); m.position.copy(W((a[0] + b[0]) / 2, h, (a[1] + b[1]) / 2)); m.rotation.y = Math.atan2(dv, du); m.castShadow = true; g.add(m); };
+  const A = [P.u0 + 0.04, P.v0 + 0.15], B = [P.u0 + 0.04, P.v1 - 0.04], C = [P.u0 + 0.45, P.v1 - 0.04];
+  for (const [u, v] of [A, B, C]) g.add(box(u - 0.04, u + 0.04, v - 0.04, v + 0.04, zTop, zTop + 1.0, MAT.larch));
+  for (const h of [zTop + 0.5, zTop + 0.97]) { rl(A, B, h); rl(B, C, h); }
+}
+function buildPavillon(g) {
+  const P = CFG.vp.pav, wall = new THREE.Mesh(new THREE.CylinderGeometry(P.r, P.r, 2.1, 8), MAT.pavWood);
+  wall.position.copy(W(P.u, 1.05, P.v)); wall.rotation.y = Math.PI / 8; wall.castShadow = wall.receiveShadow = true; g.add(wall);
+  const rf = new THREE.Mesh(new THREE.ConeGeometry(P.r + 0.3, 1.1, 8), MAT.pavRoof); rf.position.copy(W(P.u, 2.1 + 0.55, P.v)); rf.rotation.y = Math.PI / 8; rf.castShadow = true; g.add(rf);
+  const lp = label('Pavillon', { size: 0.32 }); lp.position.copy(W(P.u, 3.5, P.v)); g.add(lp);
+}
+function buildBauzaun(g, v0, v1) {
+  const L = 3.45, n = Math.max(1, Math.round((v1 - v0) / L)), pl = (v1 - v0) / n;
+  for (let i = 0; i < n; i++) {
+    const va = v0 + i * pl, vb = va + pl, vm = (va + vb) / 2, u = nwU(vm) + 0.05, z = groundH(u, vm);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(pl - 0.06, 1.9), MAT.mesh.clone()); m.material.map = MAT.mesh.map.clone(); m.material.map.repeat.set((pl - 0.06) / 0.1, 1.9 / 0.25); m.material.map.needsUpdate = true;
+    m.rotation.y = Math.PI / 2; m.position.copy(W(u, z + 0.15 + 0.95, vm)); g.add(m);
+    if (vm < 19 && i % 4 !== 3) { const r = new THREE.Mesh(new THREE.PlaneGeometry(pl * 0.7, 1.75), MAT.reed); r.rotation.y = Math.PI / 2; r.position.copy(W(u + 0.03, z + 0.15 + 0.9, vm - pl * 0.1)); g.add(r); }
+    g.add(box(u - 0.015, u + 0.015, va + 0.02, vb - 0.02, z + 2.06, z + 2.1, MAT.galv, false));
+    g.add(box(u - 0.015, u + 0.015, va + 0.02, vb - 0.02, z + 0.15, z + 0.19, MAT.galv, false));
+    for (const vv of [va + 0.03, vb - 0.03]) g.add(cyl(u, vv, 0.02, z + 0.12, z + 2.1, MAT.galv, 6));
+    g.add(box(u - 0.33, u + 0.33, va - 0.1, va + 0.1, z, z + 0.15, MAT.foot));
+  }
+}
+function buildZaunNW(g) {
+  const Z = CFG.vp.zaun, T = ZAUN[Z.typ];
+  if (!T || Z.typ === 'kein') return;
+  if (Z.typ === 'bau') { buildBauzaun(g, Z.v0, Z.v1); return; }
+  const n = Math.max(1, Math.floor((Z.v1 - Z.v0) / T.sp)), im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.022, 1, T.bw), MAT.fenceNew, n);
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  for (let i = 0; i < n; i++) {
+    const v = Z.v0 + (i + 0.5) * (Z.v1 - Z.v0) / n, u = nwU(v) + Z.off, z = groundH(u, v), hh = Z.h - 0.05;
+    sc.set(1, hh, 1); M.compose(W(u, z + 0.05 + hh / 2, v), q, sc); im.setMatrixAt(i, M);
+  }
+  im.castShadow = true; im.receiveShadow = true; g.add(im);
+  const np = Math.max(1, Math.round((Z.v1 - Z.v0) / 1.9));
+  for (let i = 0; i <= np; i++) {
+    const v = Z.v0 + (Z.v1 - Z.v0) * i / np, u = nwU(v) + Z.off + 0.06, z = groundH(u, v);
+    g.add(box(u - 0.045, u + 0.045, v - 0.045, v + 0.045, z, z + Z.h + 0.04, MAT.larchDark));
+    if (i < np) { const v2 = Z.v0 + (Z.v1 - Z.v0) * (i + 1) / np; for (const hh of [0.3, Z.h - 0.3]) g.add(box(u - 0.035, u + 0.015, v, v2, z + hh - 0.035, z + hh + 0.035, MAT.larchDark, false)); }
+  }
+}
+function buildNbNW(g) { // Nachbarhaus NW: altes Bauernhaus, Fensterläden, Balkon an der Hofseite (Fotos, Maße geschätzt)
+  const N = CFG.vp.nb, F = nbFrame(), h = new THREE.Group();
+  h.position.copy(W(N.u, 0, N.v)); h.rotation.y = F.phi;
+  h.add(box(0, N.len, -N.dep, 0, 0, N.eave, MAT.cream));
+  h.add(prismU(0, N.len, -N.dep, 0, N.eave, N.eave, N.ridge, MAT.cream));
+  h.add(roof('u', 0, N.len, -N.dep, 0, N.eave, N.ridge, 1.0, 0.9, MAT.roofNb, 0.26));
+  const win = (a0, a1, z0, z1) => { h.add(windowAt('+v', 0, a0, a1, z0, z1)); for (const [b0, b1] of [[a0 - 0.48, a0 - 0.04], [a1 + 0.04, a1 + 0.48]]) h.add(box(b0, b1, 0.0, 0.04, z0, z1, MAT.shutter, false)); };
+  for (const a of [1.2, 3.2, 6.2, 8.4]) win(a, a + 0.95, N.floor + 0.9, N.floor + 2.1);
+  for (const a of [1.5, 3.5]) win(a, a + 0.95, N.og + 0.9, N.og + 2.1);
+  for (const a of [6.4, 8.6]) h.add(windowAt('+v', 0, a, a + 0.95, N.og, N.og + 2.1, true));
+  // Balkon (Bundwerk-Brüstung), Annahme: NO-Hälfte der Hofseite
+  h.add(box(5.0, N.len, 0, 1.3, N.og - 0.18, N.og, MAT.balcony));
+  h.add(box(5.0, N.len, 1.24, 1.3, N.og, N.og + 1.0, MAT.balcony));
+  for (const a of [5.0, N.len - 0.06]) h.add(box(a, a + 0.06, 0, 1.3, N.og, N.og + 1.0, MAT.balcony));
+  // Bank und Grill am Sitzplatz (Fotos)
+  h.add(box(2.4, 3.9, 0.35, 0.8, 0.42, 0.47, MAT.white)); h.add(box(2.4, 3.9, 0.35, 0.4, 0.47, 0.9, MAT.white));
+  const gr = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8), MAT.grill); gr.position.copy(W(5.6, 0.85, 1.9)); gr.castShadow = true; h.add(gr);
+  for (const a of [0, 2.1, 4.2]) h.add(cyl(5.6 + 0.2 * Math.cos(a), 1.9 + 0.2 * Math.sin(a), 0.015, 0, 0.7, MAT.grill, 4));
+  const lb = label('Nachbar NW', { size: 0.75 }); lb.position.copy(W(N.len / 2, N.ridge + 1.0, -N.dep / 2)); h.add(lb);
+  g.add(h);
+  // Schuppen des Nachbarn an der Straße (Holz, rotes Ziegeldach)
+  g.add(box(-26.5, -18.8, 23.0, 28.2, 0, 3.0, MAT.woodNb));
+  g.add(prismU(-26.5, -18.8, 23.0, 28.2, 3.0, 3.0, 5.0, MAT.woodNb));
+  g.add(roof('u', -26.5, -18.8, 23.0, 28.2, 3.0, 5.0, 0.7, 0.6, MAT.roofRed, 0.2));
+}
+function buildCar(g) {
+  const C = VP.car, u0 = C.u - C.B / 2, u1 = C.u + C.B / 2, v0 = C.v - C.L / 2, v1 = C.v + C.L / 2;
+  g.add(box(u0, u1, v0, v1, 0.22, 0.95, MAT.car)); g.add(box(u0 + 0.12, u1 - 0.12, C.v - 1.25, C.v + 1.45, 0.95, 1.55, MAT.carGlass));
+  for (const [uu, vv] of [[u0 + 0.12, v0 + 0.8], [u1 - 0.12, v0 + 0.8], [u0 + 0.12, v1 - 0.85], [u1 - 0.12, v1 - 0.85]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 14), MAT.tyre); w.rotation.z = Math.PI / 2; w.position.copy(W(uu, 0.34, vv)); g.add(w); }
+}
+function buildVorplatz() {
+  clearGroup(vpGrp); const g = vpGrp;
+  buildGarage(g); buildPodest(g); buildPavillon(g); buildZaunNW(g); buildNbNW(g);
+  if (CFG.vp.car) buildCar(g);
+  const [su, sv] = VP.schacht; g.add(cyl(su, sv, 0.36, 0, 0.02, MAT.frame, 20));
+  for (const [a, b, c0, d] of VP.holz) for (let uu = a; uu < b - 0.5; uu += 1.2) { const e = Math.min(b, uu + 1.15); g.add(box(uu, e, c0, d, 0, 1.75, MAT.pallet)); g.add(box(uu - 0.05, e + 0.05, c0 - 0.1, d + 0.1, 1.75, 1.82, MAT.galv)); }
+  const [tu, tv] = VP.tonnen; for (const du of [0, 0.7]) g.add(box(tu + du, tu + du + 0.6, tv, tv + 0.72, 0, 1.07, MAT.bin));
+  req();
+}
+// ---------- Straßenseite: Bodentextur ----------
+function drawVorplatz(c, X, Y, poly, winter) {
+  const P = GA.px, H = CFG.haus, G = CFG.vp.garage, R = rng(23);
+  const path = (pts) => { c.beginPath(); pts.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.closePath(); };
+  const speckle = (pts, base, cols, per) => { poly(pts, base); c.save(); path(pts); c.clip(); let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity; for (const [u, v] of pts) { u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v); } const n = Math.round((u1 - u0) * (v1 - v0) * per); for (let i = 0; i < n; i++) { c.fillStyle = cols[i % cols.length]; c.fillRect(X(u0 + R() * (u1 - u0)), Y(v0 + R() * (v1 - v0)), 2, 2); } c.restore(); };
+  const curb = (pts) => { c.strokeStyle = '#dcdbd5'; c.lineWidth = 0.1 * P; c.lineJoin = 'miter'; path(pts); c.stroke(); };
+  // Straße, Bankett, Grünstreifen, Bahn
+  poly([[GA.u0, 30.7], [GA.u1, 30.1], [GA.u1, 31.0], [GA.u0, 31.0]], '#a49e93');
+  poly([[GA.u0, 31.0], [GA.u1, 31.0], [GA.u1, 36.0], [GA.u0, 36.0]], '#727270');
+  poly([[GA.u0, 36.0], [GA.u1, 36.0], [GA.u1, 37.6], [GA.u0, 37.6]], winter ? '#8a917a' : '#7b955a');
+  poly([[GA.u0, 37.6], [GA.u1, 37.6], [GA.u1, 40.6], [GA.u0, 40.6]], '#8d877d');
+  c.fillStyle = '#5a4a3c'; for (let u = GA.u0; u < GA.u1; u += 0.6) c.fillRect(X(u), Y(40.0), 0.16 * P, 2.0 * P);
+  poly([[-16.35, 32.53], [-11.71, 31.92], [-12.43, 30.64], [-16.4, 30.66]], '#a49e93');               // Ecke der Parzelle an der Straße (Kies)
+  // Hof: Betonpflaster in Reihen parallel zur Hausfront, gemischte Steine (Foto)
+  const hof = [[H.u0, H.v1], [boundaryUAt(H.v1), H.v1], [0.71, 30.17], [-12.43, 30.64], [nwU(30.6), 30.6], [nwU(11.15), 11.15], [H.u0, 11.15]];
+  poly(hof, '#6f685e'); c.save(); path(hof); c.clip();
+  for (let v = H.v1; v < 30.8; v += 0.155) for (let u = -17 - R() * 0.2; u < 2;) {
+    const L = [0.14, 0.17, 0.21][Math.floor(R() * 3)], white = R() < 0.14;
+    c.fillStyle = white ? `hsl(40, 5%, ${68 + R() * 7}%)` : `hsl(${26 + R() * 14}, ${8 + R() * 6}%, ${47 + R() * 12}%)`;
+    c.fillRect(X(u) + 0.6, Y(v + 0.155) + 0.6, L * P - 1.2, 0.155 * P - 1.2); u += L;
+  }
+  c.restore();
+  // alte Betonplatten am Südost-Giebel (Foto)
+  const pl = [[0.55, H.v1], [boundaryUAt(H.v1), H.v1], [boundaryUAt(G.v0), G.v0], [0.55, G.v0]];
+  poly(pl, '#a6a29a'); c.strokeStyle = 'rgba(60,56,50,0.35)'; c.lineWidth = 1; c.save(); path(pl); c.clip();
+  for (let v = H.v1; v < G.v0; v += 0.5) { c.beginPath(); c.moveTo(X(0.5), Y(v)); c.lineTo(X(2), Y(v)); c.stroke(); }
+  for (let u = 0.55; u < 2; u += 0.5) { c.beginPath(); c.moveTo(X(u), Y(H.v1)); c.lineTo(X(u), Y(G.v0)); c.stroke(); }
+  c.restore();
+  // NW-Giebel: Kiesweg, daneben Wiese bis zur Grenze
+  const W0 = VP.wegNW, weg = [[W0.u0, W0.v0], [H.u0, W0.v0], [H.u0, W0.v1], [W0.u0, W0.v1]];
+  speckle(weg, '#aaa397', ['#8f887c', '#c4beb3', '#7d776d'], 260);
+  // Beete (Erde), Kiesbett unter der Wärmepumpe, Rinnen, Schacht
+  for (const b of VP.beete) speckle(b.pts, winter ? '#6a5a4a' : '#6e5c49', ['#5a4a3b', '#857260', '#4c3f33'], 160);
+  speckle(VP.kiesWP, '#bdb9b1', ['#9c978e', '#d6d3cc', '#86817a'], 400);
+  for (const b of VP.beete) curb(b.pts);
+  curb(VP.kiesWP.slice(0, 5));
+  c.fillStyle = '#26282a';
+  c.fillRect(X(G.u0 - 0.12), Y(G.v1), 0.12 * P, (G.v1 - 16.9) * P);
+  c.fillRect(X(G.u0 + 1.0), Y(G.v0), (G.u1 - G.u0 - 1.0) * P, 0.12 * P);
+  const [su, sv] = VP.schacht; c.fillStyle = '#6f6a62'; c.beginPath(); c.arc(X(su), Y(sv), 0.52 * P, 0, 7); c.fill();
+  // Garten des Nachbarn NW: Plattenweg und Sitzplatz vor der Hofseite (Fotos)
+  const F = nbFrame(), sitz = [F.P(0.4, 0.15), F.P(9.6, 0.15), F.P(9.6, 2.9), F.P(0.4, 2.9)];
+  poly(sitz, '#b3aa98'); c.save(); path(sitz); c.clip(); c.strokeStyle = 'rgba(70,64,54,0.45)'; c.lineWidth = 1.2;
+  for (let i = 0; i < 70; i++) { const [a, b] = F.P(0.4 + R() * 9.2, 0.15 + R() * 2.75); c.beginPath(); c.moveTo(X(a), Y(b)); c.lineTo(X(a + (R() - 0.5) * 0.9), Y(b + (R() - 0.5) * 0.9)); c.stroke(); }
+  c.restore();
+  // Beschriftung: Beete mit Fläche, Abstände an der Grenze NW
+  c.fillStyle = 'rgba(255,255,255,0.92)'; c.font = `600 ${Math.round(0.3 * P)}px "Source Sans 3", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (const b of VP.beete) { let su2 = 0, sv2 = 0; b.pts.forEach(([u, v]) => { su2 += u; sv2 += v; }); const cu = su2 / b.pts.length, cv = sv2 / b.pts.length; c.fillText(`${b.id} · ${fmt(polyArea(b.pts), 0)} m²`, X(cu), Y(cv)); }
+  c.fillStyle = 'rgba(28,36,29,0.85)'; c.font = `600 ${Math.round(0.3 * P)}px "IBM Plex Mono", monospace`; c.textAlign = 'left';
+  for (let b = 2; b <= 20; b += 2) { const v = H.v1 + b; if (v < 11.3 || v > 29) continue; c.fillText(`${b} m`, X(nwU(v) + 0.25), Y(v)); c.fillRect(X(nwU(v)), Y(v) - 1, 0.2 * P, 2); }
+}
 // ---------- Pflanzen ----------
 const plantGrp = new THREE.Group(); root.add(plantGrp);
 const plantObjs = new Map();
@@ -1393,6 +1741,7 @@ function allWins() { return [[CFG.winEG[0], 'EG']].concat(CFG.winOG.map(w => [w,
 function targetsNow() { return ST.target === 'terrace' ? terraceTargets() : balconyTargets(); }
 function rebuildSight() {
   sightGrp.clear();
+  if (ST.tab === 't-vp') { rebuildSightVP(); return; }
   const found = allWins().find(([w]) => w.id === ST.showWin);
   if (!found) { req(); return; }
   const [w, lvl] = found;
@@ -1416,6 +1765,26 @@ function rebuildSight() {
     const m = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: colorFor(s).getHex() })); m.position.copy(W(t[0], t[2], t[1])); sightGrp.add(m);
   }
   const e = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), new THREE.MeshBasicMaterial({ color: 0x9c5a22 })); e.position.copy(W(eye[0], eye[2], eye[1])); sightGrp.add(e);
+  req();
+}
+
+function rebuildSightVP() {
+  const g = vpGroups().find(x => x.id === ST.vpShow);
+  if (!g) { req(); return; }
+  const crowns = prepCrowns(ST.plants, ST.season, ST.stage, vpCrowns()), T = vpTargets(ST.vpTgt);
+  const eyes = g.wins.flatMap(w => w.line || [w.pts[3] || w.pts[w.pts.length - 1]]);
+  const pos = [], cols = [], cc = new THREE.Color();
+  const colorFor = (t) => t > 0.66 ? cc.set(0xd8432f) : (t > 0.33 ? cc.set(0xe3a21a) : cc.set(0x2e9a52));
+  for (const e of eyes) for (const t of T) {
+    colorFor(rayT(e, t, crowns)); const a = W(e[0], e[2], e[1]), b = W(t[0], t[2], t[1]);
+    pos.push(a.x, a.y, a.z, b.x, b.y, b.z); cols.push(cc.r, cc.g, cc.b, cc.r, cc.g, cc.b);
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const lines = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: eyes.length > 6 ? 0.5 : 0.8 }));
+  lines.renderOrder = 5; lines.visible = !firstPerson(); sightGrp.add(lines);
+  const dotGeo = new THREE.SphereGeometry(0.07, 8, 6), eGeo = new THREE.SphereGeometry(0.1, 10, 8), eMat = new THREE.MeshBasicMaterial({ color: 0x9c5a22 });
+  for (const t of T) { let s = 0; for (const e of eyes) s += rayT(e, t, crowns); s /= eyes.length; const m = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: colorFor(s).getHex() })); m.position.copy(W(t[0], t[2], t[1])); sightGrp.add(m); }
+  for (const e of eyes) { const m = new THREE.Mesh(eGeo, eMat); m.position.copy(W(e[0], e[2], e[1])); sightGrp.add(m); }
   req();
 }
 
@@ -1466,6 +1835,13 @@ const VIEWS = [
   { id: 'bach', name: 'Bachseite' },
   { id: 'hang', name: 'Vom Hang' },
   { id: 'treppe', name: 'Treppe' },
+  { id: 'vp', name: 'Straßenseite' },
+  { id: 'vpPlan', name: 'Draufsicht Hof' },
+  { id: 'laub', name: 'Vom Laubengang' },
+  { id: 'nwOG', name: 'Blick NW-Giebel OG' },
+  { id: 'nwEG', name: 'Blick Kinderzimmer EG' },
+  { id: 'nbNW', name: 'Vom Garten NW' },
+  { id: 'hof', name: 'Von der Einfahrt' },
 ];
 let tween = null;
 function viewPose(id) {
@@ -1478,6 +1854,13 @@ function viewPose(id) {
   if (id === 'bach') return { pos: W(8.5, bachLevel() + 5.2, waterV(8.5) - CFG.bach.width - 3.0), tgt: W(-3.5, -2.2, -4.0), fov: 56 }; // vom Gegenufer
   if (id === 'treppe') { const P = stairPlan(); return { pos: W(3.4, P.bot + 6.4, waterV(3.4) + 0.2), tgt: W(-1.7, (P.top + P.bot) / 2 - 0.9, -5.5), fov: 60 }; }
   if (id === 'hang') { const pu = 3.3, pv = Math.max(waterV(3.3) + 2.6, -T7.depth - 2.4); return { pos: W(pu, groundH(pu, pv) + 1.6, pv), tgt: W(-0.6, 0.5, -1.4), fov: 64 }; }
+  if (id === 'vp') return { pos: W(5, 13, 41), tgt: W(-9, 0.8, 15.5), fov: 50 };
+  if (id === 'laub') return { pos: W(-6.0, H.floor0 + 2.74 + CFG.eyeStand, 10.95), tgt: W(-15.5, 1.6, 17.5), fov: 66 };
+  if (id === 'hof') return { pos: W(-6.5, 1.65, 29.2), tgt: W(-10, 1.6, 12), fov: 62 };
+  { const F = nbFrame(), N = CFG.vp.nb;
+    if (id === 'nwOG') { const t = F.P(5, 1); return { pos: W(H.u0 - 0.2, fo + CFG.eyeStand, 4.8), tgt: W(t[0], N.og + 1.2, t[1]), fov: 72 }; }
+    if (id === 'nwEG') { const t = F.P(4, 1.5); return { pos: W(H.u0 - 0.2, H.floor0 + CFG.eyeStand, 7.3), tgt: W(t[0], 1.4, t[1]), fov: 72 }; }
+    if (id === 'nbNW') { const e = F.P(5.0, 1.9); return { pos: W(e[0], 1.65, e[1]), tgt: W(-12, 3.4, 7.5), fov: 64 }; } }
   if (id === 'nbBalk') return { pos: W((B.u0 + B.u1) / 2, B.floor + 1.3, B.wallV - 0.55), tgt: W(0, fo + 1.5, 4.6), fov: 60 };
   if (id === 'side') return { pos: W(13.5, 1.65, -3.5), tgt: W(1.5, 3.4, 5.0), fov: 58 };
   const T = CFG.terrace, tc = [(T.u0 + T.u1) / 2, Math.max(T.v0 + 0.6, Math.min(T.v1 - 0.6, B.wallV - B.depth - 0.6))];
@@ -1492,6 +1875,7 @@ function setView(id) {
   ovEl.querySelectorAll('#views .chip[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === id)));
   let P;
   if (id === 'plan') P = { pos: W(2.2, 80, 2.95), tgt: W(2.2, 0, 3), fov: 22 };   // Draufsicht: steil von oben, enger Blickwinkel
+  else if (id === 'vpPlan') P = { pos: W(-7.0, 80, 17.95), tgt: W(-7.0, 0, 18), fov: 27 };
   else P = viewPose(id);
   if (!P) return;
   if (id === 'EG1' && ST.target !== 'terrace') setTarget('terrace', true);
@@ -1503,7 +1887,7 @@ function setView(id) {
   req();
 }
 const WIN = ['OG1', 'OG2', 'OG3', 'EG1'];
-function firstPerson() { return WIN.includes(ST.view) || ST.view === 'nbBalk' || ST.view === 'nbTerr'; }
+function firstPerson() { return WIN.includes(ST.view) || ['nbBalk', 'nbTerr', 'nwOG', 'nwEG', 'nbNW', 'laub', 'hof'].includes(ST.view); }
 // Beschriftungen und Sichtlinien gehören zur Gartenplanung: außerhalb des Gartens ausblenden
 function applyLabels() {
   const on = active();
@@ -1544,7 +1928,7 @@ canvas.addEventListener('pointermove', (e) => {
   pick(e); const gp = groundAt(); if (!gp) return;
   const nu = Math.round((gp.x + drag.off[0]) * 20) / 20, nv = Math.round((-gp.z + drag.off[1]) * 20) / 20;
   if (Math.abs(nu - drag.p.u) < 1e-6 && Math.abs(nv - drag.p.v) < 1e-6) return;
-  drag.p.u = Math.max(-16, Math.min(14, nu)); drag.p.v = Math.max(-11, Math.min(29, nv)); drag.moved = true;
+  drag.p.u = Math.max(-19, Math.min(14, nu)); drag.p.v = Math.max(-11, Math.min(30, nv)); drag.moved = true;
   const g = plantObjs.get(drag.p.id); if (g) g.position.copy(W(drag.p.u, groundH(drag.p.u, drag.p.v), drag.p.v));
   const now = performance.now(); if (now - lastCov > 120) { lastCov = now; rebuildSight(); renderCoverage(); updateEditorPos(); }
   req();
@@ -1553,7 +1937,7 @@ const endDrag = (e) => {
   if (!active()) { drag = null; down = null; return; }
   if (drag) {
     const moved = drag.moved; drag = null;
-    if (moved) { rebuildPlants(); afterEdit(true); updateEditorPos(); }
+    if (moved) { rebuildPlants(); afterEdit(true); updateEditorPos(); renderVPList(); }
     return;
   }
   if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 4 && ST.sel) { ST.sel = null; rebuildPlants(); renderPlants(); }
@@ -1573,8 +1957,9 @@ function renderVariantSelect() {
   s.value = ST.variant;
 }
 function consentState() {
-  if (!ST.plants.length) return null;
-  const bad = ST.plants.filter(p => !plantChecks(p).ok);
+  const ps = ST.plants.filter(p => !isVP(p));
+  if (!ps.length) return null;
+  const bad = ps.filter(p => !plantChecks(p).ok);
   return bad;
 }
 function renderVariantDesc() {
@@ -1606,9 +1991,14 @@ function renderCoverage() {
   const ds = coverage(ST.plants, 'S', ST.stage, CFG.winDG, 'DG', tg), dw = coverage(ST.plants, 'W', ST.stage, CFG.winDG, 'DG', tg);
   $('dgrows').innerHTML = CFG.winDG.map((w, i) => `<div class="dgrow"><button class="btn" style="min-height:28px;padding:2px 8px" data-w="${w.id}" aria-pressed="${ST.showWin === w.id}">DG ${i + 1}</button><span class="num">Sommer ${Math.round(ds[i].cov * 100)} %</span><span class="num">Winter ${Math.round(dw[i].cov * 100)} %</span></div>`).join('');
   $('dgrows').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { ST.showWin = ST.showWin === b.dataset.w ? '' : b.dataset.w; rebuildSight(); renderCoverage(); }));
+  renderVPCov();
   $('covNote').textContent = `Wuchs: ${STAGES[ST.stage]}. Sommer = belaubt, Winter = Laubfall (Hainbuche hält teils braunes Laub). Das Balkongeländer ist nicht als Sichtschutz gerechnet${CFG.lattice ? ', das vorhandene Rankgitter am Balkon schon' : ''}.`;
 }
-function posText(p) { return `${fmt(p.u)} m vor Giebel · ${fmt(p.v)} m ab Gartenecke`; }
+function posText(p) {
+  const H = CFG.haus;
+  if (!isVP(p)) return `${fmt(p.u)} m vor Giebel · ${fmt(p.v)} m ab Gartenecke`;
+  return `${fmt(p.u - H.u0)} m ab Nordecke · ${p.v >= H.v1 ? fmt(p.v - H.v1) + ' m vor Hausfront' : fmt(p.v) + ' m ab Gartenecke'}`;
+}
 function renderPlants(keepEditor) {
   const el = $('plist');
   if (!ST.plants.length) { el.innerHTML = '<p class="small muted">Noch keine Pflanzen. Wähle oben eine Art und tippe auf „Pflanze hinzufügen“, oder wähle eine Variante.</p>'; }
@@ -1629,12 +2019,12 @@ function renderEditor() {
   if (!p) { wrap.innerHTML = ''; return; }
   const S = SPECIES[p.sp], c = plantChecks(p), n = ST.plants.indexOf(p) + 1;
   const opts = Object.entries(SPECIES).map(([k, s]) => `<option value="${k}" ${k === p.sp ? 'selected' : ''}>${s.name}</option>`).join('');
-  const isBox = S.shape === 'box';
+  const isBox = S.shape === 'box', vp = isVP(p), ou = vp ? CFG.haus.u0 : 0, ov = vp ? CFG.haus.v1 : 0;
   wrap.innerHTML = `<div class="editor">
     <div class="full row" style="justify-content:space-between"><h3>Pflanze ${n} bearbeiten</h3></div>
     <div class="field full"><label class="glbl" for="e-sp">Art</label><select id="e-sp">${opts}</select><span class="small muted">${S.latin}. ${S.info}</span><span class="small"><b>Endgröße:</b> ${S.max ? `${fmt(S.max[0])} m hoch, ${fmt(S.max[1])} m breit${S.cut ? ' ohne Schnitt' : ''}. Die orange Hülle im Modell zeigt sie.` : (S.maxNote || '')}</span></div>
-    <div class="field"><label class="glbl" for="e-u">Vor Giebel (m)</label><input type="number" id="e-u" step="0.1" value="${p.u.toFixed(2)}"></div>
-    <div class="field"><label class="glbl" for="e-v">Ab Gartenecke (m)</label><input type="number" id="e-v" step="0.1" value="${p.v.toFixed(2)}"></div>
+    <div class="field"><label class="glbl" for="e-u">${vp ? 'Ab Nordecke (m)' : 'Vor Giebel (m)'}</label><input type="number" id="e-u" step="0.1" value="${(p.u - ou).toFixed(2)}"></div>
+    <div class="field"><label class="glbl" for="e-v">${vp ? 'Vor Hausfront (m)' : 'Ab Gartenecke (m)'}</label><input type="number" id="e-v" step="0.1" value="${(p.v - ov).toFixed(2)}"></div>
     ${slider('e-top', 'Höhe (Ziel)', S.hedge ? 0.8 : 1.5, S.hedge ? (S.max ? S.max[0] + 0.5 : 3) : 10, 0.1, p.top)}
     ${slider('e-w', isBox ? 'Länge' : 'Kronenbreite', 0.6, S.hedge ? 12 : 5, 0.1, p.w)}
     ${S.stem > 0.05 ? slider('e-stem', 'Stammhöhe', 0.2, 3.2, 0.1, p.stem) : ''}
@@ -1644,8 +2034,8 @@ function renderEditor() {
   </div>`;
   const upd = () => { rebuildPlants(); afterEdit(true); };
   $('e-sp').onchange = (e) => { const s2 = SPECIES[e.target.value]; Object.assign(p, { sp: e.target.value, stem: s2.stem, top: s2.top, w: s2.w, d: s2.d || s2.w }); rebuildPlants(); afterEdit(); };
-  $('e-u').onchange = (e) => { p.u = +e.target.value || 0; upd(); };
-  $('e-v').onchange = (e) => { p.v = +e.target.value || 0; upd(); };
+  $('e-u').onchange = (e) => { p.u = (+e.target.value || 0) + ou; upd(); };
+  $('e-v').onchange = (e) => { p.v = (+e.target.value || 0) + ov; upd(); };
   for (const k of ['top', 'w', 'stem']) { const el = $('e-' + k); if (!el) continue; el.oninput = (e) => { p[k] = +e.target.value; if (k === 'stem' && p.top < p.stem + 0.5) p.top = p.stem + 0.5; $('e-' + k + '-v').textContent = fmt(p[k], 1) + ' m'; upd(); }; }
   if (isBox) { $('e-r0').onclick = () => { p.rot = 0; rebuildPlants(); afterEdit(); }; $('e-r9').onclick = () => { p.rot = 90; rebuildPlants(); afterEdit(); }; }
   $('e-dup').onclick = () => { const q = Object.assign(clone(p), { id: 'p' + (pid++), v: p.v + (p.rot === 90 ? 0 : p.w + 0.1), u: p.u + (p.rot === 90 ? p.w + 0.1 : 0) }); ST.plants.push(q); ST.sel = q.id; markCustom(); rebuildPlants(); afterEdit(); };
@@ -1666,7 +2056,7 @@ function renderChecks(p, c) {
 }
 function updateEditorPos() {
   const p = ST.plants.find(x => x.id === ST.sel); if (!p) return;
-  const eu = $('e-u'), ev = $('e-v'); if (eu) eu.value = p.u.toFixed(2); if (ev) ev.value = p.v.toFixed(2);
+  const vp = isVP(p), eu = $('e-u'), ev = $('e-v'); if (eu) eu.value = (p.u - (vp ? CFG.haus.u0 : 0)).toFixed(2); if (ev) ev.value = (p.v - (vp ? CFG.haus.v1 : 0)).toFixed(2);
   renderChecks(p, plantChecks(p));
 }
 function renderShop() {
@@ -1806,16 +2196,126 @@ function renderAssume() {
   $('b-lat').onchange = (e) => { CFG.lattice = e.target.checked; buildHouseNb(); rebuildSight(); renderCoverage(); save(); };
   for (const [id, , , s] of AS_FIELDS) $(id).onchange = (e) => { const x = parseFloat(e.target.value); if (!isFinite(x)) return; s(x); placeRoot(); buildWinLabels(); buildHouseNb(); buildSite(); updateSun(); applyLabels(); drawGround(); rebuildSight(); renderCoverage(); renderInsights(); save(); };
 }
+// ---------- Straßenseite: Bedienfeld ----------
+function rebuildVP() { buildVorplatz(); drawGround(); rebuildSight(); renderVP(); }
+const VZ_FIELDS = [
+  ['vz-h', 'Höhe', 0.6, 2.0, 0.05, () => CFG.vp.zaun.h, (x) => CFG.vp.zaun.h = x],
+  ['vz-v0', 'Beginn (m vor Hausfront, negativ = am Giebel Richtung Bach)', -12.5, 18, 0.1, () => CFG.vp.zaun.v0 - CFG.haus.v1, (x) => CFG.vp.zaun.v0 = Math.min(x + CFG.haus.v1, CFG.vp.zaun.v1 - 1)],
+  ['vz-v1', 'Ende (m vor Hausfront)', -10, 21, 0.1, () => CFG.vp.zaun.v1 - CFG.haus.v1, (x) => CFG.vp.zaun.v1 = Math.max(x + CFG.haus.v1, CFG.vp.zaun.v0 + 1)],
+  ['vz-off', 'Abstand zur Grenze (auf deiner Seite)', 0, 0.6, 0.05, () => CFG.vp.zaun.off, (x) => CFG.vp.zaun.off = x],
+];
+function renderVPFields() {
+  const Z = CFG.vp.zaun;
+  $('vz-typ').innerHTML = Object.entries(ZAUN).map(([k, z]) => `<option value="${k}">${z.name}</option>`).join('');
+  $('vz-typ').value = Z.typ;
+  $('vzFields').innerHTML = VZ_FIELDS.map(([id, l, mn, mx, st, g]) => `<div class="field${id === 'vz-v0' ? ' full' : ''}"><label for="${id}" class="glbl">${l}</label><input type="range" id="${id}" min="${mn}" max="${mx}" step="${st}" value="${g()}"><span class="val" id="${id}-v">${fmt(g(), 2)} m</span></div>`).join('');
+  for (const [id, , , , , g, set] of VZ_FIELDS) $(id).oninput = (e) => { set(+e.target.value); $(id + '-v').textContent = fmt(g(), 2) + ' m'; buildVorplatz(); rebuildSight(); renderVPInfo(); renderVPCov(); };
+  for (const [id] of VZ_FIELDS) $(id).onchange = () => { renderVPFields(); save(); };
+  $('vzFields').querySelectorAll('input').forEach(el => { el.disabled = Z.typ === 'kein' || (Z.typ === 'bau' && el.id === 'vz-h'); });
+  renderVPInfo();
+}
+function renderVPInfo() {
+  const Z = CFG.vp.zaun, T = ZAUN[Z.typ], L = Z.v1 - Z.v0, H = CFG.haus;
+  if (Z.typ === 'kein') { $('vzInfo').innerHTML = 'Kein Zaun an der Grenze NW. Sichtschutz nur durch Pflanzen.'; return; }
+  const h = T.h || Z.h, posts = Math.round(L / 1.9) + 1;
+  const lines = [`<b>${fmt(L)} m</b> lang, ${fmt(h, 2)} m hoch, von ${fmt(Z.v0 - H.v1)} bis ${fmt(Z.v1 - H.v1)} m vor der Hausfront${Z.typ === 'bau' ? '' : ` · ca. ${posts} Pfosten im Abstand von 1,9 m`}.`, T.note || ''];
+  if (Z.typ !== 'bau' && h > 2.0 + 1e-6) lines.push('<span style="color:var(--warn)">Über 2 m Höhe ist eine Einfriedung in Bayern nicht mehr verfahrensfrei.</span>');
+  $('vzInfo').innerHTML = lines.filter(Boolean).join(' ');
+}
+function renderVPCov() {
+  if (ST.tab !== 't-vp') return;
+  const T = VP_TGT[ST.vpTgt];
+  $('vpTgt').innerHTML = Object.entries(VP_TGT).map(([k, t]) => `<button data-t="${k}" aria-pressed="${ST.vpTgt === k}">${t.name}</button>`).join('');
+  $('vpTgt').querySelectorAll('button').forEach(b => b.onclick = () => { ST.vpTgt = b.dataset.t; rebuildSight(); renderVPCov(); });
+  $('vpCovTitle').textContent = `Verdeckte Blickachsen → ${T.long}`;
+  $('vpExplain').textContent = `Anteil der Sichtlinien von den Fenstern (sitzend und stehend, über die Fensterbreite) bzw. vom Laubengang ${T.expl}, die verdeckt sind: durch Pflanzen, Zaun, Nebengebäude oder Pavillon. Karte antippen zeigt die Linien.`;
+  const G = vpGroups();
+  $('vpWins').innerHTML = G.map(g => {
+    const cs = vpCoverage(ST.plants, 'S', ST.stage, g, ST.vpTgt), cw = vpCoverage(ST.plants, 'W', ST.stage, g, ST.vpTgt);
+    return `<button class="win" data-g="${g.id}" aria-pressed="${ST.vpShow === g.id}"><span><span class="t">${g.name}</span> <span class="r">· ${g.room}</span></span><span class="r">${ST.vpShow === g.id ? 'Linien an' : 'Linien zeigen'}</span>
+      <span class="bars">${bar('Sommer', cs, covColor(cs))}${bar('Winter', cw, covColor(cw))}</span></button>`;
+  }).join('');
+  $('vpWins').querySelectorAll('.win').forEach(b => b.addEventListener('click', () => { ST.vpShow = ST.vpShow === b.dataset.g ? '' : b.dataset.g; rebuildSight(); renderVPCov(); }));
+  $('vpNote').textContent = `Wuchs: ${STAGES[ST.stage]}. Zaun: ${ZAUN[CFG.vp.zaun.typ].name}. Nicht gerechnet: Bäume und Sträucher des Nachbarn, Geländer von Laubengang und Treppe${CFG.vp.car ? '' : ', das Auto (ausgeblendet)'}.`;
+}
+function renderVPList() {
+  const el = $('vpList'); if (!el) return;
+  const ps = ST.plants.filter(isVP);
+  el.innerHTML = ps.length ? ps.map(p => {
+    const S = SPECIES[p.sp], c = plantChecks(p), i = ST.plants.indexOf(p);
+    const pill = !c.own ? '<span class="pill bad">Nachbargrund</span>' : (c.ok ? '<span class="pill ok">Abstand ok</span>' : '<span class="pill warn">Zustimmung</span>');
+    return `<button class="prow" data-id="${p.id}" aria-pressed="${ST.sel === p.id}"><span class="badge">${i + 1}</span><span style="min-width:0"><b>${S.name}</b><br><span class="meta">${posText(p)} · ${fmt(p.top)} m hoch</span></span>${pill}</button>`;
+  }).join('') : '<p class="small muted">Noch keine Pflanzen auf der Straßenseite.</p>';
+  el.querySelectorAll('.prow').forEach(b => b.addEventListener('click', () => { ST.sel = ST.sel === b.dataset.id ? null : b.dataset.id; rebuildPlants(); renderPlants(); renderVPList(); }));
+}
+function renderVPAreas() {
+  const H = CFG.haus, G = CFG.vp.garage, Pd = VP.podest, row = (a, b) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`;
+  const hof = [[H.u0, H.v1], [boundaryUAt(H.v1), H.v1], [0.71, 30.17], [-12.43, 30.64], [nwU(30.6), 30.6], [nwU(11.15), 11.15], [H.u0, 11.15]];
+  const inHof = VP.beete.filter(b => b.id === 'B1' || b.id === 'B3').reduce((a, b) => a + polyArea(b.pts), 0);
+  const other = VP.beete.filter(b => b.id === 'B2' || b.id === 'B4').reduce((a, b) => a + polyArea(b.pts), 0);
+  const pflaster = polyArea(hof) - inHof - other - (G.u1 - G.u0) * (G.v1 - G.v0) - polyArea(VP.kiesWP) - (Pd.u1 - Pd.u0) * (Pd.v1 - Pd.v0) - (boundaryUAt(H.v1) - 0.55) * (G.v0 - H.v1);
+  $('vpAreas').innerHTML = '<tr><th>Fläche</th><th>ca.</th></tr>' + VP.beete.map(b => row(`${b.id} · ${b.name}`, `${fmt(polyArea(b.pts))} m²`)).join('')
+    + row('Kiesbett Wärmepumpe', `${fmt(polyArea(VP.kiesWP))} m²`)
+    + row('Pflaster im Hof (ohne Beete, Nebengebäude, Kies)', `${fmt(pflaster, 0)} m²`)
+    + row('Nebengebäude', `${fmt(G.u1 - G.u0, 2)} × ${fmt(G.v1 - G.v0, 2)} m`)
+    + row('Grenze NW von der Terrasse bis zur Straße', `${fmt(Math.hypot(NWB[3][0] - NWB[0][0], 30.6 - (-2.9)))} m`)
+    + row('NW-Giebel bis Grenze NW', `${fmt(H.u0 - nwU(0), 2)} m (Gartenseite) · ${fmt(H.u0 - nwU(H.v1), 2)} m (Hausfront)`);
+}
+function renderVPNotes() {
+  const H = CFG.haus, dG = H.u0 - nwU(5), save0 = clone(CFG.vp.zaun), pct = (x) => Math.round(x * 100) + ' %';
+  const G = vpGroups(), gi = (id) => G.find(g => g.id === id);
+  const covWith = (z, id) => { Object.assign(CFG.vp.zaun, z); const c = vpCoverage([], 'S', 2, gi(id), 'haus'); Object.assign(CFG.vp.zaun, save0); return c; };
+  const z18 = { typ: 'dicht', h: 1.8, v0: -2.6, v1: 28.4, off: 0.1 }, z20 = Object.assign({}, z18, { h: 2.0 });
+  const eg18 = covWith(z18, 'gEG'), eg20 = covWith(z20, 'gEG'), og20 = covWith(z20, 'gOG'), dg20 = covWith(z20, 'gDG');
+  $('vpNotes').innerHTML = [
+    `Zwischen NW-Giebel und Grenze liegen nur rund ${fmt(dG)} m. Die Fenster am NW-Giebel blicken direkt auf Haus und Sitzplatz des Nachbarn NW.`,
+    `Ein blickdichter Zaun ohne Pflanzen verdeckt die Blickachsen vom EG-Giebel zum Nachbarhaus mit 1,8 m zu ${pct(eg18)}, mit 2,0 m zu ${pct(eg20)}. Vom OG sind es mit 2,0 m nur ${pct(og20)}, vom DG ${pct(dg20)}: man schaut über den Zaun hinweg.`,
+    'Für OG und DG braucht es Laub zwischen etwa 2,5 und 6 m. Bäume über 2 m müssen 2 m von der Grenze weg (Art. 47 AGBGB). Am Giebel bleibt dann rund 1 m bis zur Hauswand: dort passen nur schmale Säulen oder Spaliere, oder es geht mit Zustimmung des Nachbarn näher an die Grenze.',
+    'Hecken bis 2 m Höhe brauchen 0,5 m Grenzabstand und passen in den Streifen neben dem Kiesweg und ins Beet B2.',
+    'Einfriedungen bis 2 m Höhe sind in Bayern verfahrensfrei (Art. 57 Abs. 1 Nr. 7a BayBO), wenn kein Bebauungsplan und keine Ortssatzung etwas anderes regeln. Ein Zaun direkt auf der Grenze braucht die Zustimmung des Nachbarn. Keine Rechtsberatung.',
+    'Der Pavillon steht nach den Fotos an der Grenze. Er unterbricht den Zaun; im Modell läuft der Zaun dahinter durch.',
+  ].map(t => `<li>${t}</li>`).join('');
+}
+function renderVP() {
+  $('vp-car').checked = CFG.vp.car;
+  renderVPFields(); renderVPCov(); renderVPList(); renderVPAreas(); renderVPNotes();
+}
+// Annahmen der Straßenseite: [id, Text, Quelle, lesen, schreiben, Schritt, min, max]
+const AS_VP = (() => {
+  const H = CFG.haus, G = () => CFG.vp.garage, P = () => CFG.vp.pav, N = () => CFG.vp.nb;
+  return [
+    ['v-gv0', 'Nebengebäude: Hausfront bis Giebel (m)', 'g', () => G().v0 - H.v1, (x) => { const L = G().v1 - G().v0; G().v0 = H.v1 + x; G().v1 = G().v0 + L; }, 0.05, 2, 12],
+    ['v-gL', 'Nebengebäude: Länge (m)', 'g', () => G().v1 - G().v0, (x) => { G().v1 = G().v0 + x; }, 0.05, 3, 14],
+    ['v-gu0', 'Nebengebäude: Hofseite ab Hausecke Nord (m)', 'g', () => G().u0 - H.u0, (x) => { const B = G().u1 - G().u0; G().u0 = H.u0 + x; G().u1 = G().u0 + B; }, 0.05, 3, 13],
+    ['v-gB', 'Nebengebäude: Breite (m)', 'g', () => G().u1 - G().u0, (x) => { G().u1 = G().u0 + x; }, 0.05, 3, 9],
+    ['v-ge', 'Nebengebäude: Traufhöhe (m)', 'g', () => G().eave, (x) => { G().eave = Math.min(x, G().ridge - 0.3); }, 0.05, 2, 4],
+    ['v-gr', 'Nebengebäude: Firsthöhe (m)', 'g', () => G().ridge, (x) => { G().ridge = Math.max(x, G().eave + 0.3); }, 0.05, 3, 7],
+    ['v-pa', 'Pavillon: Mitte ab Hausecke Nord (m, negativ = Richtung Nachbar NW)', 'g', () => P().u - H.u0, (x) => { P().u = H.u0 + x; }, 0.05, -4, 2],
+    ['v-pb', 'Pavillon: Mitte vor Hausfront (m)', 'g', () => P().v - H.v1, (x) => { P().v = H.v1 + x; }, 0.05, 2, 20],
+    ['v-pd', 'Pavillon: Durchmesser (m)', 'g', () => 2 * P().r, (x) => { P().r = x / 2; }, 0.05, 1, 3.5],
+    ['v-na', 'Nachbarhaus NW: Ostecke bis Grenze (m)', 'g', () => nwU(N().v) - N().u, (x) => { N().u = nwU(N().v) - x; }, 0.1, 0.5, 10],
+    ['v-nb', 'Nachbarhaus NW: Ostecke vor Hausfront (m)', 'g', () => N().v - H.v1, (x) => { N().v = H.v1 + x; }, 0.1, -5, 20],
+    ['v-nf', 'Nachbarhaus NW: Balkonboden über Gelände (m)', 'g', () => N().og, (x) => { N().og = x; }, 0.05, 2, 4.5],
+  ];
+})();
+function renderAssumeVP() {
+  $('assume3').innerHTML = AS_VP.map(([id, l, src, g, , st, mn, mx]) => `<label for="${id}">${l} <span class="src ${src}">${SRC[src]}</span></label><input type="number" id="${id}" step="${st}" min="${mn}" max="${mx}" value="${g().toFixed(2)}">`).join('');
+  for (const [id, , , g, set, , mn, mx] of AS_VP) $(id).onchange = (e) => {
+    const x = parseFloat(e.target.value); if (!isFinite(x)) { e.target.value = g().toFixed(2); return; }
+    set(Math.max(mn, Math.min(mx, x))); e.target.value = g().toFixed(2); rebuildVP(); save();
+  };
+}
 function markCustom() { if (ST.variant !== 'eigen') { ST.variant = 'eigen'; $('variant').value = 'eigen'; } }
 function afterEdit(keepEditor) {
-  markCustom();
-  rebuildSight(); renderCoverage(); renderPlants(keepEditor); save();
+  const p = ST.plants.find(x => x.id === ST.sel);
+  if (!p || !isVP(p)) markCustom();
+  rebuildSight(); renderCoverage(); renderPlants(keepEditor); renderVPList(); save();
 }
 let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
 function loadVariant(id) {
   const v = VARIANTS.find(x => x.id === id); if (!v) return;
-  ST.variant = id; ST.plants = v.plants(); ST.sel = null;
+  ST.variant = id; ST.plants = ST.plants.filter(isVP).concat(v.plants()); ST.sel = null;
   rebuildPlants(); rebuildSight(); renderCoverage(); renderPlants(); save();
 }
 
@@ -1831,7 +2331,7 @@ $('sunD').addEventListener('input', (e) => { ST.sunDay = +e.target.value; update
 $('addSp').innerHTML = Object.entries(SPECIES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
 $('addBtn').onclick = () => { const p = mk($('addSp').value, 2.4, 1.0); ST.plants.push(p); ST.sel = p.id; markCustom(); rebuildPlants(); afterEdit(); toast('Pflanze ' + ST.plants.length + ' eingefügt. In der Draufsicht verschieben.'); };
 $('resetBtn').onclick = () => { const id = ST.variant === 'eigen' ? 'H' : ST.variant; $('variant').value = id; loadVariant(id); toast('Variante zurückgesetzt'); };
-$('asReset').onclick = () => { Object.assign(CFG.balcony, clone(CFG0.balcony)); Object.assign(CFG.terrace, clone(CFG0.terrace)); CFG.haus.floor0 = CFG0.haus.floor0; CFG.lattice = CFG0.lattice; for (const k of SITE_KEYS) Object.assign(CFG[k], clone(CFG0[k])); renderAssume(); renderStairFields(); placeRoot(); buildWinLabels(); buildHouseNb(); rebuildSite(); updateSun(); applyLabels(); renderInsights(); save(); };
+$('asReset').onclick = () => { Object.assign(CFG.balcony, clone(CFG0.balcony)); Object.assign(CFG.terrace, clone(CFG0.terrace)); CFG.haus.floor0 = CFG0.haus.floor0; CFG.lattice = CFG0.lattice; for (const k of SITE_KEYS) Object.assign(CFG[k], clone(CFG0[k])); for (const k of ['garage', 'pav', 'nb']) Object.assign(CFG.vp[k], clone(CFG0.vp[k])); renderAssumeVP(); buildVorplatz(); renderAssume(); renderStairFields(); placeRoot(); buildWinLabels(); buildHouseNb(); rebuildSite(); updateSun(); applyLabels(); renderInsights(); save(); };
 $('copyBtn').onclick = () => {
   const txt = JSON.stringify({ balkon: CFG.balcony, pflanzen: ST.plants.map((p, i) => ({ nr: i + 1, art: SPECIES[p.sp].name, vorGiebel_m: +p.u.toFixed(2), abGartenecke_m: +p.v.toFixed(2), hoehe_m: p.top, breite_m: p.w, stamm_m: p.stem, quer: p.rot === 90 })) }, null, 1);
   const fb = () => { const ta = $('copyFallback'); ta.hidden = false; ta.value = txt; ta.select(); toast('Text markiert, bitte kopieren'); };
@@ -1840,7 +2340,15 @@ $('copyBtn').onclick = () => {
 panelEl.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
   panelEl.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
   panelEl.querySelectorAll('.tabpane').forEach(p => { p.hidden = p.id !== b.getAttribute('aria-controls'); });
+  const was = ST.tab; ST.tab = b.id;
+  if (b.id === 't-vp') renderVP();
+  if ((was === 't-vp') !== (b.id === 't-vp')) rebuildSight();
 }));
+$('vz-typ').addEventListener('change', (e) => { CFG.vp.zaun.typ = e.target.value; buildVorplatz(); rebuildSight(); renderVPFields(); renderVPCov(); renderVPNotes(); save(); });
+$('vp-car').addEventListener('change', (e) => { CFG.vp.car = e.target.checked; buildVorplatz(); rebuildSight(); renderVPCov(); save(); });
+$('vpPlan').onclick = () => setView('vpPlan'); $('vpOver').onclick = () => setView('vp');
+$('vpSp').innerHTML = Object.entries(SPECIES).map(([k, sp]) => `<option value="${k}">${sp.name}</option>`).join(''); $('vpSp').value = 'hecke';
+$('vpAdd').onclick = () => { const n = ST.plants.filter(isVP).length, p = mk($('vpSp').value, -15.9, 12.2 + (n % 4) * 1.2); ST.plants.push(p); ST.sel = p.id; rebuildPlants(); afterEdit(); toast('Pflanze ' + ST.plants.length + ' eingefügt. In der Draufsicht Hof verschieben.'); };
 $('views').innerHTML = VIEWS.map(v => `<button class="chip" data-v="${v.id}" aria-pressed="false">${v.name}</button>`).join('') + '<button class="chip" id="plToggle" aria-pressed="false">Pflanzen ausblenden</button>';
 $('views').querySelectorAll('.chip[data-v]').forEach(b => b.addEventListener('click', () => setView(b.dataset.v)));
 $('plToggle').onclick = () => { plantGrp.visible = !plantGrp.visible; $('plToggle').setAttribute('aria-pressed', String(!plantGrp.visible)); $('plToggle').textContent = plantGrp.visible ? 'Pflanzen ausblenden' : 'Pflanzen einblenden'; req(); };
@@ -1861,11 +2369,11 @@ function step(now) {
 if (!load()) ST.plants = VARIANTS.find(v => v.id === 'H').plants();
 placeRoot();
 renderVariantSelect();
-buildTerrain(); buildWinLabels(); buildHouseNb(); buildContext(); buildSite(); buildCtxTrees(); drawGround();
+buildTerrain(); buildWinLabels(); buildHouseNb(); buildContext(); buildSite(); buildVorplatz(); buildCtxTrees(); drawGround();
 rebuildPlants(); rebuildSight(); updateSun();
-renderCoverage(); renderPlants(); renderSpecies(); renderInsights(); renderAssume(); renderStairFields(); renderStair();
+renderCoverage(); renderPlants(); renderSpecies(); renderInsights(); renderAssume(); renderAssumeVP(); renderStairFields(); renderStair(); renderVP();
 applyLabels();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawGround(); buildWinLabels(); buildHouseNb(); rebuildPlants(); applyLabels(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawGround(); buildWinLabels(); buildHouseNb(); buildVorplatz(); rebuildPlants(); applyLabels(); });
 
 return {
   panel: panelEl,
@@ -1876,6 +2384,6 @@ return {
   floor0: () => CFG.haus.floor0,
   // begehbare Terrasse für den Rundgang (Hauskoordinaten: x, y, z ab FFB EG)
   terrace() { const T = CFG.terrasse; return { x0: T.uA + OFF_X, x1: T.over - T.curb + OFF_X, y0: -T.depth + T.curb, y1: 0, z: T.top - T.fill - CFG.haus.floor0 }; },
-  debug: { ST, CFG, setView, loadVariant, coverage, setSeason, rebuildSite, groundH, stairPlan, stairChecks },
+  debug: { ST, CFG, VP, vpGroups, vpCoverage, renderVP, setView, loadVariant, coverage, setSeason, rebuildSite, groundH, stairPlan, stairChecks },
 };
 };

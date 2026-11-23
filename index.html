@@ -787,12 +787,13 @@ function buildBalconies(){
   for(let x=LB_X0+0.3;x<LB_X1;x+=0.8)box(G.OG,x-0.06,B,x+0.06,B+LB_D,zL-0.38,zL-0.18,M.larch);
   railing(G.OG,[[LB_X0,B+LB_D],[LB_X1,B+LB_D],[LB_X1,B]],zL,1.0,'boards');
   railing(G.OG,[[LB_X0,B],[LB_X0,B+LB_D-1.0]],zL,1.0,'boards');
-  const n=15,rs=zL/n,gw=0.25,sy0=B+LB_D-1.0,sy1=B+LB_D;
-  for(let k=1;k<n;k++){const x1=LB_X0-(k-1)*gw,x0=x1-gw-0.03,zt=zL-k*rs;box(G.OG,x0,sy0+0.06,x1,sy1-0.06,zt-0.04,zt,M.grating);}
-  const xb=LB_X0-(n-1)*gw;
-  [sy0+0.03,sy1-0.03].forEach(y=>{beam(G.OG,[LB_X0+0.05,y,zL-0.12],[xb,y,0.05],0.06,0.28,M.larch);
-    beam(G.OG,[LB_X0,y,zL+0.95],[xb+0.25,y,0.95],0.06,0.06,M.larch);
-    [LB_X0,LB_X0-1.5,LB_X0-3.0].forEach(x=>{const zz=Math.max(0,zL*(x-xb)/(LB_X0-xb));box(G.OG,x-0.04,y-0.04,x+0.04,y+0.04,zz-0.1,zz+0.95,M.larch);});});
+  // Die Stahltreppe endet auf einem Betonpodest an der Hausecke (Foto); Podest und Stufen zum Hof baut der Garten
+  const n=15,nP=2,rs=zL/n,gw=0.25,sy0=B+LB_D-1.0,sy1=B+LB_D;
+  for(let k=1;k<n-nP;k++){const x1=LB_X0-(k-1)*gw,x0=x1-gw-0.03,zt=zL-k*rs;box(G.OG,x0,sy0+0.06,x1,sy1-0.06,zt-0.04,zt,M.grating);}
+  const xb=LB_X0-(n-nP-1)*gw,zP=nP*rs;
+  [sy0+0.03,sy1-0.03].forEach(y=>{beam(G.OG,[LB_X0+0.05,y,zL-0.12],[xb,y,zP-0.05],0.06,0.28,M.larch);
+    beam(G.OG,[LB_X0,y,zL+0.95],[xb+0.1,y,zP+0.95],0.06,0.06,M.larch);
+    [LB_X0,LB_X0-1.5,LB_X0-3.0].forEach(x=>{const zz=zP+(zL-zP)*(x-xb)/(LB_X0-xb);box(G.OG,x-0.04,y-0.04,x+0.04,y+0.04,zz-0.1,zz+0.95,M.larch);});});
 }
 
 /* ---------- Treppe ---------- */
