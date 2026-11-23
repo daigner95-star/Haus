@@ -28,7 +28,7 @@ Oben auf **Garten** tippen. Das Haus ist dasselbe Modell wie in den Wohnungen, d
 - **Treppe zum Bach:** Beton-Blockstufen auf dem bestehenden Weg, mit Podesten in den Bögen. Stufenhöhe, Auftritt, Bogenradius und Breite sind einstellbar; geprüft werden Steigung, Auftritt, Schrittmaß, Trittfläche innen und Lauflänge, dazu ein Längsschnitt.
 - **Annahmen:** Im Tab „Annahmen“ steht, was aus dem Aufmaß stammt, was am Meterstab abgelesen und was geschätzt ist. Nachbarhaus und Nachbarbalkon sind aus Fotos geschätzt.
 
-Gartenkoordinaten: „vor Giebel“ = Abstand von der Südost-Hauswand Richtung Nachbar, „ab Gartenecke“ = Abstand von der Hausecke Süd Richtung Straße. Umrechnung ins Hausmodell: Gartenkoordinate = Hauskoordinate x − 13,54 m; Höhe 0 im Garten = Gelände am Südost-Giebel, 0,25 m unter FFB EG. Der Sonnenstand wird mit der auf etwa 1 km gerundeten Lage des Hauses gerechnet. Eigene Pflanzanordnungen speichert der Browser.
+Gartenkoordinaten: „vor Giebel“ = Abstand von der Südost-Hauswand Richtung Nachbar, „ab Gartenecke“ = Abstand von der Hausecke Süd Richtung Straße. Umrechnung ins Hausmodell: Gartenkoordinate = Hauskoordinate x − 13,54 m; Höhe 0 im Garten = Gelände am Südost-Giebel, 0,25 m unter FFB EG. Der Sonnenstand wird für Datum und Uhrzeit (Regler im Garten) mit der auf etwa 1 km gerundeten Lage des Hauses gerechnet, mit Sommerzeit. Sommer/Winter stellt Laub und Datum (21. Juni bzw. 21. Dezember) um. Eigene Pflanzanordnungen speichert der Browser.
 
 ## Veröffentlichen (GitHub Pages)
 Settings → Pages → *Deploy from a branch* → Branch wählen (z. B. `main`), Ordner `/ (root)`.
@@ -36,7 +36,9 @@ Settings → Pages → *Deploy from a branch* → Branch wählen (z. B. `main`),
 ## Datengrundlage
 - Maße aus dem Werkplan der Zimmerei (08/2025). Wohnung 3 ist das Spiegelbild von Wohnung 2.
 - EG-Aufmaß: Schlafzimmer an der Gartenwand innen 4,03 m. Akzentwand bis Pfosten 2,44 m. Halbinsel 2,46 m, Platte 99 × 91 cm. Abstand zur Schrankzeile 1,17 m. Stirnseite bis Schiebetür 1,16 m. Hochschränke 124 × 59 × 225 cm.
-- Annahmen in OG und DG: Balkon OG tiefer Teil 2,55 m, flacher Teil ca. 0,98 m. Balkon DG 2,55 m unter dem Zwerchgiebel. Giebelüberstand ca. 1,0 m (nach Foto).
+- PV-Anlage: Trina Vertex S+ 440 W (1762 × 1134 × 30 mm), hochkant. Straßenseite ganz belegt, je Haushälfte 7 × 3 Module mit einem Ziegelstreifen in der Mitte (Foto). Gartenseite im gleichen Raster neben dem Zwerchgiebel, an den Kehlen getreppt; der Zwerchgiebel selbst ist frei. Im Modell 42 + 24 = 66 Module (ca. 29 kWp), Gartenseite nach dem Dachfoto geschätzt.
+- Giebelüberstand 1,55 m, abgeleitet aus dem PV-Foto (2 × 7 Module passen sonst nicht aufs Dach).
+- Annahmen in OG und DG: Balkon OG tiefer Teil 2,55 m, flacher Teil ca. 0,98 m. Balkon DG 2,55 m unter dem Zwerchgiebel.
 - Fassade, Dach, Laubengang und Außentreppe nach Außenfotos.
 - Wohnfläche Wohnung 2 und 3 laut Ausschreibung 94 m² (inkl. anteiligem Balkon).
 
