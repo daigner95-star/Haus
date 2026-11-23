@@ -65,7 +65,9 @@ const CFG = {
     nb: { u: -19.3, v: 18.7, ang: 255.4, len: 10.3, dep: 10.0, floor: 0.3, og: 3.0, eave: 5.8, ridge: 8.6 },
     zaun: { typ: 'bau', h: 1.8, v0: -2.6, v1: 28.4, off: 0.1 },                   // Zaun an der Grenze NW (Planung)
     car: true,
-    b1: { zaun: true, h: 0.9, mulch: true },                                     // Beet 1: Staketenzaun (Kastanie) und Rindenmulch
+    b1: { zaun: true, h: 0.9, mulch: true },
+    // Beet 3: Wiese mit rechteckigem Trampolin, teilweise versenkt. L × B = Sprungtuch-Außenmaß, matH = Höhe des Rahmens unversenkt
+    b3: { on: true, size: '244', sink: 0.4, matH: 0.75, net: 1.8, du: 0.4 },                                     // Beet 1: Staketenzaun (Kastanie) und Rindenmulch
   },
   stair: {
     on: true,
@@ -531,7 +533,7 @@ const VP = {
   beete: [ // nur 90°- und 45°-Kanten (Angabe)
     { id: 'B1', name: 'Beet vor der Hausfront', pts: [[-11.7, 10.8], [-6.9, 10.8], [-6.9, 12.4], [-8.2, 13.7], [-11.7, 13.7]] },
     { id: 'B2', name: 'Beet an der Grenze NW', pts: [[nwU(11.15) + 0.55, 11.15], [nwU(11.15) + 2.75, 13.35], [nwU(11.15) + 2.75, 16.5], [nwU(16.5), 16.5], [nwU(11.15), 11.15]] },
-    { id: 'B3', name: 'Beet zwischen Haus und Nebengebäude', pts: [[-3.6, 11.05], [0.5, 11.05], [0.5, 13.75], [-3.6, 13.75]] },
+    { id: 'B3', name: 'Wiese mit Trampolin (zwischen Haus und Nebengebäude)', pts: [[-3.6, 11.05], [0.5, 11.05], [0.5, 13.75], [-3.6, 13.75]] },
     { id: 'B4', name: 'Streifen an der Grenze NW zur Straße', pts: [[nwU(19.9), 19.9], [-15.5, 19.9], [-13.4, 28.3], [nwU(28.3), 28.3]] },
   ],
   wegNb: { v0: 16.5, v1: 17.75 },                                               // Pflaster vor dem Pavillon: Weg zum Nachbarn NW, Tor im Zaun
@@ -579,6 +581,12 @@ const VP_WIN = {
   sEG: [[4.192, 5.207, 'Bad'], [11.214, 12.229, 'Büro']],
   sOG: [[2.547, 3.177, 'Bad W2', 1.25], [5.515, 6.145, 'Flur W2', 0.87], [7.395, 8.025, 'Flur W3', 0.87], [10.363, 10.993, 'Bad W3', 1.25]],
 };
+const TRAMP = { '244': { L: 2.44, B: 1.52, name: '244 × 152 cm (8 × 5 ft)' }, '305': { L: 3.05, B: 1.83, name: '305 × 183 cm (10 × 6 ft)' } };
+// Trampolin in Beet 3: Längsseite parallel zur Hausfront, du = Abstand zur SO-Kante des Beets, quer mittig
+function trampRect() {
+  const T = CFG.vp.b3, S = TRAMP[T.size] || TRAMP['244'], P = VP.beete.find(b => b.id === 'B3').pts, u1 = P[1][0] - T.du, vm = (P[0][1] + P[2][1]) / 2;
+  return { u0: u1 - S.L, u1, v0: vm - S.B / 2, v1: vm + S.B / 2, top: Math.max(0.05, T.matH - T.sink), S };
+}
 const LVL_F = { EG: 0, OG: 2.78, DG: 5.54 };
 function vpGroups() {
   const H = CFG.haus, f = (l) => H.floor0 + LVL_F[l], uN = H.u0 - 0.05, vS = H.v1 + 0.05, X = (x) => x + H.u0;
@@ -729,6 +737,13 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
         <div class="row"><label class="small"><input type="checkbox" id="b1-zaun" style="accent-color:var(--accent)"> Staketenzaun 0,9 m</label><label class="small"><input type="checkbox" id="b1-mulch" style="accent-color:var(--accent)"> Rindenmulch</label><button class="btn" id="b1-reset">Vorschlag Beet 1 neu einsetzen</button></div>
         <div class="tablewrap"><table id="b1Tab"></table></div>
         <ul class="tight small" id="b1Notes"></ul>
+      </div>
+      <div class="vdesc">
+        <h2>Beet 3: Wiese mit Trampolin</h2>
+        <div class="row"><label class="small"><input type="checkbox" id="b3-on" style="accent-color:var(--accent)"> Trampolin zeigen</label><button class="btn" id="b3-view">Im Modell zeigen</button></div>
+        <div class="ctl"><label for="b3-size" class="glbl">Größe (rechteckig)</label><select id="b3-size"></select></div>
+        <div class="editor" id="b3Fields"></div>
+        <ul class="tight small" id="b3Notes"></ul>
       </div>
       <div><h3>Bestand und Flächen</h3></div>
       <div class="tablewrap"><table id="vpAreas"></table></div>
@@ -926,6 +941,7 @@ function load() {
       for (const k of ['garage', 'pav', 'nb', 'zaun']) if (s.vp[k]) for (const [f, x] of Object.entries(s.vp[k])) if (f in CFG.vp[k] && typeof x === typeof CFG.vp[k][f] && (typeof x === 'string' || isFinite(x))) CFG.vp[k][f] = x;
       if (!ZAUN[CFG.vp.zaun.typ]) CFG.vp.zaun.typ = 'bau';
       if (typeof s.vp.car === 'boolean') CFG.vp.car = s.vp.car;
+      if (s.vp.b3) { const t = s.vp.b3; if (typeof t.on === 'boolean') CFG.vp.b3.on = t.on; if (TRAMP[t.size]) CFG.vp.b3.size = t.size; for (const f of ['sink', 'du']) if (isFinite(t[f])) CFG.vp.b3[f] = t[f]; }
       if (s.vp.b1) for (const f of ['zaun', 'mulch']) if (typeof s.vp.b1[f] === 'boolean') CFG.vp.b1[f] = s.vp.b1[f];
     }
     if (s.site2) for (const k of SITE_KEYS) if (s.site2[k]) for (const [f, x] of Object.entries(s.site2[k])) if (f in CFG[k] && typeof x === typeof CFG[k][f] && (typeof x === 'boolean' || isFinite(x))) CFG[k][f] = x;
@@ -1522,7 +1538,7 @@ Object.assign(MAT, {
   mesh: new THREE.MeshLambertMaterial({ map: meshTexture(), transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }),
   reed: lam(0xa08c63, { transparent: true, opacity: 0.6, side: THREE.DoubleSide }), foot: lam(0x9a968e),
   pavWood: lam(0x7b5a3d), pavRoof: lam(0x7d8082), bin: lam(0x2d68a8), ballast: lam(0x8a857c), rail: lam(0x5b534c),
-  staket: lam(0x9b8468), shutter: lam(0x9a7a52), white: lam(0xf2f0ea), grill: lam(0x1d1d1d), granite: lam(0xc9c8c3), woodOld: lam(0x9a7b5f), pv: lam(0x34465a),
+  staket: lam(0x9b8468), trMat: lam(0x1f2123), trPad: lam(0x4f6e5a), trNet: new THREE.MeshLambertMaterial({ color: 0x2b2d2f, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }), shutter: lam(0x9a7a52), white: lam(0xf2f0ea), grill: lam(0x1d1d1d), granite: lam(0xc9c8c3), woodOld: lam(0x9a7b5f), pv: lam(0x34465a),
 });
 function cyl(u, v, r, h0, h1, mat, seg = 10) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h1 - h0, seg), mat); m.position.copy(W(u, (h0 + h1) / 2, v)); m.castShadow = true; m.receiveShadow = true; return m; }
 function doorAt(face, plane, a0, a1, h, glass = true) { // Holztür mit kleinem Glasfeld
@@ -1656,9 +1672,34 @@ function buildStaketen(g) { // Kastanien-Staketenzaun rund um Beet 1, 10 cm inne
   im.castShadow = true; g.add(im);
   for (const [u, v] of posts) g.add(cyl(u, v, 0.04, 0, B.h + 0.05, MAT.staket, 6));
 }
+function buildTrampolin(g) { // rechteckiges Trampolin mit Sicherheitsnetz und kleiner Treppe, teilweise in den Boden versenkt
+  const T = CFG.vp.b3; if (!T.on) return;
+  const R = trampRect(), h = R.top, pad = 0.28, mat = MAT.trMat, frame = MAT.trPad;
+  // Grube: dunkler Rand, wo das Trampolin im Boden sitzt
+  if (T.sink > 0.02) g.add(box(R.u0 - 0.05, R.u1 + 0.05, R.v0 - 0.05, R.v1 + 0.05, -0.02, 0.01, MAT.hpDark, false));
+  g.add(box(R.u0 + pad, R.u1 - pad, R.v0 + pad, R.v1 - pad, h - 0.04, h - 0.02, mat));                         // Sprungtuch
+  for (const [a, b, c, d] of [[R.u0, R.u1, R.v0, R.v0 + pad], [R.u0, R.u1, R.v1 - pad, R.v1], [R.u0, R.u0 + pad, R.v0 + pad, R.v1 - pad], [R.u1 - pad, R.u1, R.v0 + pad, R.v1 - pad]])
+    g.add(box(a, b, c, d, h - 0.06, h + 0.02, frame));                                                          // Randabdeckung
+  if (T.sink < T.matH - 0.05) for (const [u, v] of [[R.u0 + 0.1, R.v0 + 0.1], [R.u1 - 0.1, R.v0 + 0.1], [R.u0 + 0.1, R.v1 - 0.1], [R.u1 - 0.1, R.v1 - 0.1]]) g.add(cyl(u, v, 0.025, 0, h, MAT.galv, 6));
+  // Netz: Stangen und Netz rundum, mit Einstieg an der NW-Stirnseite
+  const top = h + T.net, ins = 0.05, cs = [[R.u0 + ins, R.v0 + ins], [R.u1 - ins, R.v0 + ins], [R.u1 - ins, R.v1 - ins], [R.u0 + ins, R.v1 - ins]];
+  const poles = [...cs, [(R.u0 + R.u1) / 2, R.v0 + ins], [(R.u0 + R.u1) / 2, R.v1 - ins]];
+  for (const [u, v] of poles) { g.add(cyl(u, v, 0.022, h, top, MAT.trPad, 6)); }
+  const netM = MAT.trNet;
+  const side = (a, b, gap) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = new THREE.Mesh(new THREE.PlaneGeometry(L - (gap || 0), T.net - 0.05), netM); m.position.copy(W((a[0] + b[0]) / 2 + (gap ? 0 : 0), h + T.net / 2, (a[1] + b[1]) / 2)); m.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]); g.add(m); return m; };
+  side(cs[0], cs[1]); side(cs[1], cs[2]); side(cs[2], cs[3]);
+  const e0 = cs[3], e1 = cs[0], half = (e0[1] - e1[1]) / 2;                                                    // NW-Stirnseite: Netz mit 0,6-m-Einstieg (Reißverschluss)
+  side(e0, [e0[0], e1[1] + half + 0.3]); side([e1[0], e1[1] + half - 0.3], e1);
+  for (const d of [0.06, T.net]) g.add(box(R.u0, R.u1, R.v0 + ins - 0.01, R.v0 + ins + 0.01, h + d - 0.03, h + d, MAT.trPad, false));
+  // kleine Treppe am Einstieg
+  if (h > 0.18) { const n = Math.max(1, Math.round(h / 0.17)), sh = h / (n + 1), vm = (R.v0 + R.v1) / 2;
+    for (let i = 1; i <= n; i++) { const u1 = R.u0 - 0.02 - (i - 1) * 0.25; g.add(box(u1 - 0.26, u1, vm - 0.3, vm + 0.3, sh * (n + 1 - i) - 0.04, sh * (n + 1 - i), MAT.larch)); }
+    for (const vv of [vm - 0.31, vm + 0.31]) g.add(box(R.u0 - 0.02 - n * 0.25, R.u0 - 0.02, vv - 0.02, vv + 0.02, 0, h * 0.9, MAT.larchDark)); }
+  const lb = label('Trampolin', { size: 0.3 }); lb.position.copy(W((R.u0 + R.u1) / 2, top + 0.35, (R.v0 + R.v1) / 2)); g.add(lb);
+}
 function buildVorplatz() {
   clearGroup(vpGrp); const g = vpGrp;
-  buildGarage(g); buildPodest(g); buildPavillon(g); buildZaunNW(g); buildNbNW(g); buildStaketen(g);
+  buildGarage(g); buildPodest(g); buildPavillon(g); buildZaunNW(g); buildNbNW(g); buildStaketen(g); buildTrampolin(g);
   if (CFG.vp.car) buildCar(g);
   const [su, sv] = VP.schacht; g.add(cyl(su, sv, 0.36, 0, 0.02, MAT.frame, 20));
   { const S = VP.stufe; g.add(box(S.u0, S.u1, S.v0, S.v1, 0, S.h, MAT.granite)); }
@@ -1700,6 +1741,7 @@ function drawVorplatz(c, X, Y, poly, winter) {
   speckle(VP.wegNW, '#aaa397', ['#8f887c', '#c4beb3', '#7d776d'], 260);
   // Beete (Erde), Kiesbett unter der Wärmepumpe, Rinnen, Schacht
   for (const b of VP.beete) {
+    if (b.id === 'B3') { speckle(b.pts, winter ? '#86876c' : '#6f9a4e', winter ? ['#7a7b62', '#93947a'] : ['#5f8a42', '#7eaa5a', '#689650'], 500); continue; } // Wiese
     if (b.id === 'B1' && CFG.vp.b1.mulch) speckle(b.pts, '#5a3b26', ['#7a4f30', '#3f2818', '#8a5a36', '#4a3020'], 900);    // Rindenmulch
     else speckle(b.pts, winter ? '#6a5a4a' : '#6e5c49', ['#5a4a3b', '#857260', '#4c3f33'], 160);
   }
@@ -1937,6 +1979,7 @@ const VIEWS = [
   { id: 'hof', name: 'Von der Einfahrt' },
   { id: 'bad', name: 'Blick aus dem Bad' },
   { id: 'beet1', name: 'Beet 1' },
+  { id: 'beet3', name: 'Trampolin' },
 ];
 let tween = null;
 function viewPose(id) {
@@ -1952,6 +1995,7 @@ function viewPose(id) {
   if (id === 'vp') return { pos: W(5, 13, 41), tgt: W(-9, 0.8, 15.5), fov: 50 };
   if (id === 'laub') return { pos: W(-6.0, H.floor0 + 2.74 + CFG.eyeStand, 10.95), tgt: W(-15.5, 1.6, 17.5), fov: 66 };
   if (id === 'bad') return { pos: W(-8.84, H.floor0 + CFG.eyeStand, H.v1 - 0.6), tgt: W(-8.84, 1.5, 16), fov: 70 };
+  if (id === 'beet3') return { pos: W(-4.6, 7.5, 13.0), tgt: W(-1.4, 0.2, 12.4), fov: 50 };
   if (id === 'beet1') return { pos: W(-12.5, 3.4, 18.5), tgt: W(-9.0, 0.9, 12.0), fov: 55 };
   if (id === 'hof') return { pos: W(-6.5, 1.65, 29.2), tgt: W(-10, 1.6, 12), fov: 62 };
   { const F = nbFrame(), N = CFG.vp.nb;
@@ -2405,9 +2449,33 @@ function renderB1() {
     'Der Ahorn steht ca. 2,6 m vor der Hauswand. Bei 4–5 m Endbreite alle paar Jahre zur Hauswand hin auslichten.',
   ].map(t => `<li>${t}</li>`).join('');
 }
+const B3_FIELDS = [
+  ['b3-sink', 'In den Boden versenkt', 0, 0.7, 0.05, () => CFG.vp.b3.sink, (x) => { CFG.vp.b3.sink = x; }],
+  ['b3-du', 'Abstand zur SO-Kante des Beets', 0.2, 1.5, 0.05, () => CFG.vp.b3.du, (x) => { CFG.vp.b3.du = x; }],
+];
+function renderB3() {
+  const T = CFG.vp.b3, R = trampRect(), P = VP.beete.find(b => b.id === 'B3').pts;
+  $('b3-on').checked = T.on;
+  $('b3-size').innerHTML = Object.entries(TRAMP).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join(''); $('b3-size').value = T.size;
+  $('b3Fields').innerHTML = B3_FIELDS.map(([id, l, mn, mx, st, g]) => `<div class="field"><label for="${id}" class="glbl">${l}</label><input type="range" id="${id}" min="${mn}" max="${mx}" step="${st}" value="${g()}"><span class="val" id="${id}-v">${fmt(g(), 2)} m</span></div>`).join('');
+  for (const [id, , , , , g, set] of B3_FIELDS) { $(id).oninput = (e) => { set(+e.target.value); $(id + '-v').textContent = fmt(g(), 2) + ' m'; buildVorplatz(); renderB3Notes(); }; $(id).onchange = () => save(); }
+  renderB3Notes();
+}
+function renderB3Notes() {
+  const T = CFG.vp.b3, R = trampRect(), P = VP.beete.find(b => b.id === 'B3').pts, free = R.u0 - P[0][0], side = R.v0 - P[0][1], n = Math.max(1, Math.round(R.top / 0.17));
+  $('b3Notes').innerHTML = [
+    `Beet 3: ${fmt(P[1][0] - P[0][0], 2)} × ${fmt(P[2][1] - P[0][1], 2)} m Wiese. Trampolin ${R.S.name}, Längsseite parallel zur Hausfront. Seitlich bleiben je ${fmt(side, 2)} m Rasen, am NW-Ende ${fmt(free, 2)} m für Einstieg und Spielfläche.`,
+    `Sprungtuch ${fmt(R.top, 2)} m über dem Rasen (Rahmen ${fmt(T.matH, 2)} m, ${fmt(T.sink, 2)} m versenkt). ${R.top > 0.18 ? `Treppe mit ${n} Stufe${n > 1 ? 'n' : ''} am Netz-Einstieg an der NW-Stirnseite, zur Wiese hin.` : 'So tief versenkt braucht es keine Treppe mehr.'}`,
+    'Netz rundum, 1,8 m hoch, mit Reißverschluss am Einstieg. Das Netz bleibt auch beim versenkten Trampolin wichtig, weil das Beet von Granit-Randsteinen und Pflaster umgeben ist.',
+    'Versenken: Grube etwas größer als der Rahmen ausheben, 10–15 cm Kies als Drainage, Erdreich mit einer Randbefestigung (Holz oder Stahlblech) abfangen. Unter dem Tuch muss Luft entweichen können: bei einem Spalt zwischen Rahmen und Rasen oder mit Lüftungsöffnungen in der Randbefestigung. Rahmen und Federn bleiben zugänglich.',
+    'Für ganz ebenerdige Trampoline gibt es eigene „In-Ground“-Modelle mit Luftdurchlass; die haben meist kein Netz. Halb versenkt mit Netz passt besser zu 4 Jahren.',
+    'Tragfähigkeit: kleine Rechteck-Trampoline sind oft nur für ein Kind auf einmal ausgelegt. Beim Kauf auf Norm EN 71-14 und die maximale Nutzerlast achten.',
+    'Die Lage im Beet ist mit dem Regler verschiebbar; Bürofenster und Garagentüren im Giebel bleiben frei.',
+  ].map(t => `<li>${t}</li>`).join('');
+}
 function renderVP() {
   $('vp-car').checked = CFG.vp.car;
-  renderVPFields(); renderVPCov(); renderVPList(); renderVPAreas(); renderVPNotes(); renderB1();
+  renderVPFields(); renderVPCov(); renderVPList(); renderVPAreas(); renderVPNotes(); renderB1(); renderB3();
 }
 // Annahmen der Straßenseite: [id, Text, Quelle, lesen, schreiben, Schritt, min, max]
 const AS_VP = (() => {
@@ -2475,6 +2543,9 @@ panelEl.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click'
 }));
 $('vz-typ').addEventListener('change', (e) => { CFG.vp.zaun.typ = e.target.value; buildVorplatz(); rebuildSight(); renderVPFields(); renderVPCov(); renderVPNotes(); save(); });
 $('vp-car').addEventListener('change', (e) => { CFG.vp.car = e.target.checked; buildVorplatz(); rebuildSight(); renderVPCov(); save(); });
+$('b3-on').addEventListener('change', (e) => { CFG.vp.b3.on = e.target.checked; buildVorplatz(); save(); });
+$('b3-size').addEventListener('change', (e) => { CFG.vp.b3.size = e.target.value; buildVorplatz(); renderB3Notes(); save(); });
+$('b3-view').onclick = () => setView('beet3');
 $('b1-zaun').addEventListener('change', (e) => { CFG.vp.b1.zaun = e.target.checked; buildVorplatz(); save(); });
 $('b1-mulch').addEventListener('change', (e) => { CFG.vp.b1.mulch = e.target.checked; drawGround(); save(); });
 $('b1-reset').onclick = () => { const bed = VP.beete.find(b => b.id === 'B1').pts; ST.plants = ST.plants.filter(p => !inPoly(p.u, p.v, bed)).concat(b1Plan()); ST.sel = null; rebuildPlants(); afterEdit(); renderB1(); toast('Vorschlag Beet 1 eingesetzt'); };
