@@ -441,7 +441,7 @@ const M={
   floorEG:lam(0xcfae84), larch:lam(0xbd8650), tread:lam(0xc7a072), steel:lam(0x2a2a2a), ground:lam(0x8db06a), white:lam(0xf5f5f3), eg:lam(0xb07c4a),
   slab:lam(0xd8d2c6), glassShower:new THREE.MeshLambertMaterial({color:0xd8ecf2,transparent:true,opacity:0.3,depthWrite:false,side:THREE.DoubleSide})
 };
-const G={}; ['EG','EGceil','egGarden','egKitchen','egWZ','egKids','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
+const G={}; ['EG','EGceil','egGarden','egKitchen','egWZ','egKids','egHang','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
 const COLL=[]; // {x0,y0,x1,y1,z0,z1,furn?,tag?}
 let COLL_TAG=null; // Kennung für Kollisionsboxen, die beim Neubau eines Bauteils ersetzt werden
 function dropColl(tag){for(let i=COLL.length-1;i>=0;i--)if(COLL[i].tag===tag)COLL.splice(i,1);}
@@ -1222,7 +1222,88 @@ const KK=(function(){
 })();
 
 buildGround();buildAllWalls();buildFloors();buildRoof();buildBalconies();
-buildKitchenEG();WZ.build();buildEGGarden();KK.build();
+
+/* ================= EG Projekt 3: Hängeregal über der Halbinsel =================
+   Zwei Varianten nach Entwurfsbild: 1 = offenes Regal im schwarzen Stahlrahmen mit LED-Streifen,
+   2 = geschlossener Hängeschrank in Eiche mit zwei offenen Nischen und Spots nach unten.
+   Längs über der Halbinsel, an Stangen von der Decke abgehängt. Maße in cm. */
+const HS=(function(){
+  const S={len:180,dep:40,wall:40,uk:160,h:40};
+  const st={v:'1'};
+  const sliderDefs=[
+    {k:'len',label:'Länge (entlang der Halbinsel)',min:100,max:240,step:1,hint:'Geschätzt nach dem Entwurfsbild.'},
+    {k:'dep',label:'Tiefe (quer zur Halbinsel)',min:30,max:60,step:1,hint:'Halbinsel 99 cm breit.'},
+    {k:'wall',label:'Abstand von der Wand zum Kinderzimmer',min:0,max:100,step:1,hint:'Wo das Regal an der Wandseite beginnt.'},
+    {k:'uk',label:'Unterkante über dem Boden',min:140,max:190,step:1,hint:'Arbeitsplatte 91 cm, Decke 240 cm.'},
+    {k:'h',label:'Höhe von Regal oder Schrank',min:25,max:60,step:1,hint:'Ohne die Stangen zur Decke.'}
+  ];
+  const fmt=v=>(Math.round(v*10)/10).toLocaleString('de-DE',{maximumFractionDigits:1});
+  const mat={steel:lam(0x1d1d1d),oak:lam(0x7d6149),oakIn:lam(0x6a523d),shelf:lam(0x8a6a4b),
+    led:new THREE.MeshBasicMaterial({color:0xffd08a}),glass:new THREE.MeshLambertMaterial({color:0xdfeef2,transparent:true,opacity:0.45,depthWrite:false}),
+    bottle1:lam(0x4a2a17),bottle2:lam(0x2f4a2a),bottle3:lam(0x8a5a2a),label:lam(0xf2ead8),pot:lam(0x3a3a3a),leaf:lam(0x5f8a4e)};
+  const geo=()=>{const xc=(KU.penX0+KU.penX1)/2,d=S.dep/100,y1=KU.wallN-S.wall/100,y0=Math.max(KU.penY0-0.3,y1-S.len/100),z0=S.uk/100;
+    return {xc,x0:xc-d/2,x1:xc+d/2,y0,y1,z0,z1:Math.min(Z_EGC-0.05,z0+S.h/100)};};
+  const cyl=(g,x,y,z,r,h,m,seg)=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg||14),m);c.position.copy(P(x,y,z+h/2));c.castShadow=true;g.add(c);return c;};
+  // Deko auf einem Boden: Gläser, Flaschen, Pflanze
+  function deco(g,q,ya,yb,z,what){
+    const xc=q.xc,step=0.08;
+    if(what==='glas'){for(let y=ya+0.05;y<yb-0.04;y+=step){[-0.06,0.07].forEach(dx=>{cyl(g,xc+dx,y,z,0.004,0.11,mat.glass,8);cyl(g,xc+dx,y,z+0.11,0.035,0.09,mat.glass,14);});}}
+    if(what==='flasche'){const ms=[mat.bottle1,mat.bottle2,mat.bottle3];let i=0;for(let y=ya+0.06;y<yb-0.05;y+=0.09,i++){const m=ms[i%3];cyl(g,xc,y,z,0.035,0.2,m);cyl(g,xc,y,z+0.2,0.013,0.09,m);cyl(g,xc+0.001,y,z+0.06,0.036,0.07,mat.label);}}
+    if(what==='pflanze'){const y=(ya+yb)/2;cyl(g,xc,y,z,0.08,0.13,mat.pot,16);const l=new THREE.Mesh(new THREE.SphereGeometry(0.13,14,10),mat.leaf);l.position.copy(P(xc,y,z+0.22));l.castShadow=true;g.add(l);
+      for(let k=0;k<5;k++){cyl(g,xc+(k%2?0.09:-0.09),y-0.08+k*0.04,z-0.35-k*0.04,0.012,0.45+k*0.04,mat.leaf,6);}}
+  }
+  function rod(g,x,y,z0){ebox(g,x-0.02,y-0.02,x+0.02,y+0.02,z0,Z_EGC,mat.steel);ebox(g,x-0.05,y-0.05,x+0.05,y+0.05,Z_EGC-0.006,Z_EGC,mat.steel,false);}
+  function build(){
+    const g=G.egHang;clearGroup(g);if(st.v==='aus'){report();return;}
+    const q=geo(),L=q.y1-q.y0;
+    if(st.v==='1'){
+      const t=0.03,z0=q.z0,z1=q.z1;
+      // Rahmen: Kanten unten und oben, Eckstützen, Mittelrahmen
+      [z0,z1-t].forEach(z=>{ebox(g,q.x0,q.y0,q.x0+t,q.y1,z,z+t,mat.steel,false);ebox(g,q.x1-t,q.y0,q.x1,q.y1,z,z+t,mat.steel,false);
+        [q.y0,q.y1-t,(q.y0+q.y1-t)/2].forEach(y=>ebox(g,q.x0,y,q.x1,y+t,z,z+t,mat.steel,false));});
+      [[q.x0,q.y0],[q.x1-t,q.y0],[q.x0,q.y1-t],[q.x1-t,q.y1-t],[q.x0,(q.y0+q.y1-t)/2],[q.x1-t,(q.y0+q.y1-t)/2]].forEach(([x,y])=>ebox(g,x,y,x+t,y+t,z0,z1,mat.steel,false));
+      // Holzboden mit LED-Streifen darunter
+      ebox(g,q.x0+t,q.y0+t,q.x1-t,q.y1-t,z0+t,z0+t+0.04,mat.shelf);
+      ebox(g,q.xc-0.01,q.y0+0.08,q.xc+0.01,q.y1-0.08,z0-0.004,z0,mat.led,false);
+      [q.y0+0.25,(q.y0+q.y1)/2,q.y1-0.25].forEach(y=>rod(g,q.xc,y,z1));
+      const zs=z0+t+0.04,m=(q.y0+q.y1)/2;
+      deco(g,q,m+0.02,q.y1-0.25,zs,'glas');deco(g,q,q.y0+0.3,m-0.02,zs,'flasche');deco(g,q,q.y1-0.25,q.y1-0.03,zs,'pflanze');deco(g,q,q.y0+0.03,q.y0+0.28,zs,'pflanze');
+    } else {
+      const t=0.02,z0=q.z0,z1=q.z1;
+      // Korpus: Boden, Deckel, Seiten, Rückwand (Raumseite +x geschlossen, Nischen und Türen zur Essseite −x)
+      ebox(g,q.x0,q.y0,q.x1,q.y1,z0,z0+t,mat.oak);ebox(g,q.x0,q.y0,q.x1,q.y1,z1-t,z1,mat.oak);
+      ebox(g,q.x0,q.y0,q.x1,q.y0+t,z0,z1,mat.oak);ebox(g,q.x0,q.y1-t,q.x1,q.y1,z0,z1,mat.oak);
+      ebox(g,q.x1-t,q.y0,q.x1,q.y1,z0,z1,mat.oak);
+      const a=[q.y0,q.y0+L*0.25,q.y0+L*0.5,q.y0+L*0.75,q.y1];
+      [a[1],a[2],a[3]].forEach(y=>ebox(g,q.x0,y-t/2,q.x1-t,y+t/2,z0+t,z1-t,mat.oak));
+      // Türen außen, Nischen innen
+      [[a[0],a[1]],[a[3],a[4]]].forEach(([y0,y1])=>{ebox(g,q.x0-0.02,y0+0.002,q.x0,y1-0.002,z0+0.002,z1-0.002,mat.oak);
+        const yy=y0<q.y0+0.01?y1-0.05:y0+0.05;ebox(g,q.x0-0.035,yy-0.008,q.x0-0.02,yy+0.008,z0+0.04,z0+0.16,mat.steel,false);});
+      ebox(g,q.x0+0.01,a[1]+t/2,q.x1-t,a[3]-t/2,z0+t,z0+t+0.002,mat.oakIn,false);
+      [(a[1]+a[2])/2,(a[2]+a[3])/2].forEach(y=>{const s=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.004,16),mat.led);s.position.copy(P(q.xc,y,z1-t-0.002));g.add(s);});
+      for(let i=0;i<4;i++){const y=q.y0+L*(i+0.5)/4;const s=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.004,16),mat.led);s.position.copy(P(q.xc,y,z0-0.002));g.add(s);}
+      [q.y0+0.3,q.y1-0.3].forEach(y=>rod(g,q.xc,y,z1));
+      deco(g,q,a[1]+0.02,a[2]-0.02,z0+t,'glas');deco(g,q,a[2]+0.02,a[3]-0.02,z0+t,'flasche');
+    }
+    report();
+  }
+  function report(){
+    const q=geo(),ov=(S.dep-KU.penW*100)/2,over=S.uk-KU.top*100,ceil=(Z_EGC-q.z1)*100,len=(q.y1-q.y0)*100;
+    const cls=ok=>ok?'ok':'warn';
+    const rows=st.v==='aus'?[['Ausgeblendet','']]:[
+      ['Variante',st.v==='1'?'Hängeregal mit Rahmen':'Geschlossener Hängeschrank'],
+      ['Größe (L × T × H)',`${fmt(len)} × ${fmt(S.dep)} × ${fmt((q.z1-q.z0)*100)} cm`],
+      ['Freiraum über der Arbeitsplatte',`<span class="${cls(over>=60)}">${fmt(over)} cm</span>`],
+      ['Oberkante bis Decke (Stangen)',`${fmt(ceil)} cm`],
+      ['Überstand seitlich über die Platte',ov>0?`<span class="warn">${fmt(ov)} cm je Seite</span>`:'keiner'],
+      ['Ende Richtung Garten ab Stirnseite Halbinsel',`${fmt((q.y0-KU.penY0)*100)} cm`]
+    ];
+    const el=document.getElementById('hsOut');if(el)el.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  }
+  return {S,st,sliderDefs,build,report,geo};
+})();
+
+buildKitchenEG();WZ.build();buildEGGarden();KK.build();HS.build();
 buildStairs(W2);buildStairs(W3);
 [W2,W3].forEach(u=>{buildFurniture(u,'fixed');buildFurniture(u,'furn');});
 flushSlats();
@@ -1235,7 +1316,7 @@ controls.addEventListener('change',()=>requestRender());
 
 function applyVisibility(){
   const v=state.view,l=state.lvl;
-  const show={EG:true,EGceil:true,egGarden:true,egKitchen:true,egWZ:true,egKids:true,OG:true,OGceil:true,DG:true,roof:true,balOG:true,furnOG:state.furn,furnDG:state.furn};
+  const show={EG:true,EGceil:true,egGarden:true,egKitchen:true,egWZ:true,egKids:true,egHang:true,OG:true,OGceil:true,DG:true,roof:true,balOG:true,furnOG:state.furn,furnDG:state.furn};
   if(v==='puppe'){show.roof=false;
     if(l==='EG'){['EGceil','OG','OGceil','DG','balOG','furnOG','furnDG'].forEach(k=>show[k]=false);}
     else if(l==='OG'){show.OGceil=false;show.DG=false;show.furnDG=false;}else{show.furnOG=false;}}
@@ -1464,6 +1545,7 @@ function egPlanItems(){
   R(K.penX0,K.penY0,K.penX1,K.wallN);
   WZ.planRects().forEach(r=>R(r.x0,r.y0,r.x1,r.y1));
   const q=KK.geo();R(q.x0,q.yf,q.x1,q.yb,q.r,true);
+  if(HS.st.v!=='aus'){const h=HS.geo();s+='<rect x="'+h.x0.toFixed(3)+'" y="'+svgY(h.y1).toFixed(3)+'" width="'+(h.x1-h.x0).toFixed(3)+'" height="'+(h.y1-h.y0).toFixed(3)+'" fill="none" stroke="var(--hl)" stroke-width="0.025" stroke-dasharray="0.1 0.06"/>';}
   s+='<text x="'+q.xc+'" y="'+(svgY(q.yf)+0.3)+'" font-size="0.16" fill="var(--hl)" text-anchor="middle">Kinderküche</text>';
   return s;
 }
@@ -1491,6 +1573,7 @@ function egCam(name){
   let t,p;
   if(WZ.views[name])[t,p]=WZ.camWorld(WZ.views[name]());
   else if(name==='kueche'){t=P(11.3,2.3,0.8);p=P(7.9,0.9,3.3);}
+  else if(name==='haenge'){const h=HS.geo();t=P(h.xc+0.2,(h.y0+h.y1)/2+0.2,1.45);p=P(h.xc-2.9,h.y0-1.0,1.65);}
   else{const q=KK.geo();t=P(q.xc,q.yf+0.1,0.55);p=P(q.xc-2.3,q.yf-0.45,1.75);}
   camera.fov=45;camera.updateProjectionMatrix();controls.target.copy(t);camera.position.copy(p);controls.update();
   syncChips();applyVisibility();requestRender();
@@ -1504,8 +1587,14 @@ function renderPanelEG(){
    '<div class="sub">Ganze Hausbreite, lichte Raumhöhe 2,40 m</div>'+
    '<div class="big">ca. '+fmt(sumW(u))+' m²</div><div class="sub">Grundfläche der Räume im Modell (nach Werkplan, ohne Gewähr)</div>'+
    '<h3>Ansichten</h3><div class="chips">'+
-     [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche']]
+     [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal']]
      .map(([k,n])=>'<button class="chip" data-cam="'+k+'">'+n+'</button>').join('')+'</div>'+
+   '<h3>Projekt 3 · Hängeregal über der Halbinsel</h3>'+
+   '<div class="chips" role="group" aria-label="Variante">'+[['1','Alternative 1: Regal mit Rahmen'],['2','Alternative 2: Hängeschrank'],['aus','Ausblenden']]
+     .map(([k,n])=>'<button class="chip" data-hv="'+k+'" aria-pressed="'+(HS.st.v===k)+'">'+n+'</button>').join('')+'</div>'+
+   '<div id="hsSl"></div><h4>Ergebnis</h4><table class="res" id="hsOut"></table>'+
+   '<p class="note"><b>Nach dem Entwurfsbild:</b> Alternative 1 offenes Regal im schwarzen Stahlrahmen mit Holzboden und LED-Streifen darunter. Alternative 2 Hängeschrank in Eiche wie die Küchenfronten, Türen außen, zwei offene Nischen in der Mitte, Spots nach unten. Beide hängen an Stangen von der Decke.</p>'+
+   '<p class="note"><b>Geschätzt, bitte prüfen:</b> alle Maße (Länge 180, Tiefe 40, Höhe 40 cm, Unterkante 160 cm, 40 cm Abstand zur Wand). Nischen und Türen zur Essseite.</p>'+
    '<h3>Projekt 2 · Kinderküche an der Halbinsel</h3>'+
    '<p class="note">Bank, Trittstufe und Kinder-Arbeitsplatz in einem. Steht an der Stirnseite der Halbinsel, wo jetzt die Truhe steht.</p>'+
    '<div class="chips" role="group" aria-label="Kind zeigen">'+[['steht','Steht oben'],['sitzt','Sitzt'],['schneidet','Schneidet'],['aus','Ohne Kind']]
@@ -1536,6 +1625,9 @@ function renderPanelEG(){
   sliderUI(document.getElementById('wzSl'),WZ.sliderDefs,WZ.S,k=>{WZ.build();if(k==='ww'||k==='clad')buildEGGarden();egChanged();});
   KK.report();WZ.report();
   const tog=(id,obj,key,fn)=>{const b=document.getElementById(id);b.addEventListener('click',()=>{obj[key]=!obj[key];b.setAttribute('aria-pressed',obj[key]);fn&&fn();egChanged();});};
+  sliderUI(document.getElementById('hsSl'),HS.sliderDefs,HS.S,()=>{HS.build();egChanged();});HS.report();
+  panel.querySelectorAll('[data-hv]').forEach(b=>b.addEventListener('click',()=>{HS.st.v=b.dataset.hv;
+    panel.querySelectorAll('[data-hv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));HS.build();egChanged();}));
   tog('kkOpen',KK.st,'open');tog('kkCush',KK.st,'cushion',KK.build);
   tog('tOpen',WZ.st,'open');tog('tXray',WZ.st,'xray',WZ.applyXray);tog('tSofa',WZ.st,'sofa',WZ.build);tog('tBeam',WZ.st,'beamFull',WZ.build);
   panel.querySelectorAll('[data-pose]').forEach(b=>b.addEventListener('click',()=>{KK.st.pose=b.dataset.pose;
@@ -1614,7 +1706,7 @@ document.getElementById('extBtn').addEventListener('click',e=>{SHOW_EXT=!SHOW_EX
 
 /* Start */
 renderPanel();resize();setView('puppe');resize();
-window.__tour={cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,G};
+window.__tour={cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,G};
 })();
 </script>
 </body>
