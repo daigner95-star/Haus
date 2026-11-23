@@ -65,6 +65,7 @@ const CFG = {
     nb: { u: -19.3, v: 18.7, ang: 255.4, len: 10.3, dep: 10.0, floor: 0.3, og: 3.0, eave: 5.8, ridge: 8.6 },
     zaun: { typ: 'bau', h: 1.8, v0: -2.6, v1: 28.4, off: 0.1 },                   // Zaun an der Grenze NW (Planung)
     car: true,
+    b1: { zaun: true, h: 0.9, mulch: true },                                     // Beet 1: Staketenzaun (Kastanie) und Rindenmulch
   },
   stair: {
     on: true,
@@ -151,6 +152,30 @@ const SPECIES = {
     stem: 1.4, top: 5.5, w: 4.5, densS: 1.1, densW: 0.15, ever: false,
     color: 0x788a68, growth: [[0.5, 0.35], [0.8, 0.7], [1, 1]], max: [8, 6],
     info: 'Kleiner Baum mit silbrigem Laub und duftender Blüte im Juni. Sehr frosthart, will Sonne und eher trockenen Boden. Dornig, bildet teils Wurzelausläufer. Typisch 5–7 m hoch und 4–6 m breit, alt bis 10 m. Lockere Krone.',
+  },
+  faecherahorn: {
+    name: 'Japanischer Fächerahorn, rotlaubig', latin: "Acer palmatum 'Bloodgood' / 'Atropurpureum'", shape: 'ell',
+    stem: 0.5, top: 3.5, w: 3.0, densS: 2.2, densW: 0.25, ever: false,
+    color: 0x7b2a2c, growth: [[0.5, 0.45], [0.75, 0.7], [1, 1]], max: [5, 4.5], multi: true,
+    info: 'Kleiner Baum mit dunkelrotem, fein geschlitztem Laub, im Herbst leuchtend rot. Wächst langsam (20–30 cm im Jahr), alt 4–5 m hoch und fast so breit; lässt sich gut auslichten. Mag Halbschatten und humosen, feuchten, nicht verdichteten Boden; Morgensonne ist ideal, pralle Mittagssonne verbrennt das Laub. Frosthart bis etwa −20 °C, Austrieb spätfrostgefährdet. Nicht giftig.',
+  },
+  hortensie: {
+    name: "Schneeball-Hortensie 'Annabelle'", latin: "Hydrangea arborescens 'Annabelle' (oder 'Strong Annabelle')", shape: 'ell',
+    stem: 0.0, top: 1.3, w: 1.3, densS: 2.6, densW: 0.5, ever: false,
+    color: 0x6f9a55, growth: [[0.6, 0.6], [1, 1], [1, 1]], max: [1.5, 1.8],
+    info: 'Große weiße Ballblüten Juni bis September, getrocknet bis in den Winter. Blüht am neuen Holz: Rückschnitt im März, Spätfrost schadet nicht. Sicherer als Bauernhortensien auf ca. 750 m. Halbschatten, braucht Wasser. Leicht giftig.',
+  },
+  anemone: {
+    name: 'Herbstanemonen (Gruppe)', latin: "Anemone hupehensis / × hybrida, z. B. 'Honorine Jobert', 'Pamina'", shape: 'ell',
+    stem: 0.0, top: 1.1, w: 1.0, densS: 1.2, densW: 0.05, ever: false,
+    color: 0x86a862, growth: [[0.6, 0.6], [1, 1], [1, 1]], max: [1.3, 1.5],
+    info: 'Weiß oder rosa, August bis Oktober, 80–120 cm. Halbschatten, breitet sich langsam aus. Im Modell als Gruppe aus 3 Pflanzen. Leicht giftig.',
+  },
+  phlox: {
+    name: 'Hohe Stauden (Phlox, Silberkerze)', latin: 'Phlox paniculata, Actaea simplex', shape: 'ell',
+    stem: 0.0, top: 1.2, w: 0.9, densS: 1.4, densW: 0.05, ever: false,
+    color: 0x7fa45c, growth: [[0.6, 0.6], [1, 1], [1, 1]], max: [1.5, 1.2],
+    info: 'Staudenphlox duftet im Juli/August (vorne, wo mehr Licht ist); Silberkerze blüht im September und mag es schattiger (näher am Haus). Im Modell als Gruppe aus 3 Pflanzen.',
   },
   oelweideW: {
     name: 'Wintergrüne Ölweide', latin: 'Elaeagnus × ebbingei', shape: 'ell',
@@ -565,7 +590,8 @@ function vpGroups() {
     { id: 'gEG', name: 'NW-Giebel EG', room: 'Wohnung 1: Schlafzimmer, Kinderzimmer 1', wins: gable('EG') },
     { id: 'gOG', name: 'NW-Giebel OG', room: 'Wohnung 2: Wohnen, Bad', wins: gable('OG') },
     { id: 'gDG', name: 'NW-Giebel DG', room: 'Wohnung 2: Schlafzimmer, Kind / Büro', wins: gable('DG') },
-    { id: 'sEG', name: 'Hausfront EG', room: 'Wohnung 1: Bad, Büro', wins: street(VP_WIN.sEG, 'EG') },
+    { id: 'sBad', name: 'Badfenster EG', room: 'Wohnung 1, Doppelflügel rechts der Haustür', wins: street(VP_WIN.sEG.slice(0, 1), 'EG') },
+    { id: 'sBuero', name: 'Bürofenster EG', room: 'Wohnung 1, links der Haustür', wins: street(VP_WIN.sEG.slice(1), 'EG') },
     { id: 'sOG', name: 'Laubengang OG', room: 'Wohnungstüren, Flur- und Badfenster', wins: [{ room: 'Laubengang', pts: lb, line: lb }].concat(street(VP_WIN.sOG, 'OG')) },
   ];
 }
@@ -698,6 +724,12 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
         <button class="btn primary" id="vpAdd">Pflanze hinzufügen</button>
       </div>
       <div class="plist" id="vpList"></div>
+      <div class="vdesc">
+        <h2>Beet 1 vor dem Bad</h2>
+        <div class="row"><label class="small"><input type="checkbox" id="b1-zaun" style="accent-color:var(--accent)"> Staketenzaun 0,9 m</label><label class="small"><input type="checkbox" id="b1-mulch" style="accent-color:var(--accent)"> Rindenmulch</label><button class="btn" id="b1-reset">Vorschlag Beet 1 neu einsetzen</button></div>
+        <div class="tablewrap"><table id="b1Tab"></table></div>
+        <ul class="tight small" id="b1Notes"></ul>
+      </div>
       <div><h3>Bestand und Flächen</h3></div>
       <div class="tablewrap"><table id="vpAreas"></table></div>
       <ul class="tight small" id="vpNotes"></ul>
@@ -857,6 +889,15 @@ const VARIANTS = [
     plants: () => [mk('oelweide', 3.7, 5.8, { top: 5.0, w: 3.5, d: 3.5, stem: 1.4 })] },
 ];
 
+// Vorschlag Beet 1: Fächerahorn vor dem Badfenster, darum lockere Bauerngarten-Stauden 1–1,5 m
+function b1Plan() {
+  return [
+    mk('faecherahorn', -8.85, 12.25, { top: 3.5, w: 3.0, d: 3.0, stem: 0.5 }),
+    mk('hortensie', -11.0, 12.6), mk('hortensie', -7.45, 11.55, { w: 1.1, d: 1.1, top: 1.2 }),
+    mk('anemone', -10.2, 11.45), mk('anemone', -7.75, 12.95, { w: 0.9, d: 0.9 }),
+    mk('phlox', -10.0, 13.15), mk('phlox', -11.15, 11.3, { top: 1.3 }),
+  ];
+}
 // ---------- Zustand ----------
 const ST = {
   variant: 'H', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, sunDay: 172, target: 'balcony',
@@ -885,6 +926,7 @@ function load() {
       for (const k of ['garage', 'pav', 'nb', 'zaun']) if (s.vp[k]) for (const [f, x] of Object.entries(s.vp[k])) if (f in CFG.vp[k] && typeof x === typeof CFG.vp[k][f] && (typeof x === 'string' || isFinite(x))) CFG.vp[k][f] = x;
       if (!ZAUN[CFG.vp.zaun.typ]) CFG.vp.zaun.typ = 'bau';
       if (typeof s.vp.car === 'boolean') CFG.vp.car = s.vp.car;
+      if (s.vp.b1) for (const f of ['zaun', 'mulch']) if (typeof s.vp.b1[f] === 'boolean') CFG.vp.b1[f] = s.vp.b1[f];
     }
     if (s.site2) for (const k of SITE_KEYS) if (s.site2[k]) for (const [f, x] of Object.entries(s.site2[k])) if (f in CFG[k] && typeof x === typeof CFG[k][f] && (typeof x === 'boolean' || isFinite(x))) CFG[k][f] = x;
     return true;
@@ -1480,7 +1522,7 @@ Object.assign(MAT, {
   mesh: new THREE.MeshLambertMaterial({ map: meshTexture(), transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }),
   reed: lam(0xa08c63, { transparent: true, opacity: 0.6, side: THREE.DoubleSide }), foot: lam(0x9a968e),
   pavWood: lam(0x7b5a3d), pavRoof: lam(0x7d8082), bin: lam(0x2d68a8), ballast: lam(0x8a857c), rail: lam(0x5b534c),
-  shutter: lam(0x9a7a52), white: lam(0xf2f0ea), grill: lam(0x1d1d1d), granite: lam(0xc9c8c3), woodOld: lam(0x9a7b5f), pv: lam(0x34465a),
+  staket: lam(0x9b8468), shutter: lam(0x9a7a52), white: lam(0xf2f0ea), grill: lam(0x1d1d1d), granite: lam(0xc9c8c3), woodOld: lam(0x9a7b5f), pv: lam(0x34465a),
 });
 function cyl(u, v, r, h0, h1, mat, seg = 10) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h1 - h0, seg), mat); m.position.copy(W(u, (h0 + h1) / 2, v)); m.castShadow = true; m.receiveShadow = true; return m; }
 function doorAt(face, plane, a0, a1, h, glass = true) { // Holztür mit kleinem Glasfeld
@@ -1598,9 +1640,25 @@ function buildCar(g) {
   g.add(box(u0, u1, v0, v1, 0.22, 0.95, MAT.car)); g.add(box(u0 + 0.12, u1 - 0.12, C.v - 1.25, C.v + 1.45, 0.95, 1.55, MAT.carGlass));
   for (const [uu, vv] of [[u0 + 0.12, v0 + 0.8], [u1 - 0.12, v0 + 0.8], [u0 + 0.12, v1 - 0.85], [u1 - 0.12, v1 - 0.85]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 14), MAT.tyre); w.rotation.z = Math.PI / 2; w.position.copy(W(uu, 0.34, vv)); g.add(w); }
 }
+function buildStaketen(g) { // Kastanien-Staketenzaun rund um Beet 1, 10 cm innerhalb der Einfassung
+  const B = CFG.vp.b1; if (!B.zaun) return;
+  const P = VP.beete.find(b => b.id === 'B1').pts, n = P.length, cx = P.reduce((a, q) => a + q[0], 0) / n, cy = P.reduce((a, q) => a + q[1], 0) / n;
+  const ins = P.map(([u, v]) => { const d = Math.hypot(u - cx, v - cy); return [u - (u - cx) / d * 0.12, v - (v - cy) / d * 0.12]; });
+  const pick = [], posts = [];
+  for (let i = 0; i < n; i++) {
+    const a = ins[i], b = ins[(i + 1) % n], L = Math.hypot(b[0] - a[0], b[1] - a[1]), k = Math.floor(L / 0.08);
+    for (let j = 0; j < k; j++) { const t = (j + 0.5) / k; if (i === n - 1 && Math.abs(t - 0.5) * L < 0.4) continue; pick.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, (j * 7919) % 5]); }
+    const np = Math.max(1, Math.round(L / 1.6)); for (let j = 0; j < np; j++) posts.push([a[0] + (b[0] - a[0]) * j / np, a[1] + (b[1] - a[1]) * j / np]);
+    for (const hh of [0.2, B.h - 0.2]) { const m = new THREE.Mesh(new THREE.BoxGeometry(L, 0.01, 0.01), MAT.galv); m.position.copy(W((a[0] + b[0]) / 2, hh, (a[1] + b[1]) / 2)); m.rotation.y = Math.atan2(b[1] - a[1], b[0] - a[0]); g.add(m); }
+  }
+  const im = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.016, 0.02, 1, 5), MAT.staket, pick.length), M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  pick.forEach(([u, v, r], i) => { const hh = B.h - 0.04 * r; sc.set(1, hh, 1); M.compose(W(u, hh / 2, v), q, sc); im.setMatrixAt(i, M); });
+  im.castShadow = true; g.add(im);
+  for (const [u, v] of posts) g.add(cyl(u, v, 0.04, 0, B.h + 0.05, MAT.staket, 6));
+}
 function buildVorplatz() {
   clearGroup(vpGrp); const g = vpGrp;
-  buildGarage(g); buildPodest(g); buildPavillon(g); buildZaunNW(g); buildNbNW(g);
+  buildGarage(g); buildPodest(g); buildPavillon(g); buildZaunNW(g); buildNbNW(g); buildStaketen(g);
   if (CFG.vp.car) buildCar(g);
   const [su, sv] = VP.schacht; g.add(cyl(su, sv, 0.36, 0, 0.02, MAT.frame, 20));
   { const S = VP.stufe; g.add(box(S.u0, S.u1, S.v0, S.v1, 0, S.h, MAT.granite)); }
@@ -1641,7 +1699,10 @@ function drawVorplatz(c, X, Y, poly, winter) {
   // NW-Giebel: Kiesweg, daneben Wiese bis zur Grenze
   speckle(VP.wegNW, '#aaa397', ['#8f887c', '#c4beb3', '#7d776d'], 260);
   // Beete (Erde), Kiesbett unter der Wärmepumpe, Rinnen, Schacht
-  for (const b of VP.beete) speckle(b.pts, winter ? '#6a5a4a' : '#6e5c49', ['#5a4a3b', '#857260', '#4c3f33'], 160);
+  for (const b of VP.beete) {
+    if (b.id === 'B1' && CFG.vp.b1.mulch) speckle(b.pts, '#5a3b26', ['#7a4f30', '#3f2818', '#8a5a36', '#4a3020'], 900);    // Rindenmulch
+    else speckle(b.pts, winter ? '#6a5a4a' : '#6e5c49', ['#5a4a3b', '#857260', '#4c3f33'], 160);
+  }
   const kw = kiesWP(); speckle(kw, '#bdb9b1', ['#9c978e', '#d6d3cc', '#86817a'], 400);
   for (const b of VP.beete) curb(b.pts);
   curb(kw.slice(0, 5));
@@ -1874,6 +1935,8 @@ const VIEWS = [
   { id: 'nwEG', name: 'Blick Kinderzimmer EG' },
   { id: 'nbNW', name: 'Vom Garten NW' },
   { id: 'hof', name: 'Von der Einfahrt' },
+  { id: 'bad', name: 'Blick aus dem Bad' },
+  { id: 'beet1', name: 'Beet 1' },
 ];
 let tween = null;
 function viewPose(id) {
@@ -1888,6 +1951,8 @@ function viewPose(id) {
   if (id === 'hang') { const pu = 3.3, pv = Math.max(waterV(3.3) + 2.6, -T7.depth - 2.4); return { pos: W(pu, groundH(pu, pv) + 1.6, pv), tgt: W(-0.6, 0.5, -1.4), fov: 64 }; }
   if (id === 'vp') return { pos: W(5, 13, 41), tgt: W(-9, 0.8, 15.5), fov: 50 };
   if (id === 'laub') return { pos: W(-6.0, H.floor0 + 2.74 + CFG.eyeStand, 10.95), tgt: W(-15.5, 1.6, 17.5), fov: 66 };
+  if (id === 'bad') return { pos: W(-8.84, H.floor0 + CFG.eyeStand, H.v1 - 0.6), tgt: W(-8.84, 1.5, 16), fov: 70 };
+  if (id === 'beet1') return { pos: W(-12.5, 3.4, 18.5), tgt: W(-9.0, 0.9, 12.0), fov: 55 };
   if (id === 'hof') return { pos: W(-6.5, 1.65, 29.2), tgt: W(-10, 1.6, 12), fov: 62 };
   { const F = nbFrame(), N = CFG.vp.nb;
     if (id === 'nwOG') { const t = F.P(5, 1); return { pos: W(H.u0 - 0.2, fo + CFG.eyeStand, 4.8), tgt: W(t[0], N.og + 1.2, t[1]), fov: 72 }; }
@@ -1919,7 +1984,7 @@ function setView(id) {
   req();
 }
 const WIN = ['OG1', 'OG2', 'OG3', 'EG1'];
-function firstPerson() { return WIN.includes(ST.view) || ['nbBalk', 'nbTerr', 'nwOG', 'nwEG', 'nbNW', 'laub', 'hof'].includes(ST.view); }
+function firstPerson() { return WIN.includes(ST.view) || ['nbBalk', 'nbTerr', 'nwOG', 'nwEG', 'nbNW', 'laub', 'hof', 'bad'].includes(ST.view); }
 // Beschriftungen und Sichtlinien gehören zur Gartenplanung: außerhalb des Gartens ausblenden
 function applyLabels() {
   const on = active();
@@ -2309,9 +2374,40 @@ function renderVPNotes() {
     'Vor dem Pavillon führt ein Weg zum Nachbarn NW. Im Zaun ist dort ein Tor mit 1,1 m Breite vorgesehen.',
   ].map(t => `<li>${t}</li>`).join('');
 }
+const B1_LIST = [ // [Pflanze, botanisch, Höhe, Blüte, Menge, Platz im Beet]
+  ['Japanischer Fächerahorn, rot', "Acer palmatum 'Bloodgood'", '3–4 m (alt 5)', 'Laub rot, Herbst leuchtend', '1 (Solitär 125–150 cm)', 'vor dem Badfenster, 2,6 m von der Wand'],
+  ["Schneeball-Hortensie 'Annabelle'", 'Hydrangea arborescens', '1,0–1,5 m', 'Juni–Sept., weiß', '2', 'NW-Ende und vor dem WC-Fenster'],
+  ['Herbstanemone', "Anemone × hybrida 'Honorine Jobert' (weiß), 'Pamina' (rosa)", '0,8–1,2 m', 'Aug.–Okt.', '6', 'zwei Gruppen neben dem Ahorn'],
+  ['Staudenphlox', "Phlox paniculata, z. B. 'David' (weiß), 'Bright Eyes'", '0,8–1,2 m', 'Juli–Aug., duftet', '3', 'vorne zum Hof (mehr Licht)'],
+  ['Silberkerze', "Actaea simplex 'Brunette'", '1,2–1,5 m', 'Sept.–Okt.', '2', 'hinten am NW-Ende (schattig)'],
+  ['Pfingstrose', 'Paeonia lactiflora', '0,8–1,0 m', 'Mai–Juni', '1', 'vorne an der Schräge'],
+  ['Akelei', 'Aquilegia vulgaris', '0,6–0,8 m', 'Mai–Juni, sät sich aus', '5', 'locker verteilt'],
+  ['Storchschnabel', "Geranium 'Rozanne'", '0,4–0,5 m', 'Juni–Okt.', '3', 'Lücken am Rand füllen'],
+  ['Frauenmantel', 'Alchemilla mollis', '0,3–0,4 m', 'Juni–Juli, gelbgrün', '5', 'Kante zum Pflaster'],
+  ['Japanwaldgras', 'Hakonechloa macra', '0,3–0,4 m', 'Gras, Herbst goldgelb', '3', 'unter dem Ahorn'],
+  ['Zwiebeln', 'Narzissen, Allium, Wildtulpen', '0,3–0,8 m', 'März–Juni', 'ca. 40', 'zwischen den Stauden'],
+];
+function renderB1() {
+  const B = CFG.vp.b1, bed = VP.beete.find(b => b.id === 'B1'), A = polyArea(bed.pts);
+  $('b1-zaun').checked = B.zaun; $('b1-mulch').checked = B.mulch;
+  let L = 0; for (let i = 0; i < bed.pts.length; i++) { const a = bed.pts[i], b = bed.pts[(i + 1) % bed.pts.length]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); }
+  $('b1Tab').innerHTML = '<tr><th>Pflanze</th><th>Höhe · Blüte</th><th>Menge · Platz</th></tr>' + B1_LIST.map(([n, l, h, f, m, w]) => `<tr><td><b>${n}</b><br><span class="muted small">${l}</span></td><td>${h}<br><span class="muted small">${f}</span></td><td>${m}<br><span class="muted small">${w}</span></td></tr>`).join('');
+  const G = vpGroups().find(g => g.id === 'sBad'), cov = (pl, t, se) => Math.round(vpCoverage(pl, se, ST.stage, G, t) * 100);
+  const mine = ST.plants.filter(isVP), none = ST.plants.filter(p => !isVP(p));
+  $('b1Notes').innerHTML = [
+    `Beet ca. ${fmt(A)} m², Einfassung ca. ${fmt(L)} m; Staketenzaun ca. ${fmt(L - 0.9)} m (Kastanie, 0,9 m hoch, mit 0,8 m Durchgang an der Stirnseite zum Podest).`,
+    `Badfenster, verdeckte Blickachsen aus dem Hof (Wuchs: ${STAGES[ST.stage]}): mit Bepflanzung Sommer ${cov(ST.plants, 'hof', 'S')} %, Winter ${cov(ST.plants, 'hof', 'W')} %; ohne Pflanzen ${cov(none, 'hof', 'S')} %. Von der Straße aus: Sommer ${cov(ST.plants, 'strasse', 'S')} %, Winter ${cov(ST.plants, 'strasse', 'W')} %.`,
+    'Wer auf dem Pflasterstreifen zwischen Haus und Beet zur Außentreppe läuft, geht direkt am Fenster vorbei. Das deckt kein Beet ab; dort helfen nur Glas, Plissee oder Folie im unteren Drittel.',
+    'Lage: Die Hausfront schaut nach Nordost. Das Beet hat Morgensonne bis etwa Mittag, danach Schatten vom Haus. Das passt gut zu Fächerahorn, Hortensie, Herbstanemone und Silberkerze. Phlox und Pfingstrose gehören nach vorne, wo es am hellsten ist.',
+    '„Blutahorn“ heißt im Handel oft auch der Spitzahorn \'Crimson King\' (15–20 m) und „Rotahorn“ der amerikanische Acer rubrum (15–20 m). Beide sind viel zu groß. Gemeint ist hier der Japanische Fächerahorn mit rotem Laub.',
+    'Rindenmulch 5–7 cm, vorher Hornspäne streuen (Mulch bindet Stickstoff). Um die Stauden etwas weniger, damit Akelei und Phlox sich aussäen und ausbreiten können; mit den Jahren schließen Storchschnabel und Frauenmantel die Fläche.',
+    'Mit Kleinkind: Hortensie und Herbstanemone sind leicht giftig, der Ahorn nicht. Fingerhut, Eisenhut und Goldregen habe ich bewusst weggelassen.',
+    'Der Ahorn steht ca. 2,6 m vor der Hauswand. Bei 4–5 m Endbreite alle paar Jahre zur Hauswand hin auslichten.',
+  ].map(t => `<li>${t}</li>`).join('');
+}
 function renderVP() {
   $('vp-car').checked = CFG.vp.car;
-  renderVPFields(); renderVPCov(); renderVPList(); renderVPAreas(); renderVPNotes();
+  renderVPFields(); renderVPCov(); renderVPList(); renderVPAreas(); renderVPNotes(); renderB1();
 }
 // Annahmen der Straßenseite: [id, Text, Quelle, lesen, schreiben, Schritt, min, max]
 const AS_VP = (() => {
@@ -2379,6 +2475,9 @@ panelEl.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click'
 }));
 $('vz-typ').addEventListener('change', (e) => { CFG.vp.zaun.typ = e.target.value; buildVorplatz(); rebuildSight(); renderVPFields(); renderVPCov(); renderVPNotes(); save(); });
 $('vp-car').addEventListener('change', (e) => { CFG.vp.car = e.target.checked; buildVorplatz(); rebuildSight(); renderVPCov(); save(); });
+$('b1-zaun').addEventListener('change', (e) => { CFG.vp.b1.zaun = e.target.checked; buildVorplatz(); save(); });
+$('b1-mulch').addEventListener('change', (e) => { CFG.vp.b1.mulch = e.target.checked; drawGround(); save(); });
+$('b1-reset').onclick = () => { const bed = VP.beete.find(b => b.id === 'B1').pts; ST.plants = ST.plants.filter(p => !inPoly(p.u, p.v, bed)).concat(b1Plan()); ST.sel = null; rebuildPlants(); afterEdit(); renderB1(); toast('Vorschlag Beet 1 eingesetzt'); };
 $('vpPlan').onclick = () => setView('vpPlan'); $('vpOver').onclick = () => setView('vp');
 $('vpSp').innerHTML = Object.entries(SPECIES).map(([k, sp]) => `<option value="${k}">${sp.name}</option>`).join(''); $('vpSp').value = 'hecke';
 $('vpAdd').onclick = () => { const n = ST.plants.filter(isVP).length, p = mk($('vpSp').value, -15.9, 12.2 + (n % 4) * 1.2); ST.plants.push(p); ST.sel = p.id; rebuildPlants(); afterEdit(); toast('Pflanze ' + ST.plants.length + ' eingefügt. In der Draufsicht Hof verschieben.'); };
@@ -2400,6 +2499,7 @@ function step(now) {
 
 // ---------- Start ----------
 if (!load()) ST.plants = VARIANTS.find(v => v.id === 'H').plants();
+if (!ST.plants.some(isVP)) ST.plants = ST.plants.concat(b1Plan());
 placeRoot();
 renderVariantSelect();
 buildTerrain(); buildWinLabels(); buildHouseNb(); buildContext(); buildSite(); buildVorplatz(); buildCtxTrees(); drawGround();
