@@ -65,7 +65,7 @@ const CFG = {
     nb: { u: -19.3, v: 18.7, ang: 255.4, len: 10.3, dep: 10.0, floor: 0.3, og: 3.0, eave: 5.8, ridge: 8.6 },
     zaun: { typ: 'bau', h: 1.8, v0: -2.6, v1: 28.4, off: 0.1 },                   // Zaun an der Grenze NW (Planung)
     car: true,
-    b1: { zaun: true, h: 0.9, mulch: true },
+    b1: { zaun: true, h: 0.9, mulch: true, tree: 'fireglow' },
     // Beet 3: Wiese mit rechteckigem Trampolin, teilweise versenkt. L × B = Sprungtuch-Außenmaß, matH = Höhe des Rahmens unversenkt
     b3: { on: true, size: '244', sink: 0.4, matH: 0.75, net: 1.8, du: 0.4 },                                     // Beet 1: Staketenzaun (Kastanie) und Rindenmulch
   },
@@ -160,6 +160,18 @@ const SPECIES = {
     stem: 0.5, top: 3.5, w: 3.0, densS: 2.2, densW: 0.25, ever: false,
     color: 0x7b2a2c, growth: [[0.5, 0.45], [0.75, 0.7], [1, 1]], max: [5, 4.5], multi: true,
     info: 'Kleiner Baum mit dunkelrotem, fein geschlitztem Laub, im Herbst leuchtend rot. Wächst langsam (20–30 cm im Jahr), alt 4–5 m hoch und fast so breit; lässt sich gut auslichten. Mag Halbschatten und humosen, feuchten, nicht verdichteten Boden; Morgensonne ist ideal, pralle Mittagssonne verbrennt das Laub. Frosthart bis etwa −20 °C, Austrieb spätfrostgefährdet. Nicht giftig.',
+  },
+  faecherahornK: {
+    name: 'Fächerahorn, kleinbleibend, rot', latin: "Acer palmatum 'Fireglow' (oder 'Shaina', noch kleiner)", shape: 'ell',
+    stem: 0.3, top: 2.4, w: 1.8, densS: 2.4, densW: 0.25, ever: false,
+    color: 0x86292c, growth: [[0.55, 0.5], [0.8, 0.75], [1, 1]], max: [3, 2.5], multi: true,
+    info: "Rotlaubig wie 'Bloodgood', aber deutlich kleiner: 'Fireglow' etwa 2–3 m hoch und 2 m breit, 'Shaina' etwa 1,5–2 m. Wächst sehr langsam. Gleiche Standortansprüche: Halbschatten, Morgensonne, humoser Boden. Nicht giftig.",
+  },
+  chinaschilf: {
+    name: 'Chinaschilf (Horst)', latin: "Miscanthus sinensis 'Gracillimus' / 'Kleine Silberspinne'", shape: 'cyl',
+    stem: 0.0, top: 1.9, w: 0.9, densS: 3.0, densW: 1.6, ever: false,
+    color: 0x7c9a52, winterColor: 0xb59a64, growth: [[0.85, 0.6], [1, 1], [1, 1]], max: [2.0, 1.2],
+    info: 'Großes Ziergras, 1,5–2 m. Steht im Winter als strohfarbener Horst bis zum Rückschnitt im März und schützt so auch im Winter. Mag eher Sonne; im Halbschatten wird es lockerer. Nicht giftig, aber scharfkantige Blätter.',
   },
   hortensie: {
     name: "Schneeball-Hortensie 'Annabelle'", latin: "Hydrangea arborescens 'Annabelle' (oder 'Strong Annabelle')", shape: 'ell',
@@ -735,6 +747,8 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
       <div class="vdesc">
         <h2>Beet 1 vor dem Bad</h2>
         <div class="row"><label class="small"><input type="checkbox" id="b1-zaun" style="accent-color:var(--accent)"> Staketenzaun 0,9 m</label><label class="small"><input type="checkbox" id="b1-mulch" style="accent-color:var(--accent)"> Rindenmulch</label><button class="btn" id="b1-reset">Vorschlag Beet 1 neu einsetzen</button></div>
+        <div class="ctl"><label for="b1-tree" class="glbl">Vor dem Badfenster</label><select id="b1-tree"></select></div>
+        <div class="tablewrap"><table id="b1Cmp"></table></div>
         <div class="tablewrap"><table id="b1Tab"></table></div>
         <ul class="tight small" id="b1Notes"></ul>
       </div>
@@ -905,9 +919,16 @@ const VARIANTS = [
 ];
 
 // Vorschlag Beet 1: Fächerahorn vor dem Badfenster, darum lockere Bauerngarten-Stauden 1–1,5 m
+// Pflanze vor dem Badfenster (Fenster u −9,35…−8,33): drei Möglichkeiten
+const B1_TREES = {
+  fireglow: { name: "Kleiner Fächerahorn 'Fireglow' (ca. 2,4 m)", plants: () => [mk('faecherahornK', -8.85, 11.6, { top: 2.4, w: 1.8, d: 1.8, stem: 0.3 })] },
+  bloodgood: { name: "Fächerahorn 'Bloodgood' (ca. 3,5 m, alt 5 m)", plants: () => [mk('faecherahorn', -8.85, 12.25, { top: 3.5, w: 3.0, d: 3.0, stem: 0.5 })] },
+  gras: { name: 'Zwei Horste Chinaschilf (ca. 1,9 m)', plants: () => [mk('chinaschilf', -9.25, 11.3, { top: 1.9, w: 0.9, d: 0.9 }), mk('chinaschilf', -8.4, 11.3, { top: 1.9, w: 0.9, d: 0.9 })] },
+};
+const B1_TREE_SP = ['faecherahorn', 'faecherahornK', 'chinaschilf'];
 function b1Plan() {
   return [
-    mk('faecherahorn', -8.85, 12.25, { top: 3.5, w: 3.0, d: 3.0, stem: 0.5 }),
+    ...(B1_TREES[CFG.vp.b1.tree] || B1_TREES.fireglow).plants(),
     mk('hortensie', -11.0, 12.6), mk('hortensie', -7.45, 11.55, { w: 1.1, d: 1.1, top: 1.2 }),
     mk('anemone', -10.2, 11.45), mk('anemone', -7.75, 12.95, { w: 0.9, d: 0.9 }),
     mk('phlox', -10.0, 13.15), mk('phlox', -11.15, 11.3, { top: 1.3 }),
@@ -942,6 +963,7 @@ function load() {
       if (!ZAUN[CFG.vp.zaun.typ]) CFG.vp.zaun.typ = 'bau';
       if (typeof s.vp.car === 'boolean') CFG.vp.car = s.vp.car;
       if (s.vp.b3) { const t = s.vp.b3; if (typeof t.on === 'boolean') CFG.vp.b3.on = t.on; if (TRAMP[t.size]) CFG.vp.b3.size = t.size; for (const f of ['sink', 'du']) if (isFinite(t[f])) CFG.vp.b3[f] = t[f]; }
+      if (s.vp.b1 && B1_TREES[s.vp.b1.tree]) CFG.vp.b1.tree = s.vp.b1.tree; else ST.b1Migrate = true;
       if (s.vp.b1) for (const f of ['zaun', 'mulch']) if (typeof s.vp.b1[f] === 'boolean') CFG.vp.b1[f] = s.vp.b1[f];
     }
     if (s.site2) for (const k of SITE_KEYS) if (s.site2[k]) for (const [f, x] of Object.entries(s.site2[k])) if (f in CFG[k] && typeof x === typeof CFG[k][f] && (typeof x === 'boolean' || isFinite(x))) CFG[k][f] = x;
@@ -2419,7 +2441,7 @@ function renderVPNotes() {
   ].map(t => `<li>${t}</li>`).join('');
 }
 const B1_LIST = [ // [Pflanze, botanisch, Höhe, Blüte, Menge, Platz im Beet]
-  ['Japanischer Fächerahorn, rot', "Acer palmatum 'Bloodgood'", '3–4 m (alt 5)', 'Laub rot, Herbst leuchtend', '1 (Solitär 125–150 cm)', 'vor dem Badfenster, 2,6 m von der Wand'],
+  ['Vor dem Badfenster (Auswahl oben)', "Acer palmatum 'Fireglow' · 'Bloodgood' · Miscanthus sinensis", 'ca. 2,4 · 3,5–5 · 1,9 m', 'Laub rot / Gras, im Winter strohgelb', '1 · 1 · 2', 'mittig vor dem Fenster'],
   ["Schneeball-Hortensie 'Annabelle'", 'Hydrangea arborescens', '1,0–1,5 m', 'Juni–Sept., weiß', '2', 'NW-Ende und vor dem WC-Fenster'],
   ['Herbstanemone', "Anemone × hybrida 'Honorine Jobert' (weiß), 'Pamina' (rosa)", '0,8–1,2 m', 'Aug.–Okt.', '6', 'zwei Gruppen neben dem Ahorn'],
   ['Staudenphlox', "Phlox paniculata, z. B. 'David' (weiß), 'Bright Eyes'", '0,8–1,2 m', 'Juli–Aug., duftet', '3', 'vorne zum Hof (mehr Licht)'],
@@ -2434,6 +2456,14 @@ const B1_LIST = [ // [Pflanze, botanisch, Höhe, Blüte, Menge, Platz im Beet]
 function renderB1() {
   const B = CFG.vp.b1, bed = VP.beete.find(b => b.id === 'B1'), A = polyArea(bed.pts);
   $('b1-zaun').checked = B.zaun; $('b1-mulch').checked = B.mulch;
+  $('b1-tree').innerHTML = Object.entries(B1_TREES).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join(''); $('b1-tree').value = B.tree;
+  { // Vergleich der drei Möglichkeiten: verdeckte Blickachsen aufs Badfenster
+    const bed = VP.beete.find(b => b.id === 'B1').pts, G0 = vpGroups().find(g => g.id === 'sBad');
+    const rest = ST.plants.filter(p => !(B1_TREE_SP.includes(p.sp) && inPoly(p.u, p.v, bed)));
+    const c = (pl, t, se) => Math.round(vpCoverage(pl, se, ST.stage, G0, t) * 100) + ' %';
+    const rows = [['Ohne', rest]].concat(Object.entries(B1_TREES).map(([k, t]) => [t.name, rest.concat(t.plants())]));
+    $('b1Cmp').innerHTML = '<tr><th>Vor dem Bad</th><th>aus dem Hof S / W</th><th>von der Straße S / W</th></tr>' + rows.map(([n, pl]) => `<tr><td>${n}</td><td class="n">${c(pl, 'hof', 'S')} / ${c(pl, 'hof', 'W')}</td><td class="n">${c(pl, 'strasse', 'S')} / ${c(pl, 'strasse', 'W')}</td></tr>`).join('');
+  }
   let L = 0; for (let i = 0; i < bed.pts.length; i++) { const a = bed.pts[i], b = bed.pts[(i + 1) % bed.pts.length]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); }
   $('b1Tab').innerHTML = '<tr><th>Pflanze</th><th>Höhe · Blüte</th><th>Menge · Platz</th></tr>' + B1_LIST.map(([n, l, h, f, m, w]) => `<tr><td><b>${n}</b><br><span class="muted small">${l}</span></td><td>${h}<br><span class="muted small">${f}</span></td><td>${m}<br><span class="muted small">${w}</span></td></tr>`).join('');
   const G = vpGroups().find(g => g.id === 'sBad'), cov = (pl, t, se) => Math.round(vpCoverage(pl, se, ST.stage, G, t) * 100);
@@ -2446,7 +2476,8 @@ function renderB1() {
     '„Blutahorn“ heißt im Handel oft auch der Spitzahorn \'Crimson King\' (15–20 m) und „Rotahorn“ der amerikanische Acer rubrum (15–20 m). Beide sind viel zu groß. Gemeint ist hier der Japanische Fächerahorn mit rotem Laub.',
     'Rindenmulch 5–7 cm, vorher Hornspäne streuen (Mulch bindet Stickstoff). Um die Stauden etwas weniger, damit Akelei und Phlox sich aussäen und ausbreiten können; mit den Jahren schließen Storchschnabel und Frauenmantel die Fläche.',
     'Mit Kleinkind: Hortensie und Herbstanemone sind leicht giftig, der Ahorn nicht. Fingerhut, Eisenhut und Goldregen habe ich bewusst weggelassen.',
-    'Der Ahorn steht ca. 2,6 m vor der Hauswand. Bei 4–5 m Endbreite alle paar Jahre zur Hauswand hin auslichten.',
+    'Welche Blickachsen zählen: Das Badfenster reicht von 1,1 bis 2,4 m über dem Pflaster. Wer im Hof steht, schaut in 1,65 m Höhe hinein. Abdecken muss die Pflanze also das Band von etwa 1,2 bis 2,4 m direkt vor dem Fenster. Was höher wächst, verdeckt nur Dach und Laubengang. Deshalb reicht ein kleiner Ahorn fast genauso gut wie der große.',
+    'Stauden bis 1,3 m (Hortensie, Anemone, Phlox) liegen unter diesem Band und verdecken das Fenster nicht. Sie gehören fürs Bild dazu, nicht für den Sichtschutz.',
   ].map(t => `<li>${t}</li>`).join('');
 }
 const B3_FIELDS = [
@@ -2546,6 +2577,7 @@ $('vp-car').addEventListener('change', (e) => { CFG.vp.car = e.target.checked; b
 $('b3-on').addEventListener('change', (e) => { CFG.vp.b3.on = e.target.checked; buildVorplatz(); save(); });
 $('b3-size').addEventListener('change', (e) => { CFG.vp.b3.size = e.target.value; buildVorplatz(); renderB3Notes(); save(); });
 $('b3-view').onclick = () => setView('beet3');
+$('b1-tree').addEventListener('change', (e) => { CFG.vp.b1.tree = e.target.value; const bed = VP.beete.find(b => b.id === 'B1').pts; ST.plants = ST.plants.filter(p => !(B1_TREE_SP.includes(p.sp) && inPoly(p.u, p.v, bed))).concat(B1_TREES[CFG.vp.b1.tree].plants()); ST.sel = null; rebuildPlants(); afterEdit(); renderB1(); });
 $('b1-zaun').addEventListener('change', (e) => { CFG.vp.b1.zaun = e.target.checked; buildVorplatz(); save(); });
 $('b1-mulch').addEventListener('change', (e) => { CFG.vp.b1.mulch = e.target.checked; drawGround(); save(); });
 $('b1-reset').onclick = () => { const bed = VP.beete.find(b => b.id === 'B1').pts; ST.plants = ST.plants.filter(p => !inPoly(p.u, p.v, bed)).concat(b1Plan()); ST.sel = null; rebuildPlants(); afterEdit(); renderB1(); toast('Vorschlag Beet 1 eingesetzt'); };
@@ -2571,6 +2603,7 @@ function step(now) {
 // ---------- Start ----------
 if (!load()) ST.plants = VARIANTS.find(v => v.id === 'H').plants();
 if (!ST.plants.some(isVP)) ST.plants = ST.plants.concat(b1Plan());
+else if (ST.b1Migrate) { const bed = VP.beete.find(b => b.id === 'B1').pts; ST.plants = ST.plants.filter(p => !(B1_TREE_SP.includes(p.sp) && inPoly(p.u, p.v, bed))).concat(B1_TREES.fireglow.plants()); }
 placeRoot();
 renderVariantSelect();
 buildTerrain(); buildWinLabels(); buildHouseNb(); buildContext(); buildSite(); buildVorplatz(); buildCtxTrees(); drawGround();
