@@ -1,18 +1,31 @@
-# Digitale Wohnungsbesichtigung
+# Holzhaus · 3D-Modell
 
-3D-Rundgang durch die Maisonette-Wohnungen 2 und 3 (OG + DG) im Holz-Neubau.
-Seite: `index.html`; three.js 0.147 (MIT-Lizenz) liegt lokal in `vendor/`, es werden keine externen Dienste geladen.
+3D-Modell des Holzhauses mit drei Wohnungen:
+- **Wohnung 1** im Erdgeschoss, mit unseren Einbau-Projekten
+- **Wohnungen 2 und 3** als Maisonette in OG und DG
 
-**Ansichten:** Außen, Puppenhaus (Dach/Geschoss ausgeblendet), Rundgang auf Augenhöhe (Handy: wischen + auf den Boden tippen; Computer: W A S D), Grundriss mit Wohnflächen nach WoFlV. Beispielmöblierung ein-/ausblendbar.
+Seite: `index.html`. three.js 0.147 (MIT-Lizenz) liegt lokal in `vendor/`, es werden keine externen Dienste geladen.
+
+**Ansichten:** Außen, Puppenhaus (Dach und obere Geschosse ausgeblendet), Rundgang auf Augenhöhe (Handy: wischen und auf den Boden tippen, Computer: W A S D), Grundriss mit Flächen. Die Beispielmöblierung in OG und DG lässt sich ein- und ausblenden.
+
+## Erdgeschoss (Wohnung 1)
+Wände, Türen und Fenster stammen aus dem Fensterplan EG. Die Küche ist nach Fotos und Aufmaß gebaut. In der rechten Leiste stehen:
+- **Ansichten:** Wohnraum, Essecke, Von vorne, Von oben, Linkes Fach, Küche, Kinderküche
+- **Projekt 1 · Wohnzimmer-Einbauten:** Rückkasten mit Klappen, Trennwand mit Balken, Eckbank mit Rollkästen und Ablage, Ofen, Sofa und Tisch. Alle Regler und Schalter aus dem Einzelmodell sind übernommen.
+- **Projekt 2 · Kinderküche an der Halbinsel:** Bank, Trittstufe und Kinder-Arbeitsplatz in einem (45 cm hoch, höchstens 40 cm tief, runde Ecken vorn). Ein Kind lässt sich stehend, sitzend oder schneidend zeigen.
+
+`wohnzimmer.html` ist das ursprüngliche Einzelmodell der Wohnzimmer-Einbauten. Es bleibt zum Vergleich erhalten.
+
+**Neues Projekt hinzufügen:** in `index.html` ein Modul nach dem Muster von `KK` (Kinderküche) anlegen: Maße `S`, Regler `sliderDefs`, `build()`, `report()`. Dazu eine eigene Gruppe in `G` und einen Abschnitt in `renderPanelEG()`.
 
 ## Veröffentlichen (GitHub Pages)
 Settings → Pages → *Deploy from a branch* → Branch wählen (z. B. `main`), Ordner `/ (root)`.
-Danach ist die Seite unter `https://<benutzer>.github.io/<repo>/` erreichbar.
 
 ## Datengrundlage
-- Maße aus dem Werkplan der Zimmerei (08/2025), Wohnung 3 = Spiegelbild von Wohnung 2.
-- Annahmen: Balkon OG tiefer Teil 2,55 m / flacher Teil ca. 0,98 m, Balkon DG 2,55 m unter Zwerchgiebel, Giebelüberstand ca. 1,0 m (Foto), EG-Fenster Garten/Straße schematisch.
+- Maße aus dem Werkplan der Zimmerei (08/2025). Wohnung 3 ist das Spiegelbild von Wohnung 2.
+- EG-Aufmaß: Schlafzimmer an der Gartenwand innen 4,03 m. Akzentwand bis Pfosten 2,44 m. Halbinsel 2,46 m, Platte 99 × 91 cm. Abstand zur Schrankzeile 1,17 m. Stirnseite bis Schiebetür 1,16 m. Hochschränke 124 × 59 × 225 cm.
+- Annahmen in OG und DG: Balkon OG tiefer Teil 2,55 m, flacher Teil ca. 0,98 m. Balkon DG 2,55 m unter dem Zwerchgiebel. Giebelüberstand ca. 1,0 m (nach Foto).
 - Fassade, Dach, Laubengang und Außentreppe nach Außenfotos.
-- Wohnfläche laut Ausschreibung 94 m² (inkl. anteiligem Balkon). Nachrechnung im Modell wie Ausschreibung: DG-Höhen nach Werkplan (≥ 2 m voll, 1–2 m halb, < 1 m nicht), Treppe angerechnet, tiefer Balkonteil ½, übrige Balkonfläche ¼.
+- Wohnfläche Wohnung 2 und 3 laut Ausschreibung 94 m² (inkl. anteiligem Balkon).
 
 Keine Adresse, keine Koordinaten, keine Namen im Repo.

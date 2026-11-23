@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wohnzimmer – Rückkasten, Trennwand, Eckbank</title>
+<style>
+:root{
+  --scene:#e4e7e1; --panel:#fbfbf9; --text:#23261f; --muted:#646a5e; --line:#d5d9cf;
+  --wood:#7a5a3c; --wood-ink:#ffffff; --warn:#a4462a; --ok:#3f6b3a;
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --scene:#1e211d; --panel:#272a25; --text:#e9ebe4; --muted:#a3a99b; --line:#3a3e36;
+    --wood:#c99a6b; --wood-ink:#1e211d; --warn:#e2876a; --ok:#8fc287; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --scene:#1e211d; --panel:#272a25; --text:#e9ebe4; --muted:#a3a99b; --line:#3a3e36;
+  --wood:#c99a6b; --wood-ink:#1e211d; --warn:#e2876a; --ok:#8fc287; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--scene);color:var(--text);
+  font-family:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;font-size:16px;overflow:hidden}
+#app{position:relative;height:100%;width:100%}
+#view{position:absolute;inset:0}
+canvas{display:block;touch-action:none;outline:none}
+#views{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+button{font:inherit;font-weight:500;color:var(--text);background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:6px 12px;cursor:pointer;min-height:36px}
+button[aria-pressed="true"]{background:var(--wood);color:var(--wood-ink);border-color:var(--wood)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--wood);outline-offset:2px}
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;background:var(--panel);
+  border-top:1px solid var(--line);border-radius:14px 14px 0 0;max-height:60%;display:flex;flex-direction:column}
+#sheetHead{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:8px}
+#sheetHead h1{font-size:18px;font-weight:600;margin:0}
+#sheetBody{overflow:auto;padding:0 14px 14px}
+#sheet.closed #sheetBody{display:none}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.slider{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin:10px 0}
+.slider label{font-size:15px}
+.slider output{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.slider output input{font:inherit;font-weight:600;width:5.2em;text-align:right;color:var(--text);background:var(--scene);border:1px solid var(--line);border-radius:6px;padding:2px 4px}
+.slider input{grid-column:1 / -1;width:100%;accent-color:var(--wood)}
+.slider small{grid-column:1 / -1;color:var(--muted);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:15px;margin-top:6px}
+td{padding:5px 0;border-top:1px solid var(--line);vertical-align:top}
+td:last-child{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;padding-left:10px}
+.warn{color:var(--warn)} .ok{color:var(--ok)}
+h2{font-size:15px;font-weight:600;margin:16px 0 4px}
+p.note{color:var(--muted);font-size:14px;margin:4px 0;line-height:1.4}
+@media (min-width:900px){
+  #sheet{left:auto;right:12px;bottom:12px;top:58px;width:350px;max-height:none;border:1px solid var(--line);border-radius:14px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="view"></div>
+  <div id="views" role="toolbar" aria-label="Ansicht">
+    <button data-view="raum">Raum</button>
+    <button data-view="ess">Essecke</button>
+    <button data-view="vorne">Von vorne</button>
+    <button data-view="oben">Von oben</button>
+    <button data-view="detail">Linkes Fach</button>
+  </div>
+  <section id="sheet">
+    <div id="sheetHead">
+      <h1>Wohnzimmer-Einbauten</h1>
+      <button id="toggleSheet" aria-expanded="true">Ausblenden</button>
+    </div>
+    <div id="sheetBody">
+      <div class="row">
+        <button id="tOpen" aria-pressed="false">Klappen und Schubladen öffnen</button>
+        <button id="tXray" aria-pressed="false">Röntgenblick</button>
+        <button id="tSofa" aria-pressed="true">Sofa und Tisch zeigen</button>
+        <button id="tBeam" aria-pressed="false">Balken durch den Raum</button>
+      </div>
+      <div id="sliders"></div>
+      <h2>Ergebnis</h2>
+      <table id="out"></table>
+      <h2>Annahmen im Modell</h2>
+      <p class="note">Gemessen: Sofa 240 cm, Lehne 65 cm, Fensterbank-Unterkante 87 cm, Pfosten 12 × 14 cm, Pfosten bis Laibung 4 cm, Abstand zum nackten Pfosten 244 cm, Trennwand 210 cm ab Pfosten, Eckbank 180 cm an der Fensterwand, Tisch 180 × 95 cm, Raumhöhe 240 cm.</p>
+      <p class="note">Geschätzt, bitte prüfen: Fensterbreite, Höhe der Trennwand, Sofatiefe 100 cm, zweiter Sofaschenkel 150 cm, Tischhöhe 75 cm, genaue Tischposition, Endpfosten und Deckenbalken im Querschnitt wie der Pfosten.</p>
+      <p class="note">Gesetzt von mir: Trennwand-Schenkel der Eckbank endet 10 cm vor dem Ende der Trennwand. Eckbank 55 cm tief (10 cm Lehne plus 45 cm Sitz). Fronten der Eckbank in Altholz. Hinterleiste 3 cm hinter jeder Kastenklappe.</p>
+      <p class="note">Ziehen: drehen. Zwei Finger: zoomen und verschieben.</p>
+    </div>
+  </section>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script>
+(function(){
+const F = {wall:244, depth:13.5, boardD:14.5, boardT:3, boxH:65, strip:3, flapW:70,
+  sofaLen:240, sillU:87, ply:0.4, rail:2.4, railH:4.5, sockZ:30, postD:14, postW:12, reveal:4,
+  twLen:210, seatH:45, benchD:55, backT:10, backH:85, benchWin:180, tableL:180, tableW:95, tableH:75, beamH:14, ofBench:20};
+const S = {clad:2, outer:15, zb:45, ww:126.5, twH:90, box2:120, ofenY:322.5, beamLen:490, legW:40, legIn:30, ablW:35};
+const state = {open:false, xray:false, sofa:true, angle:0, beamFull:false};
+
+const sliderDefs = [
+  {k:'clad', label:'Verkleidung Pfosten und Trennwand (Altholz)', min:0, max:5, step:0.5, hint:'Dicke je Seite. Noch offen.'},
+  {k:'twH', label:'Höhe Trennwand', min:90, max:150, step:1, hint:'Standard 90 cm.'},
+  {k:'outer', label:'Feste Außenstücke am Kasten je', min:5, max:30, step:0.5, hint:'Noch offen.'},
+  {k:'zb', label:'Höhe Zwischenboden im Kasten', min:20, max:60, step:1, hint:'Oberkante, ab Boden.'},
+  {k:'ww', label:'Fensterbreite', min:100, max:200, step:0.5, hint:'126,5 cm laut Werkplan.'},
+  {k:'ofenY', label:'Fensterwand bis TV-Seite Ofen', min:250, max:420, step:0.5, hint:'Aus Werkplan abgeleitet. Bitte messen.'},
+  {k:'beamLen', label:'Balkenlänge ab Fensterwand (durchgehend)', min:300, max:700, step:1, hint:'Geschätzt. Nur bei durchgehendem Balken.'},
+  {k:'box2', label:'Länge Rollkasten an der Trennwand', min:60, max:155, step:1, hint:'Noch offen. So viel Platz braucht er auch davor.'},
+  {k:'legW', label:'Breite Tischfuß-Platte', min:25, max:90, step:1, hint:'Geschätzt. Quer zum Tisch.'},
+  {k:'legIn', label:'Tischfuß eingerückt ab Tischende', min:10, max:60, step:1, hint:'Geschätzt.'},
+  {k:'ablW', label:'Breite Ablage am Bankende', min:25, max:60, step:1, hint:'A4 hochkant plus Handy passt ab 33 cm.'}
+];
+const fmt = v => (Math.round(v*10)/10).toLocaleString('de-DE',{maximumFractionDigits:1});
+
+const sl=document.getElementById('sliders');
+sliderDefs.forEach(d=>{
+  const w=document.createElement('div'); w.className='slider';
+  w.innerHTML=`<label for="s_${d.k}">${d.label}</label><output><input type="number" id="n_${d.k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${S[d.k]}" inputmode="decimal" aria-label="${d.label} in cm"> cm</output>
+  <input type="range" id="s_${d.k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${S[d.k]}"><small>${d.hint}</small>`;
+  sl.appendChild(w);
+  const rg=w.querySelector('#s_'+d.k), nb=w.querySelector('#n_'+d.k);
+  nb.addEventListener('change',()=>{
+    let v=parseFloat(String(nb.value).replace(',','.')); if(isNaN(v)) v=S[d.k];
+    v=Math.min(d.max,Math.max(d.min,v)); S[d.k]=v; nb.value=v; rg.value=v; build();
+  });
+  rg.addEventListener('input',e=>{
+    S[d.k]=parseFloat(e.target.value);
+    nb.value=S[d.k]; build();
+  });
+});
+function tog(id,key,fn){const b=document.getElementById(id);
+  b.addEventListener('click',()=>{state[key]=!state[key];b.setAttribute('aria-pressed',state[key]);fn&&fn();});}
+tog('tOpen','open',()=>{document.getElementById('tOpen').textContent=state.open?'Klappen und Schubladen schließen':'Klappen und Schubladen öffnen';});
+tog('tXray','xray',applyXray);
+tog('tSofa','sofa',build);
+tog('tBeam','beamFull',build);
+const sheet=document.getElementById('sheet'), tb=document.getElementById('toggleSheet');
+tb.addEventListener('click',()=>{sheet.classList.toggle('closed');const c=sheet.classList.contains('closed');
+  tb.textContent=c?'Einblenden':'Ausblenden';tb.setAttribute('aria-expanded',!c);});
+
+const host=document.getElementById('view');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+host.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,1,6000);
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function setBg(){scene.background=new THREE.Color(cssVar('--scene')||'#e4e7e1');}
+setBg(); try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',setBg);}catch(e){}
+scene.add(new THREE.HemisphereLight(0xffffff,0xb8a58c,0.75));
+const sun=new THREE.DirectionalLight(0xffffff,0.55); sun.position.set(150,300,400); scene.add(sun);
+const fill=new THREE.DirectionalLight(0xffffff,0.25); fill.position.set(-300,150,-100); scene.add(fill);
+
+const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:0.85,metalness:0},o));
+const mat={
+  floor:M(0xc89c6a), wall:M(0xf2f0eb), accent:M(0xd8b8a2), sill:M(0xb88b5a),
+  frame:M(0xc79a68), glass:M(0xa9c9d6,{transparent:true,opacity:0.35}),
+  post:M(0xd9bf8c), altholz:M(0x7a5a3c,{transparent:true,opacity:1}), fichte:M(0xe8d2a0), ply:M(0xdcc79c,{transparent:true,opacity:1}),
+  birke:M(0xe9dcc0), sofa:M(0x7f716a,{transparent:true,opacity:1}), socket:M(0xffffff),
+  metal:M(0x444444,{metalness:0.6,roughness:0.4}), strip:M(0xf3f3f3), dark:M(0x2b2b2b),
+  tissue:M(0x8fb7c9), cup:M(0xf5f5f0), stoff:M(0x6f7556,{transparent:true,opacity:1}), plinth:M(0x3a3430),
+  table:M(0xb08a5e,{transparent:true,opacity:1}), black:M(0x1f1f1f), bulb:new THREE.MeshBasicMaterial({color:0xffcf73}),
+  putz:M(0xf5f3ef), marmor:M(0x2f2a27,{roughness:0.5}), tv:M(0x151515,{roughness:0.4}),
+  fire:M(0x2a1a10,{transparent:true,opacity:0.75,emissive:0x5a2608}), fglass:M(0xcfe3e8,{transparent:true,opacity:0.3})
+};
+const lineMat=new THREE.LineBasicMaterial({color:0x2d261f,transparent:true,opacity:0.35});
+let root=new THREE.Group(); scene.add(root);
+let flaps=[], lids=[], drawers=[];
+
+// x along window wall (0 = clad post face, sofa side), y depth into room, z height -> three (x, z, y)
+function B(p,x0,x1,y0,y1,z0,z1,m,edge=true){
+  const g=new THREE.BoxGeometry(Math.max(x1-x0,0.05),Math.max(z1-z0,0.05),Math.max(y1-y0,0.05));
+  const mesh=new THREE.Mesh(g,m); mesh.position.set((x0+x1)/2,(z0+z1)/2,(y0+y1)/2); p.add(mesh);
+  if(edge) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g),lineMat));
+  return mesh;
+}
+const V=(x,y,z)=>new THREE.Vector3(x,z,y);
+function clear(){root.traverse(o=>{if(o.geometry)o.geometry.dispose();});
+  scene.remove(root); root=new THREE.Group(); scene.add(root); flaps=[]; lids=[]; drawers=[];}
+
+function dims(){
+  const c=S.clad, L=F.wall-c, o=S.outer, m=L-2*F.flapW-2*o, sx=(L-F.sofaLen)+5;
+  const twT=F.postW+2*c, xT=-twT;              // dining face of Trennwand
+  const wR0=-c+F.reveal, wL1=-(F.postW+c)-F.reveal; // window reveals
+  const twY0=F.postD, twY1=F.postD+F.twLen;
+  const benchY1=twY1-10;
+  return {c,L,o,m,sx,twT,xT,wR0,wL1,twY0,twY1,benchY1};
+}
+
+function windowAt(R,W,WW){
+  B(R,W,W+WW,-24,3,F.sillU,F.sillU+3,mat.sill);
+  const fz0=F.sillU+3, fz1=F.sillU+126.5, fy0=-20, fy1=-12, fw=8;
+  B(R,W,W+WW,fy0,fy1,fz0,fz0+fw,mat.frame); B(R,W,W+WW,fy0,fy1,fz1-fw,fz1,mat.frame);
+  B(R,W,W+fw,fy0,fy1,fz0,fz1,mat.frame); B(R,W+WW-fw,W+WW,fy0,fy1,fz0,fz1,mat.frame);
+  const mid=W+WW/2; B(R,mid-6,mid+6,fy0,fy1,fz0,fz1,mat.frame);
+  B(R,W+fw,W+WW-fw,-16.5,-15.5,fz0+fw,fz1-fw,mat.glass,false);
+  B(R,mid-9,mid-7,fy1,fy1+3,150,165,mat.metal,false);
+}
+
+function build(){
+  clear();
+  const d=dims(); const {c,L,o,m,sx,xT,wR0,wL1}=d;
+  const R=root, H=240, WW=S.ww, xMin=xT-400;
+  // floor, walls
+  const WT=F.sillU+126.5;
+  B(R,xMin,L+15,-30,Math.max(560,S.beamLen+40),-2,0,mat.floor,false);
+  const lW0=wL1-WW;
+  B(R,xMin,L,-30,0,0,F.sillU,mat.wall,false);
+  B(R,xMin,L,-30,0,WT,H,mat.wall,false);
+  B(R,xMin,lW0,-30,0,F.sillU,WT,mat.wall,false);
+  B(R,wL1,wR0,-30,0,F.sillU,WT,mat.wall,false);
+  B(R,wR0+WW,L,-30,0,F.sillU,WT,mat.wall,false);
+  windowAt(R,lW0,WW); windowAt(R,wR0,WW);
+  B(R,L,L+15,-30,S.ofenY+51,0,H,mat.accent,false);
+  // post: bare spruce, cladding on room-visible faces above Trennwand
+  B(R,-(F.postW+c),-c,0,F.postD,0,H,mat.post);
+  if(c>0){
+    B(R,-(F.postW+2*c),-(F.postW+c),0,F.postD,0,H,mat.altholz);
+    B(R,-c,0,0,F.postD,0,H,mat.altholz);
+    B(R,-(F.postW+2*c),0,F.postD,F.postD+c,S.twH,H,mat.altholz);
+  }
+  B(R,sx-4,sx+4,0,1.2,F.sockZ-4,F.sockZ+4,mat.socket);
+
+  // ---------- Trennwand ----------
+  const TW=new THREE.Group(); R.add(TW);
+  const y0=d.twY0, y1=d.twY1, th=S.twH;
+  // Fichte-Ständerwerk (12 cm), Schwelle, Rähm, Ständer ~60 cm
+  B(TW,-(F.postW+c),-c,y0,y1,0,6,mat.fichte);
+  B(TW,-(F.postW+c),-c,y0,y1,th-c-6,th-c,mat.fichte);
+  const n=Math.ceil(F.twLen/60);
+  for(let i=0;i<=n;i++){const yy=Math.min(y1-6,y0+i*F.twLen/n); B(TW,-(F.postW+c),-c,yy,yy+6,6,th-c-6,mat.fichte);}
+  // Altholz-Verkleidung beidseitig, Stirn und Deckel
+  if(c>0){
+    TW.userData.clad=[
+      B(TW,-(F.postW+2*c),-(F.postW+c),y0,y1,0,th-c,mat.altholz),
+      B(TW,-c,0,y0,y1,0,th-c,mat.altholz)
+    ];
+    B(TW,-(F.postW+2*c),0,y1,y1+c,0,th,mat.altholz);
+  }
+  B(TW,-(F.postW+2*c),0,y0,y1+c,th-Math.max(c,2),th,mat.altholz);
+  // Endpfosten (Boden bis Decke) und Deckenbalken
+  const ep=F.postW, bz=H-F.beamH;
+  B(TW,-(F.postW+c),-c,y1-ep,y1,0,bz,mat.fichte);
+  if(c>0){
+    B(TW,-(F.postW+2*c),-(F.postW+c),y1-ep,y1+c,th,bz,mat.altholz);
+    B(TW,-c,0,y1-ep,y1+c,th,bz,mat.altholz);
+    B(TW,-(F.postW+c),-c,y1,y1+c,th,bz,mat.altholz);
+  }
+  B(TW,-(F.postW+2*c),0,F.postD,state.beamFull?S.beamLen:y1+c,bz,H,c>0?mat.altholz:mat.fichte);
+  // Lichterkette unter dem Balken
+  const lx=-(F.postW+2*c)/2, ya=F.postD+4, yb=y1-ep-4, sw=3, sag=18, pts=[];
+  for(let i=0;i<=120;i++){const t=i/120, u=(t*sw)%1; pts.push(V(lx,ya+(yb-ya)*t,bz-1-sag*4*u*(1-u)));}
+  TW.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),200,0.15,4,false),mat.dark));
+  pts.forEach((pt,i)=>{if(i%3===0){const b=new THREE.Mesh(new THREE.SphereGeometry(0.9,8,8),mat.bulb);b.position.copy(pt);b.position.y-=1;TW.add(b);}});
+
+  // ---------- Rückkasten ----------
+  const K=new THREE.Group(); R.add(K);
+  const D=F.depth, Hk=F.boxH, p=F.ply, r=F.rail, rh=F.railH;
+  B(K,0,L,0,p,0,F.sockZ-6,mat.ply); B(K,0,L,0,p,F.sockZ+6,Hk,mat.ply);
+  if(sx-6>0) B(K,0,sx-6,0,p,F.sockZ-6,F.sockZ+6,mat.ply);
+  B(K,sx+6,L,0,p,F.sockZ-6,F.sockZ+6,mat.ply);
+  B(K,0,L,D-p,D,0,Hk,mat.ply);
+  B(K,0,L,p,p+r,0,rh,mat.fichte); B(K,0,L,D-p-r,D-p,0,rh,mat.fichte);
+  B(K,0,L,p,p+r,Hk-rh,Hk,mat.fichte);
+  const f1=o, f2=o+F.flapW, f3=L-o-F.flapW, f4=L-o;
+  [[0,f1],[f2,f3],[f4,L]].forEach(([a,b])=>{ if(b-a>0.5) B(K,a,b,D-p-r,D-p,Hk-rh,Hk,mat.fichte); });
+  [0,f1,f2,f3,f4,L].forEach(s=>{
+    const a=Math.max(0,Math.min(L-2.4,s-1.2)), b=a+2.4;
+    B(K,a,b,p,p+r,rh,Hk-rh,mat.fichte); B(K,a,b,D-p-r,D-p,rh,Hk-rh,mat.fichte);
+    B(K,a,b,p+r,D-p-r,Hk-rh,Hk,mat.fichte);
+  });
+  [[f1,f2],[f3,f4]].forEach(([a,b])=>{
+    B(K,a+1.2,a+2.4,p+r,D-p-r,S.zb-1.2,Hk-rh,mat.birke);
+    B(K,b-2.4,b-1.2,p+r,D-p-r,S.zb-1.2,Hk-rh,mat.birke);
+    B(K,a+1.2,b-1.2,p,D-p,S.zb-1.2,S.zb,mat.birke);
+  });
+  B(K,f1+6,f1+36,4,9,S.zb,S.zb+4,mat.strip);
+  B(K,f1+42,f1+60,4.5,9,S.zb,S.zb+2.5,mat.dark);
+  B(K,f3+8,f3+31,2,10.5,S.zb,S.zb+12,mat.tissue);
+  const curve=new THREE.CatmullRomCurve3([V(f1+6,6.5,S.zb+2),V(f1+3,6.5,S.zb-4),V(sx+6,4,F.sockZ+4),V(sx,1.5,F.sockZ)]);
+  K.add(new THREE.Mesh(new THREE.TubeGeometry(curve,30,0.35,6,false),mat.dark));
+  const z0=Hk, z1=Hk+F.boardT, BD=F.boardD;
+  [[0,f1],[f2,f3],[f4,L]].forEach(([a,b])=>{ if(b-a>0.5) B(R,a,b,0,BD,z0,z1,mat.altholz); });
+  [[f1,f2],[f3,f4]].forEach(([a,b])=>{
+    B(R,a+0.1,b-0.1,0,F.strip,z0,z1,mat.altholz);
+    const pv=new THREE.Group(); pv.position.set(a,z1,F.strip); R.add(pv);
+    B(pv,0.15,F.flapW-0.15,0.15,BD-F.strip,-F.boardT,0,mat.altholz);
+    [10,F.flapW-16].forEach(h=>B(pv,h,h+6,-0.4,0.4,-0.3,0.15,mat.metal,false));
+    flaps.push(pv);
+  });
+  if(f3-f2>12){const cup=new THREE.Mesh(new THREE.CylinderGeometry(4.5,3.8,9,24),mat.cup);
+    cup.position.set((f2+f3)/2,z1+4.5,7.5); R.add(cup);}
+
+  // ---------- Eckbank ----------
+  const E=new THREE.Group(); R.add(E);
+  const bd=F.benchD, bt=F.backT, sh=F.seatH, bh=F.backH, xA=xT-F.benchWin, yE=d.benchY1;
+  const pl=8, kz=38; // Sockel, Korpus-Oberkante unter Polster
+  // Window leg: carcass without bottom, one long rolling box on the floor
+  B(E,xA,xT,0,bd,kz-1.8,kz,mat.fichte);
+  B(E,xA,xT-bd,bd-2,bd,2,kz,mat.altholz);
+  B(E,xA,xT,0,1.8,2,kz,mat.fichte);
+  B(E,xT-bd+2,xT,bd,bd+1.8,pl,kz,mat.fichte);
+  B(E,xA,xT,1.8,3.3,0,4,mat.fichte);
+  B(E,xA,xT-bd,bd-3.5,bd-2,0,4,mat.fichte);
+  const g=new THREE.Group(); E.add(g);
+  const cy0=3.6, cy1=bd-3.8, cz0=4.5, cz1=31.5;
+  B(g,xA,xA+2,2,bd-2.2,1.5,kz-2.5,mat.altholz);
+  B(g,xA+2,xT-3,cy0,cy1,cz0,cz0+1.5,mat.birke);
+  B(g,xA+2,xT-3,cy0,cy0+1.5,cz0,cz1,mat.birke);
+  B(g,xA+2,xT-3,cy1-1.5,cy1,cz0,cz1,mat.birke);
+  B(g,xT-4.5,xT-3,cy0,cy1,cz0,cz1,mat.birke);
+  [xA+8,xT-12].forEach(rx=>[cy0+5,cy1-5].forEach(ry=>{
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,2,16),mat.dark);
+    w.rotation.x=Math.PI/2; w.position.set(rx,2.2,ry); g.add(w);}));
+  B(g,xA-1.5,xA,bd/2-7,bd/2+7,kz-10,kz-8,mat.metal,false);
+  g.userData.dx=-F.benchWin; drawers.push(g);
+  B(E,xA,xT,0,bd,kz,sh,mat.stoff);              // Sitzpolster Fensterseite (inkl. Ecke)
+  B(E,xA,xT,0,bt,sh,bh,mat.stoff);               // Lehne Fensterwand
+  // Ablage am Bankende (A4, Briefe, Handy) – schwebend, Rollkasten fährt darunter durch
+  const aw=S.ablW, ax0=xA-aw;
+  B(E,ax0,xA,0,bd,sh-3,sh,mat.altholz);
+  B(E,ax0,ax0+1.5,0,bd,sh,sh+2.5,mat.altholz);
+  B(E,ax0,xA,0,1.5,sh,sh+2.5,mat.altholz);
+  B(E,ax0+3,ax0+24,3,32.7,sh,sh+1,mat.cup,false);
+  const qi=new THREE.Mesh(new THREE.CylinderGeometry(4.5,4.5,0.2,32),mat.metal); qi.position.set(xA-7,sh+0.1,bd-14); E.add(qi);
+  B(E,xA-11,xA-3,bd-22,bd-6,sh+0.2,sh+1,mat.dark);
+  [ax0+4,xA-6].forEach(bx=>{B(E,bx,bx+2,0,0.6,sh-22,sh-3,mat.black,false);B(E,bx,bx+2,0,bd-8,sh-3.6,sh-3,mat.black,false);});
+  // Trennwand leg: carcass without bottom, fixed seat, rolling box pulled out into the room
+  B(E,xT-bd,xT-bd+2,bd,yE,2,kz,mat.altholz);
+  B(E,xT-bd,xT,bd,yE,kz-1.8,kz,mat.fichte);
+  B(E,xT-bd,xT,bd,yE,kz,sh,mat.stoff);
+  B(E,xT-bt,xT,bt,yE,sh,bh,mat.stoff);
+  B(E,xT-bd+3.5,xT-bd+5,bd,yE,0,4,mat.fichte);
+  B(E,xT-1.8,xT-0.3,bd,yE,0,4,mat.fichte);
+  const L2=Math.min(S.box2,yE-bd-2);
+  const g2=new THREE.Group(); E.add(g2);
+  const qx0=xT-bd+5.3, qx1=xT-2.1, qy1=yE, qy0=yE-L2;
+  B(g2,xT-bd+2.2,xT-0.2,yE-2,yE,1.5,kz-2.5,mat.altholz);
+  B(g2,qx0,qx1,qy0,qy1-2,cz0,cz0+1.5,mat.birke);
+  B(g2,qx0,qx0+1.5,qy0,qy1-2,cz0,cz1,mat.birke);
+  B(g2,qx1-1.5,qx1,qy0,qy1-2,cz0,cz1,mat.birke);
+  B(g2,qx0,qx1,qy0,qy0+1.5,cz0,cz1,mat.birke);
+  [qy0+8,qy1-10].forEach(ry=>[qx0+5,qx1-5].forEach(rx=>{
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,2,16),mat.dark);
+    w.rotation.z=Math.PI/2; w.position.set(rx,2.2,ry); g2.add(w);}));
+  B(g2,(qx0+qx1)/2-7,(qx0+qx1)/2+7,yE,yE+1.5,kz-10,kz-8,mat.metal,false);
+  g2.userData.dy=L2; drawers.push(g2);
+
+  // Aussteifung: Eckleiste und Stahlwinkel zwischen Front und Sitzplatte
+  const lz0=kz-4.8, lz1=kz-1.8;
+  B(E,xA,xT-bd,bd-5,bd-2,lz0,lz1,mat.fichte);
+  B(E,xT-bd+2,xT-bd+5,bd,yE,lz0,lz1,mat.fichte);
+  const nW=Math.floor((F.benchWin-bd)/40);
+  for(let i=0;i<=nW;i++){const x=Math.min(xA+3+i*40,xT-bd-6), w=(i===0)?6:4;
+    B(E,x,x+w,bd-2.3,bd-2,lz1-7,lz1,mat.metal,false); B(E,x,x+w,bd-9,bd-2,lz1-0.3,lz1,mat.metal,false);}
+  const nT=Math.floor((yE-bd)/40);
+  for(let i=0;i<=nT;i++){const y=Math.max(yE-9-i*40,bd+3), w=(i===0)?6:4;
+    B(E,xT-bd+2,xT-bd+2.3,y,y+w,lz1-7,lz1,mat.metal,false); B(E,xT-bd+2,xT-bd+9,y,y+w,lz1-0.3,lz1,mat.metal,false);}
+
+  // ---------- Ofen (Ekko U 55(67)51 h, Maße aus Ofenbauer-Plan) ----------
+  // u = Abstand von der Akzentwand, v = Tiefe ab TV-Seite (Richtung weg vom Fenster)
+  const OY=S.ofenY, O=(u0,u1,v0,v1,z0,z1,m,e=true)=>B(R,L-u1,L-u0,OY+v0,OY+v1,z0,z1,m,e);
+  O(142.8,297,-27.5,129.4,0,0.6,mat.fglass,false);
+  O(0,259.5,-F.ofBench,101.9,0,42,mat.putz);
+  O(0,269.5,-F.ofBench,101.9,42,45,mat.marmor);
+  O(0,178.6,0,101.9,45,96.9,mat.putz);
+  O(178.6,259.5,10,91.9,45,96.9,mat.fire);
+  O(0,259.5,0,101.9,96.9,178,mat.putz);
+  O(0,259.5,0,101.9,178,180,mat.marmor);
+  O(97.5,147.5,30,66,180,H,mat.putz);
+  O(0,97.5,35,51,180,H,mat.putz);
+  O(15,130,-1.5,0,55,125,mat.tv);
+
+  // ---------- Sofa, Tisch ----------
+  if(state.sofa){
+    const xs=L-F.sofaLen, sy=D, sd=100, legY=150;
+    B(R,xs,L,sy,sy+sd,0,42,mat.sofa);
+    B(R,xs,L,sy,sy+25,42,65,mat.sofa);
+    B(R,L-sd,L,sy+sd,sy+sd+legY,0,42,mat.sofa);
+    B(R,L-25,L,sy+25,sy+sd+legY,42,65,mat.sofa);
+    const tx1=xT-bd+5, tx0=tx1-F.tableW, ty0=bd-5, ty1=ty0+F.tableL, tH=F.tableH;
+    B(R,tx0,tx1,ty0,ty1,tH-4,tH,mat.table);
+    const xc=(tx0+tx1)/2, lw=S.legW, gz=tH-4;
+    [[ty0+S.legIn,1],[ty1-S.legIn,-1]].forEach(([ys,dir])=>{
+      B(R,xc-lw/2,xc+lw/2,ys-12,ys+12,gz-0.8,gz,mat.black);
+      B(R,xc-lw/2,xc+lw/2,ys-1,ys+1,0,gz-0.8,mat.black);
+      const Lg=45, Dg=40, sh=new THREE.Shape();
+      sh.moveTo(0,0); sh.lineTo(Lg,0); sh.lineTo(Lg,-1.5); sh.quadraticCurveTo(Lg*0.22,-Dg*0.22,0,-Dg); sh.lineTo(0,0);
+      const hole=new THREE.Path(); hole.moveTo(4,-3); hole.lineTo(Lg*0.55,-3); hole.lineTo(4,-Dg*0.45); hole.lineTo(4,-3); sh.holes.push(hole);
+      const gm=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:1.5,bevelEnabled:false}),mat.black);
+      gm.rotation.y=dir>0?-Math.PI/2:Math.PI/2;
+      gm.position.set(xc+(dir>0?0.75:-0.75),gz-0.8,ys+dir*1);
+      R.add(gm);
+      const disc=new THREE.Mesh(new THREE.CylinderGeometry(5,5,0.6,24),mat.black);
+      disc.position.set(xc,gz-0.3,ys+dir*(Lg-3)); R.add(disc);
+    });
+  }
+  applyXray(); report();
+}
+
+function applyXray(){
+  const x=state.xray;
+  [['ply',0.12],['sofa',0.18],['altholz',0.35],['stoff',0.3],['table',0.3]].forEach(([k,o])=>{
+    mat[k].opacity=x?o:1; mat[k].depthWrite=!x; mat[k].needsUpdate=true;});
+}
+
+function report(){
+  const d=dims();
+  const open=F.boxH+F.boardT+(F.boardD-F.strip);
+  const rows=[
+    ['Rückkasten, Länge',fmt(d.L)+' cm'],
+    ['Brett: außen | Klappe | Mitte | Klappe | außen',`${fmt(d.o)} | 70 | ${fmt(d.m)} | 70 | ${fmt(d.o)}`],
+    ['Kastenklappe offen, Oberkante',`<span class="${open<F.sillU?'ok':'warn'}">${fmt(open)} cm (Fensterbank 87)</span>`],
+    ['Steckdose ab Pfosten-Verkleidung',`${fmt(d.sx)} cm, ${d.sx<d.o?'unter festem Außenstück':'unter der Klappe'}`],
+    ['Trennwand (L × D × H)',`210 × ${fmt(d.twT)} × ${fmt(S.twH)} cm`],
+    ['Endpfosten und Deckenbalken',`${fmt(d.twT)} cm breit, Balken 14 cm hoch`],
+    ['Eckbank, Schenkel Fensterwand','180 cm, 1 Rollkasten'],
+    ['Rollkasten (L × B × H) ca.','175 × 48 × 27 cm, ganz herausziehbar'],
+    ['Ablage am Bankende',`${fmt(S.ablW)} × 55 cm, Oberkante 45 cm, 9,5 cm über Rollkasten`],
+    ['Eckbank, Schenkel Trennwand',`${fmt(d.benchY1)} cm ab Fensterwand, Rollkasten`],
+    ['Rollkasten Trennwand, Länge',`${fmt(Math.min(S.box2,d.benchY1-57))} cm (max. ${fmt(d.benchY1-57)})`],
+    ['Sitzhöhe | Sitztiefe | Lehne','45 | 45 | 85 cm'],
+    ['Lehne unter Fensterbank',`<span class="${F.backH<F.sillU?'ok':'warn'}">${F.sillU-F.backH} cm Luft</span>`],
+    ['Trennwand über Banklehne',`<span class="${S.twH-F.backH>=10?'ok':'warn'}">${fmt(S.twH-F.backH)} cm</span>`],
+    ['Durchgang Trennwand-Ende bis Ofenbank',(()=>{const g=(S.ofenY-F.ofBench)-(F.postD+F.twLen+d.c);return `<span class="${g>=90?'ok':'warn'}">${fmt(g)} cm</span>`;})()]
+  ];
+  let h=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  if(d.m<20) h+=`<tr><td colspan="2" class="warn">Mittelstück unter 20 cm. Außenstücke verkleinern.</td></tr>`;
+  document.getElementById('out').innerHTML=h;
+}
+
+const cam={target:new THREE.Vector3(40,55,60),theta:-0.3,phi:1.1,r:520};
+const views={
+  raum:()=>({target:new THREE.Vector3((dims().xT-180+dims().L)/2,70,180),theta:-0.35,phi:1.05,r:720}),
+  ess:()=>({target:new THREE.Vector3(dims().xT-90,50,90),theta:-0.75,phi:1.0,r:320}),
+  vorne:()=>({target:new THREE.Vector3((dims().xT-180+dims().L)/2,70,0),theta:0,phi:1.45,r:480}),
+  oben:()=>({target:new THREE.Vector3((dims().xT-180+dims().L)/2,60,130),theta:0,phi:0.02,r:620}),
+  detail:()=>({target:new THREE.Vector3(S.outer+35,55,7),theta:-0.35,phi:0.75,r:120})
+};
+let anim=null;
+function goView(n){
+  const t=views[n](); const from={target:cam.target.clone(),theta:cam.theta,phi:cam.phi,r:cam.r};
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  anim={from,to:t,t0:performance.now(),dur:reduce?0:600};
+  document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===n));
+}
+document.querySelectorAll('#views button').forEach(b=>b.addEventListener('click',()=>goView(b.dataset.view)));
+function updateCam(){const s=Math.sin(cam.phi);
+  camera.position.set(cam.target.x+cam.r*s*Math.sin(cam.theta),cam.target.y+cam.r*Math.cos(cam.phi),cam.target.z+cam.r*s*Math.cos(cam.theta));
+  camera.lookAt(cam.target);}
+const el=renderer.domElement; const ptr=new Map(); let last=null;
+function pan(dx,dy){const right=new THREE.Vector3(), up=new THREE.Vector3();
+  camera.matrixWorld.extractBasis(right,up,new THREE.Vector3());
+  const k=cam.r*0.0016; cam.target.addScaledVector(right,-dx*k).addScaledVector(up,dy*k);}
+function pinfo(){const a=[...ptr.values()];if(a.length<2)return null;
+  return {d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),mx:(a[0].x+a[1].x)/2,my:(a[0].y+a[1].y)/2};}
+el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,b:e.button,sh:e.shiftKey});last=pinfo();anim=null;});
+el.addEventListener('pointermove',e=>{
+  if(!ptr.has(e.pointerId))return;
+  const pr=ptr.get(e.pointerId), dx=e.clientX-pr.x, dy=e.clientY-pr.y; pr.x=e.clientX; pr.y=e.clientY;
+  if(ptr.size===1){ if(pr.b===2||pr.sh) pan(dx,dy);
+    else{cam.theta-=dx*0.008;cam.phi=Math.min(1.6,Math.max(0.02,cam.phi-dy*0.008));} }
+  else if(ptr.size===2){const n=pinfo(); if(last&&n){cam.r=Math.min(1200,Math.max(30,cam.r*last.d/n.d));pan(n.mx-last.mx,n.my-last.my);} last=n;}
+});
+['pointerup','pointercancel'].forEach(t=>el.addEventListener(t,e=>{ptr.delete(e.pointerId);last=pinfo();}));
+el.addEventListener('wheel',e=>{e.preventDefault();cam.r=Math.min(1200,Math.max(30,cam.r*(1+e.deltaY*0.001)));},{passive:false});
+el.addEventListener('contextmenu',e=>e.preventDefault());
+function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
+  renderer.domElement.style.width=w+'px';renderer.domElement.style.height=h+'px';camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+function loop(now){
+  if(anim){const t=anim.dur?Math.min(1,(now-anim.t0)/anim.dur):1, k=ease(t);
+    cam.target.lerpVectors(anim.from.target,anim.to.target,k);
+    cam.theta=anim.from.theta+(anim.to.theta-anim.from.theta)*k;
+    cam.phi=anim.from.phi+(anim.to.phi-anim.from.phi)*k;
+    cam.r=anim.from.r+(anim.to.r-anim.from.r)*k; if(t>=1)anim=null;}
+  const goal=state.open?1:0; state.angle+=(goal-state.angle)*0.12;
+  flaps.forEach(f=>f.rotation.x=-state.angle*Math.PI*0.49);
+  lids.forEach(l=>l.rotation.z=-state.angle*Math.PI*0.47);
+  drawers.forEach(g=>{g.position.x=state.angle*(g.userData.dx||0);g.position.z=state.angle*(g.userData.dy||0);});
+  updateCam(); renderer.render(scene,camera); requestAnimationFrame(loop);
+}
+build(); resize(); goView('raum'); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
