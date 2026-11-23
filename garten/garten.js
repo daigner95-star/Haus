@@ -66,6 +66,13 @@ const CFG = {
     r: 1.2,        // Bogenradius der Lauflinie
     showOld: true, // bestehenden Weg (alte Treppe laut Aufmaß) mit Höhen einblenden
   },
+  // Stellplätze 1–3 vor der Garage zur Straße hin, je 2,3 × 5,0 m. Ecken aus dem Aufteilungsplan (17.04.2026, M 1:200),
+  // über die Hausecken auf u/v umgerechnet. Nummer = Einheit laut Plan. Ecken: zur Straße links, zur Garage links, zur Garage rechts, zur Straße rechts.
+  parking: [
+    { n: 1, q: [[-6.24, 28.72], [-6.08, 23.72], [-3.79, 23.80], [-3.94, 28.79]] },
+    { n: 2, q: [[-3.94, 28.79], [-3.79, 23.80], [-1.49, 23.87], [-1.64, 28.86]] },
+    { n: 3, q: [[-1.64, 28.86], [-1.49, 23.87], [0.81, 23.94], [0.66, 28.93]] },
+  ],
 };
 function fixedCrowns() {
   const b = CFG.balcony, out = [], opaque = (min, max) => out.push({ cr: { shape: 'box', min, max }, k: 80 });
@@ -493,6 +500,7 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
       <div class="ctl"><span class="glbl" id="seasonLbl">Jahreszeit</span>
         <div class="seg" role="group" aria-labelledby="seasonLbl"><button id="sS" aria-pressed="true">Sommer</button><button id="sW" aria-pressed="false">Winter</button></div></div>
       <div class="ctl"><label for="stage">Wuchs</label><select id="stage"></select></div>
+      <label class="small"><input type="checkbox" id="carsOn" style="accent-color:var(--accent)"> Autos auf den Stellplätzen 1–3</label>
     </div>
     <div class="tabs" role="tablist" aria-label="Planung">
       <button role="tab" id="t-cov" aria-selected="true" aria-controls="p-cov">Sichtschutz</button>
@@ -579,6 +587,7 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
           <tr><td>Giebel → Grenze (gartenseitig)</td><td class="n">5,33 m</td><td>Aufmaß</td></tr>
           <tr><td>Versatz ab Gartenfassade</td><td class="n">7,6–8,0 m</td><td>Aufmaß</td></tr>
           <tr><td>Achse Giebel → Straße</td><td class="n">32° (NO)</td><td>Aufmaß</td></tr>
+          <tr><td>Stellplätze 1–3 vor der Garage (zur Straße)</td><td class="n">je 2,3 × 5,0 m</td><td>Aufteilungsplan</td></tr>
         </table></div>
       </div>
       <div>
@@ -688,12 +697,12 @@ const VARIANTS = [
 
 // ---------- Zustand ----------
 const ST = {
-  variant: 'H', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, sunDay: 172, target: 'balcony',
+  variant: 'H', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, sunDay: 172, target: 'balcony', cars: true,
 };
 const LS_KEY = 'haus-garten-v1';
 const SITE_KEYS = ['terrasse', 'kalk', 'bach', 'zaunNb', 'stair', 'survey'];
 function save() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ variant: ST.variant, plants: ST.plants, balcony: CFG.balcony, terrace: CFG.terrace, floor0: CFG.haus.floor0, lattice: CFG.lattice, site2: Object.fromEntries(SITE_KEYS.map(k => [k, CFG[k]])) })); } catch (e) { /* ignorieren */ }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ variant: ST.variant, plants: ST.plants, balcony: CFG.balcony, terrace: CFG.terrace, floor0: CFG.haus.floor0, lattice: CFG.lattice, cars: ST.cars, site2: Object.fromEntries(SITE_KEYS.map(k => [k, CFG[k]])) })); } catch (e) { /* ignorieren */ }
 }
 function load() {
   try {
@@ -706,6 +715,7 @@ function load() {
     if (s.terrace) Object.assign(CFG.terrace, s.terrace);
     if (typeof s.floor0 === 'number') CFG.haus.floor0 = s.floor0;
     if (typeof s.lattice === 'boolean') CFG.lattice = s.lattice;
+    if (typeof s.cars === 'boolean') ST.cars = s.cars;
     if (s.site2) for (const k of SITE_KEYS) if (s.site2[k]) for (const [f, x] of Object.entries(s.site2[k])) if (f in CFG[k] && typeof x === typeof CFG[k][f] && (typeof x === 'boolean' || isFinite(x))) CFG[k][f] = x;
     return true;
   } catch (e) { return false; }
@@ -952,6 +962,11 @@ function drawGround() {
     d[k] = d[k] * (1 - a) + rgb[0] * a; d[k + 1] = d[k + 1] * (1 - a) + rgb[1] * a; d[k + 2] = d[k + 2] * (1 - a) + rgb[2] * a;
   }
   c.putImageData(img, X(-0.6), Y(30.2));
+  // Stellplätze 1–3 vor der Garage: leichte weiße Linien, Nummer der Einheit an der Straßenseite
+  c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 0.1 * P; c.lineJoin = 'miter';
+  for (const { q } of CFG.parking) { c.beginPath(); q.forEach(([u, v], i) => i ? c.lineTo(X(u), Y(v)) : c.moveTo(X(u), Y(v))); c.closePath(); c.stroke(); }
+  c.fillStyle = 'rgba(255,255,255,0.55)'; c.font = `700 ${Math.round(0.7 * P)}px "Source Sans 3", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (const { n, q } of CFG.parking) { const u = (q[0][0] + q[3][0]) / 2, v = (q[0][1] + q[3][1]) / 2 - 0.6; c.fillText(String(n), X(u), Y(v)); }
   // 1-m-Raster im Giebelgarten
   c.strokeStyle = 'rgba(255,255,255,0.32)'; c.lineWidth = 1;
   for (let u = 0; u <= 5; u++) { c.beginPath(); c.moveTo(X(u), Y(u < uK + 0.45 ? 0 : kv + K.d)); c.lineTo(X(u), Y(u <= 1.5 ? 9.6 : 7.6)); c.stroke(); }
@@ -1248,6 +1263,36 @@ function buildContext() {
   for (const [u, v, h, r] of mts) {
     const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), MAT.mountain); m.position.copy(W(u, h / 2 - 2, v)); statics.add(m);
   }
+}
+// ---------- Autos auf den Stellplätzen 1–3 (optional) ----------
+const carGrp = new THREE.Group(); root.add(carGrp);
+const CAR_PAINT = [lam(0x2d4a6b), lam(0xb9bcbf), lam(0x8e2f2a)];
+// einfaches Auto, 4,5 × 1,8 × 1,5 m, Front Richtung Garage; Ursprung Mitte am Boden, Längsachse lokal entlang v
+function carMesh(paint) {
+  const g = new THREE.Group(), L2 = 2.25, B2 = 0.9;
+  g.add(box(-B2, B2, -L2, L2, 0.3, 0.85, paint));
+  g.add(box(-B2 + 0.08, B2 - 0.08, -1.15, 1.0, 0.85, 1.45, paint));
+  g.add(box(-B2 + 0.06, B2 - 0.06, -1.05, 0.9, 0.9, 1.38, MAT.glass, false));
+  for (const a of [-1, 1]) g.add(box(a * B2 - 0.05, a * B2 + 0.05, 0.85, 1.05, 0.62, 0.72, MAT.frame, false)); // Spiegel
+  for (const a of [-B2 + 0.12, B2 - 0.32]) {
+    g.add(box(a, a + 0.2, L2 - 0.02, L2 + 0.01, 0.62, 0.72, MAT.cream, false));   // Scheinwerfer
+    g.add(box(a, a + 0.2, -L2 - 0.01, -L2 + 0.02, 0.66, 0.74, MAT.box, false));   // Rückleuchten
+  }
+  const wg = new THREE.CylinderGeometry(0.32, 0.32, 0.22, 18); wg.rotateZ(Math.PI / 2);
+  for (const su of [-1, 1]) for (const sv of [-1.45, 1.4]) { const w = new THREE.Mesh(wg, MAT.frame); w.position.copy(W(su * (B2 - 0.1), 0.32, sv)); w.castShadow = true; g.add(w); }
+  return g;
+}
+function buildCars() {
+  clearGroup(carGrp);
+  if (!ST.cars) { req(); return; }
+  CFG.parking.forEach(({ q }, i) => {
+    const cu = q.reduce((a, p) => a + p[0], 0) / 4, cv = q.reduce((a, p) => a + p[1], 0) / 4;
+    const fu = (q[1][0] + q[2][0]) / 2 - (q[0][0] + q[3][0]) / 2, fv = (q[1][1] + q[2][1]) / 2 - (q[0][1] + q[3][1]) / 2; // Richtung Garage
+    const car = carMesh(CAR_PAINT[i % CAR_PAINT.length]);
+    car.position.copy(W(cu, groundH(cu, cv), cv)); car.rotation.y = Math.atan2(fu, -fv) + Math.PI;
+    carGrp.add(car);
+  });
+  req();
 }
 // ---------- Umgebungsbäume ----------
 const ctxTrees = new THREE.Group(); root.add(ctxTrees);
@@ -1825,6 +1870,8 @@ const setSeason = (s) => { ST.season = s; ST.sunDay = s === 'W' ? 355 : 172; $('
 $('sS').onclick = () => setSeason('S'); $('sW').onclick = () => setSeason('W');
 $('tgB').onclick = () => setTarget('balcony'); $('tgT').onclick = () => setTarget('terrace');
 $('stage').innerHTML = STAGES.map((s, i) => `<option value="${i}">${s}</option>`).join(''); $('stage').value = String(ST.stage);
+$('carsOn').checked = ST.cars;
+$('carsOn').addEventListener('change', (e) => { ST.cars = e.target.checked; buildCars(); save(); });
 $('stage').addEventListener('change', (e) => { ST.stage = +e.target.value; rebuildPlants(); rebuildSight(); renderCoverage(); });
 $('sunT').addEventListener('input', (e) => { ST.sunT = +e.target.value; updateSun(); });
 $('sunD').addEventListener('input', (e) => { ST.sunDay = +e.target.value; updateSun(); });
@@ -1861,7 +1908,7 @@ function step(now) {
 if (!load()) ST.plants = VARIANTS.find(v => v.id === 'H').plants();
 placeRoot();
 renderVariantSelect();
-buildTerrain(); buildWinLabels(); buildHouseNb(); buildContext(); buildSite(); buildCtxTrees(); drawGround();
+buildTerrain(); buildWinLabels(); buildHouseNb(); buildContext(); buildCars(); buildSite(); buildCtxTrees(); drawGround();
 rebuildPlants(); rebuildSight(); updateSun();
 renderCoverage(); renderPlants(); renderSpecies(); renderInsights(); renderAssume(); renderStairFields(); renderStair();
 applyLabels();
