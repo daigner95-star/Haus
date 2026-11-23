@@ -237,7 +237,7 @@ const DG_LIFT=0;
 const HR=RIDGE-ROOF_T-Z_DG+DG_LIFT;
 const RT=0.36;                         // sichtbare Dachstärke außen
 const CX0=3.455, CX1=L-CX0;            // Zwerchgiebel über Balkonen
-const EAVE=1.40, GOV=1.00;             // Dachüberstand Traufe / Giebel (Giebel nach Foto geschätzt)
+const EAVE=1.40, GOV=1.55;             // Dachüberstand Traufe / Giebel (Giebel aus dem PV-Foto der Straßenseite abgeleitet: 2 × 7 Module + Mittelstreifen)
 const LB_X0=4.10, LB_X1=12.6, LB_D=1.5;  // Laubengang Straßenseite (nach Fotos)
 const BAL_D=2.55, BAL_S=0.98, SEP0=6.67, SEP1=6.87;
 const RISE=(Z_DG-Z_OG)/15;
@@ -713,6 +713,26 @@ function buildRoof(){
   for(let j=0;j<Y.length-1;j++)for(let i=0;i<X.length-1;i++){const a=j*X.length+i,b=a+1,c=a+X.length,d=c+1;idx.push(a,b,d,a,d,c);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
   addMesh(g,M.ceilDG,G.roof,{noCast:true});
+}
+
+/* ---------- PV-Anlage (Trina Vertex S+ 440 W, 1762 × 1134 × 30 mm, hochkant) ----------
+   Straßenseite: ganze Dachfläche, je Haushälfte 7 Spalten × 3 Reihen, dazwischen ein Ziegelstreifen an der Haustrennwand (nach Foto).
+   Gartenseite: gleiches Raster, nur auf der Hauptdachfläche; der Zwerchgiebel bleibt frei, an den Kehlen getreppt. */
+const PV={L:1.762,W:1.134,H:0.03,gap:0.53,top:0.20,rows:3,cols:7,lift:0.10,count:{street:0,garden:0}};
+function buildPV(){
+  const c=Math.cos(26*D2R),geo=new THREE.BoxGeometry(PV.W-0.015,PV.H,PV.L-0.015);
+  const mat=new THREE.MeshLambertMaterial({color:0x1b2129});
+  const cells=[]; // [xc, sc, Seite]
+  for(const side of ['street','garden'])for(let r=0;r<PV.rows;r++)for(let i=0;i<PV.cols;i++)for(const h of [-1,1]){
+    const xc=MID+h*(PV.gap/2+(i+0.5)*PV.W), s0=PV.top+r*PV.L, s1=s0+PV.L;
+    if(side==='garden'){ // frei vom Zwerchgiebel samt 30 cm Überstand und 15 cm Abstand zur Kehle
+      const ok=(x,s)=>{const y=YR-s*c,dx=Math.abs(x-MID);return dx>=MID-CX0+0.45||dx>YR-y+0.2;};
+      if(![[xc-PV.W/2,s0],[xc+PV.W/2,s0],[xc-PV.W/2,s1],[xc+PV.W/2,s1]].every(([x,s])=>ok(x,s)))continue;}
+    cells.push([xc,(s0+s1)/2,side]);PV.count[side]++;}
+  const im=new THREE.InstancedMesh(geo,mat,cells.length),Mx=new THREE.Matrix4(),q=new THREE.Quaternion(),one=new THREE.Vector3(1,1,1);
+  cells.forEach(([x,sc,side],k)=>{const y=side==='street'?YR+sc*c:YR-sc*c,z=zOut(y)+PV.lift/c;
+    q.setFromAxisAngle(new THREE.Vector3(1,0,0),(side==='street'?-26:26)*D2R);Mx.compose(P(x,y,z),q,one);im.setMatrixAt(k,Mx);});
+  im.castShadow=true;im.receiveShadow=true;G.roof.add(im);
 }
 
 /* ---------- Geländer ---------- */
@@ -1317,7 +1337,7 @@ const KK=(function(){
   return {S,st,sliderDefs,build,step,report,geo:planShape};
 })();
 
-buildGround();buildAllWalls();buildFloors();buildRoof();buildBalconies();
+buildGround();buildAllWalls();buildFloors();buildRoof();buildPV();buildBalconies();
 
 /* ================= EG Projekt 3: Hängeregal über der Halbinsel =================
    Zwei Varianten nach Entwurfsbild: 1 = offenes Regal im schwarzen Stahlrahmen mit LED-Streifen,

@@ -36,7 +36,9 @@ Settings → Pages → *Deploy from a branch* → Branch wählen (z. B. `main`),
 ## Datengrundlage
 - Maße aus dem Werkplan der Zimmerei (08/2025). Wohnung 3 ist das Spiegelbild von Wohnung 2.
 - EG-Aufmaß: Schlafzimmer an der Gartenwand innen 4,03 m. Akzentwand bis Pfosten 2,44 m. Halbinsel 2,46 m, Platte 99 × 91 cm. Abstand zur Schrankzeile 1,17 m. Stirnseite bis Schiebetür 1,16 m. Hochschränke 124 × 59 × 225 cm.
-- Annahmen in OG und DG: Balkon OG tiefer Teil 2,55 m, flacher Teil ca. 0,98 m. Balkon DG 2,55 m unter dem Zwerchgiebel. Giebelüberstand ca. 1,0 m (nach Foto).
+- PV-Anlage: Trina Vertex S+ 440 W (1762 × 1134 × 30 mm), hochkant. Straßenseite ganz belegt, je Haushälfte 7 × 3 Module mit einem Ziegelstreifen in der Mitte (Foto). Gartenseite im gleichen Raster neben dem Zwerchgiebel, an den Kehlen getreppt; der Zwerchgiebel selbst ist frei. Im Modell 42 + 24 = 66 Module (ca. 29 kWp), Gartenseite nach dem Dachfoto geschätzt.
+- Giebelüberstand 1,55 m, abgeleitet aus dem PV-Foto (2 × 7 Module passen sonst nicht aufs Dach).
+- Annahmen in OG und DG: Balkon OG tiefer Teil 2,55 m, flacher Teil ca. 0,98 m. Balkon DG 2,55 m unter dem Zwerchgiebel.
 - Fassade, Dach, Laubengang und Außentreppe nach Außenfotos.
 - Wohnfläche Wohnung 2 und 3 laut Ausschreibung 94 m² (inkl. anteiligem Balkon).
 

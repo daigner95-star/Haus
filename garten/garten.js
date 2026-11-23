@@ -685,7 +685,7 @@ const VARIANTS = [
 
 // ---------- Zustand ----------
 const ST = {
-  variant: 'A', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, target: 'balcony',
+  variant: 'H', season: 'S', stage: 2, plants: [], sel: null, showWin: 'OG2', view: 'overview', sunT: 11, target: 'balcony',
 };
 const LS_KEY = 'haus-garten-v1';
 const SITE_KEYS = ['terrasse', 'kalk', 'bach', 'zaunNb', 'stair', 'survey'];
@@ -696,7 +696,7 @@ function load() {
   try {
     const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
     if (!s || !Array.isArray(s.plants)) return false;
-    ST.variant = s.variant || 'A';
+    ST.variant = s.variant || 'H';
     ST.plants = s.plants.filter(p => SPECIES[p.sp]);
     ST.plants.forEach(p => { const n = parseInt(String(p.id).slice(1), 10); if (n >= pid) pid = n + 1; });
     if (s.balcony) Object.assign(CFG.balcony, s.balcony);
@@ -1820,7 +1820,7 @@ $('stage').addEventListener('change', (e) => { ST.stage = +e.target.value; rebui
 $('sunT').addEventListener('input', (e) => { ST.sunT = +e.target.value; updateSun(); });
 $('addSp').innerHTML = Object.entries(SPECIES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
 $('addBtn').onclick = () => { const p = mk($('addSp').value, 2.4, 1.0); ST.plants.push(p); ST.sel = p.id; markCustom(); rebuildPlants(); afterEdit(); toast('Pflanze ' + ST.plants.length + ' eingefügt. In der Draufsicht verschieben.'); };
-$('resetBtn').onclick = () => { const id = ST.variant === 'eigen' ? 'A' : ST.variant; $('variant').value = id; loadVariant(id); toast('Variante zurückgesetzt'); };
+$('resetBtn').onclick = () => { const id = ST.variant === 'eigen' ? 'H' : ST.variant; $('variant').value = id; loadVariant(id); toast('Variante zurückgesetzt'); };
 $('asReset').onclick = () => { Object.assign(CFG.balcony, clone(CFG0.balcony)); Object.assign(CFG.terrace, clone(CFG0.terrace)); CFG.haus.floor0 = CFG0.haus.floor0; CFG.lattice = CFG0.lattice; for (const k of SITE_KEYS) Object.assign(CFG[k], clone(CFG0[k])); renderAssume(); renderStairFields(); placeRoot(); buildWinLabels(); buildHouseNb(); rebuildSite(); updateSun(); applyLabels(); renderInsights(); save(); };
 $('copyBtn').onclick = () => {
   const txt = JSON.stringify({ balkon: CFG.balcony, pflanzen: ST.plants.map((p, i) => ({ nr: i + 1, art: SPECIES[p.sp].name, vorGiebel_m: +p.u.toFixed(2), abGartenecke_m: +p.v.toFixed(2), hoehe_m: p.top, breite_m: p.w, stamm_m: p.stem, quer: p.rot === 90 })) }, null, 1);
@@ -1848,7 +1848,7 @@ function step(now) {
 }
 
 // ---------- Start ----------
-if (!load()) ST.plants = VARIANTS.find(v => v.id === 'A').plants();
+if (!load()) ST.plants = VARIANTS.find(v => v.id === 'H').plants();
 placeRoot();
 renderVariantSelect();
 buildTerrain(); buildWinLabels(); buildHouseNb(); buildContext(); buildSite(); buildCtxTrees(); drawGround();
