@@ -1431,7 +1431,7 @@ const HS=(function(){
    Rausfallgitter mit senkrechten Stäben über die ganze Länge, darüber drei ruhige Bilder. Maße in cm. */
 const KB=(function(){
   const S={kbW:199,kbD:125,kbTop:42,kbRail:25,kbGap:6};
-  const st={head:'aussen',on:true,pics:true};
+  const st={head:'aussen',on:true,pics:true,back:false,under:'schub',pull:false};
   const sliderDefs=[
     {k:'kbW',label:'Nische: Breite (Außenwand bis Badwand)',min:190,max:210,step:1,hint:'Aufmaß 199 cm. Im Werkplan 200 cm.'},
     {k:'kbD',label:'Nische: Tiefe (bis Außenwand Straßenseite)',min:121,max:140,step:1,hint:'Aufmaß 125 cm. Im Werkplan 135 cm.'},
@@ -1474,9 +1474,19 @@ const KB=(function(){
     ebox(g,q.x0+gap,fy0,q.x0+gap+bt,q.y1-gap,0.06,q.top+0.2,mat.wood);                           // Kopf- und Fußteil an den Wänden
     ebox(g,q.x1-gap-bt,fy0,q.x1-gap,q.y1-gap,0.06,q.top+0.2,mat.wood);
     ebox(g,q.x0+gap+bt,fy1,q.x1-gap-bt,q.y1-gap,base-0.02,base,mat.woodDk,false);
-    const dw=(q.x1-q.x0-0.08)/2;
-    [0,1].forEach(i=>{const a=q.x0+0.04+i*dw;ebox(g,a+0.01,fy0-0.018,a+dw-0.01,fy0,0.09,base-0.03,mat.front);
-      const kx=a+dw/2;ebox(g,kx-0.06,fy0-0.03,kx+0.06,fy0-0.018,(0.09+base-0.03)/2-0.012,(0.09+base-0.03)/2+0.012,mat.knob,false);});
+    if(st.under==='schub'){                                                                         // zwei große Schubladen auf Rollen
+      const dw=(q.x1-q.x0-0.08)/2;
+      [0,1].forEach(i=>{const a=q.x0+0.04+i*dw;ebox(g,a+0.01,fy0-0.018,a+dw-0.01,fy0,0.09,base-0.03,mat.front);
+        const kx=a+dw/2;ebox(g,kx-0.06,fy0-0.03,kx+0.06,fy0-0.018,(0.09+base-0.03)/2-0.012,(0.09+base-0.03)/2+0.012,mat.knob,false);});
+    } else {                                                                                        // Gästebett-Auszug über die ganze Länge
+      const pu=st.pull?0.92:0,ax0=q.x0+gap+bt+0.01,ax1=q.x1-gap-bt-0.01,zr=0.03,zf=zr+0.04,zm=zf+0.10;
+      ebox(g,ax0,fy0-0.018-pu,ax1,fy0-pu,0.02,base-0.03,mat.front);
+      ebox(g,(ax0+ax1)/2-0.15,fy0-0.03-pu,(ax0+ax1)/2+0.15,fy0-0.018-pu,(base+0.0)/2-0.012,(base+0.0)/2+0.012,mat.knob,false);
+      if(st.pull){ebox(g,ax0+0.02,fy0-pu,ax1-0.02,fy0-pu+0.86,zr,zf,mat.woodDk);
+        ebox(g,ax0+0.02,fy0-pu+0.02,ax0+0.02+1.80,fy0-pu+0.82,zf,zm,mat.mattress);
+        ebox(g,ax0+0.55,fy0-pu+0.05,ax0+1.78,fy0-pu+0.79,zm,zm+0.05,mat.cushB,false);
+        const p2=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.1,0.5),mat.pillow);p2.position.copy(P(ax0+0.25,fy0-pu+0.42,zm+0.05));g.add(p2);}
+    }
     // Matratze, Bettwäsche, Kissen
     ebox(g,mx0,my0,mx1,my1,base,q.top,mat.mattress);
     const head=st.head==='aussen'?-1:1,hx=head<0?mx0:mx1;
@@ -1492,6 +1502,12 @@ const KB=(function(){
     const bars=new THREE.InstancedMesh(new THREE.CylinderGeometry(d/2,d/2,1,10),mat.wood,n),M=new THREE.Matrix4(),qq=new THREE.Quaternion(),sc=new THREE.Vector3(1,rt-0.04-(base+0.05),1);
     for(let i=0;i<n;i++){M.compose(P(xa+off+i*pitch+d/2-S.kbGap/200,ry,(base+0.05+rt-0.04)/2),qq,sc);bars.setMatrixAt(i,M);}
     bars.castShadow=true;g.add(bars);
+    if(st.back){                                                                                     // Gitter auch an der Rückwand (zwischen Matratze und Wand)
+      const by0=q.y1-gap-bt,by1=q.y1-gap,byc=(by0+by1)/2;
+      ebox(g,xa,by0,xb,by1,base,base+0.05,mat.wood);ebox(g,xa,by0,xb,by1,rt-0.04,rt,mat.wood);
+      const b2=new THREE.InstancedMesh(new THREE.CylinderGeometry(d/2,d/2,1,10),mat.wood,n);
+      for(let i=0;i<n;i++){M.compose(P(xa+off+i*pitch+d/2-S.kbGap/200,byc,(base+0.05+rt-0.04)/2),qq,sc);b2.setMatrixAt(i,M);}
+      b2.castShadow=true;g.add(b2);}
     // Bilder: drei ruhige Motive in einer Reihe über dem Bett, Unterkanten auf einer Linie
     if(st.pics){const yw=q.y1,zb=q.top+0.55,w=0.40,h=0.50,sp=0.12,xc=(mx0+mx1)/2;
       picture(g,yw,xc-w-sp,zb,w,h,PICS.berge);picture(g,yw,xc,zb,w,h,PICS.mond);picture(g,yw,xc+w+sp,zb,w,h,PICS.gras);}
@@ -1508,6 +1524,9 @@ const KB=(function(){
       ['Liegehöhe',`${fmt(S.kbTop)} cm`],
       ['Bettgitter',`über die ganze Länge (ca. ${fmt(len)} cm), <span class="${cls(S.kbRail>=16)}">${fmt(S.kbRail)} cm über der Matratze</span>, Oberkante ${fmt(S.kbTop+S.kbRail)} cm über dem Boden`],
       ['Stäbe',`rund 2,5 cm, <span class="${cls(S.kbGap<=7.5)}">${fmt(S.kbGap)} cm Abstand</span> (Raster ${fmt(pitch)} cm)`],
+      ['Gitter hinten',st.back?'ja, wie vorne; sitzt im Spalt zwischen Matratze und Wand (2,5 cm). Die Kissen lehnen dann am Gitter.':'nein'],
+      ...(st.under==='schub'?[['Unterbau','2 Schubladen auf Rollen, je ca. '+fmt((S.kbW-8)/2-4)+' × '+fmt(S.kbD-12)+' cm, innen ca. '+fmt((S.kbTop-16-12))+' cm hoch: je ca. '+fmt(((S.kbW-8)/2-4)*(S.kbD-12)*(S.kbTop-16-12)/1000)+' Liter']]:
+        [['Unterbau','Gästebett-Auszug über die ganze Länge, '+fmt(S.kbTop-16-3)+' cm lichte Höhe unter dem Lattenrost'],['Gästematratze','180 × 80 × 10 cm (Kinder-Gästematratze); 190 cm passt zwischen den Wänden nicht'],['Platz vor dem Bett','Auszug ca. 90 cm tief, davor bleiben im Zimmer rund 2,9 m']]),
       ['Bilder',st.pics?'3 × 40 × 50 cm, Unterkante 55 cm über der Matratze':'ohne']
     ];
     el.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
@@ -1808,7 +1827,8 @@ function renderPanelEG(){
      .map(([k,n])=>'<button class="chip" data-cam="'+k+'">'+n+'</button>').join('')+'</div>'+
    '<h3>Projekt 4 · Kinderbett in der Nische, Kinderzimmer 1</h3>'+
    '<div class="chips" role="group" aria-label="Kopfende">'+[['aussen','Kopfende Außenwand'],['bad','Kopfende Badwand']].map(([k,n])=>'<button class="chip" data-kbh="'+k+'" aria-pressed="'+(KB.st.head===k)+'">'+n+'</button>').join('')+'</div>'+
-   '<div class="chips">'+tb('kbPics',KB.st.pics)+'Bilder</button>'+tb('kbOn',KB.st.on)+'Bett zeigen</button></div>'+
+   '<div class="chips">'+tb('kbBack',KB.st.back)+'Gitter auch hinten</button>'+tb('kbPics',KB.st.pics)+'Bilder</button>'+tb('kbOn',KB.st.on)+'Bett zeigen</button></div>'+
+   '<div class="chips" role="group" aria-label="Unterbau">'+[['schub','Unterbau: 2 Schubladen'],['gast','Unterbau: Gästebett-Auszug']].map(([k,n])=>'<button class="chip" data-kbu="'+k+'" aria-pressed="'+(KB.st.under===k)+'">'+n+'</button>').join('')+tb('kbPull',KB.st.pull)+'Auszug herausziehen</button></div>'+
    '<div id="kbSl"></div><h4>Ergebnis</h4><table class="res" id="kbOut"></table>'+
    '<p class="note"><b>Idee:</b> Ein schlichtes Bett von Wand zu Wand, damit die Nische ruhig wirkt. Unten ein Bettkasten mit zwei großen Schubladen, darauf die Matratze 190 × 120. Vorne ein Bettgitter mit runden Holzstäben über die ganze Länge: Eure Tochter klettert darüber, nachts fällt sie nicht heraus. Darüber drei Bilder in gleichen hellen Rahmen und ruhigen Farben: Berge in der Dämmerung, Mond über dem See, Gräser.</p>'+
    '<p class="note"><b>Gemessen:</b> Nische 1,99 × 1,25 m. <b>Gesetzt:</b> Matratze 190 × 120 cm, Liegehöhe 42 cm, Gitter 25 cm über der Matratze, Stäbe 2,5 cm mit 6 cm Abstand, Bilder 40 × 50 cm. <b>Hinweis:</b> Im Werkplan ist die Nische 1,35 m tief; das Bett richtet sich nach eurem Aufmaß an der Rückwand aus.</p>'+
@@ -1855,7 +1875,9 @@ function renderPanelEG(){
     panel.querySelectorAll('[data-kbh]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));KB.build();egChanged();}));
   panel.querySelectorAll('[data-hv]').forEach(b=>b.addEventListener('click',()=>{HS.st.v=b.dataset.hv;
     panel.querySelectorAll('[data-hv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));HS.build();egChanged();}));
-  tog('kbPics',KB.st,'pics',KB.build);tog('kbOn',KB.st,'on',KB.build);
+  tog('kbPics',KB.st,'pics',KB.build);tog('kbBack',KB.st,'back',KB.build);tog('kbPull',KB.st,'pull',KB.build);
+  panel.querySelectorAll('[data-kbu]').forEach(b=>b.addEventListener('click',()=>{KB.st.under=b.dataset.kbu;
+    panel.querySelectorAll('[data-kbu]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));KB.build();egChanged();}));tog('kbOn',KB.st,'on',KB.build);
   tog('kkOpen',KK.st,'open');tog('kkCush',KK.st,'cushion',KK.build);
   tog('tOpen',WZ.st,'open');tog('tXray',WZ.st,'xray',WZ.applyXray);tog('tSofa',WZ.st,'sofa',WZ.build);tog('tBeam',WZ.st,'beamFull',WZ.build);
   panel.querySelectorAll('[data-pose]').forEach(b=>b.addEventListener('click',()=>{KK.st.pose=b.dataset.pose;
