@@ -537,7 +537,7 @@ const M={
   floorEG:lam(0xcfae84), larch:lam(0xbd8650), tread:lam(0xc7a072), steel:lam(0x2a2a2a), ground:lam(0x8db06a), white:lam(0xf5f5f3), eg:lam(0xb07c4a),
   slab:lam(0xd8d2c6), glassShower:new THREE.MeshLambertMaterial({color:0xd8ecf2,transparent:true,opacity:0.3,depthWrite:false,side:THREE.DoubleSide})
 };
-const G={}; ['EG','EGceil','egGarden','egKitchen','egWZ','egKids','egHang','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
+const G={}; ['EG','EGceil','egGarden','egKitchen','egWZ','egKids','egHang','egBed','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
 const COLL=[]; // {x0,y0,x1,y1,z0,z1,furn?,tag?}
 let COLL_TAG=null; // Kennung für Kollisionsboxen, die beim Neubau eines Bauteils ersetzt werden
 function dropColl(tag){for(let i=COLL.length-1;i>=0;i--)if(COLL[i].tag===tag)COLL.splice(i,1);}
@@ -1425,7 +1425,107 @@ const HS=(function(){
   return {S,st,sliderDefs,build,report,geo};
 })();
 
-buildKitchenEG();WZ.build();buildEGGarden();KK.build();HS.build();
+/* ================= EG Projekt 4: Hausbett in der Nische von Kinderzimmer 1 =================
+   Nische hinten im Kinderzimmer 1 zwischen Außenwand (NW-Giebel), Wand zum Bad und Außenwand Straßenseite.
+   Aufmaß: 1,99 × 1,25 m. Matratze 190 × 120 cm. Bettkasten von Wand zu Wand mit zwei Schubladen,
+   darüber ein Hausdach aus Holzlatten (Giebel an den Wänden, First längs), Betthimmel aus Leinen, Lichterkette. Maße in cm. */
+const KB=(function(){
+  const S={kbW:199,kbD:125,kbTop:46,kbEave:135,kbRidge:200,kbRail:18};
+  const st={head:'aussen',canopy:true,rail:true,lights:true,on:true};
+  const sliderDefs=[
+    {k:'kbW',label:'Nische: Breite (Außenwand bis Badwand)',min:190,max:210,step:1,hint:'Aufmaß 199 cm. Im Werkplan 200 cm.'},
+    {k:'kbD',label:'Nische: Tiefe (bis Außenwand Straßenseite)',min:121,max:140,step:1,hint:'Aufmaß 125 cm. Im Werkplan 135 cm.'},
+    {k:'kbTop',label:'Liegehöhe (Oberkante Matratze)',min:30,max:60,step:1,hint:'Bettkasten mit Schubladen plus 16 cm Matratze. 46 cm ist Sitzhöhe für Erwachsene.'},
+    {k:'kbEave',label:'Hausdach: Traufe (Seitenwand) über Boden',min:110,max:170,step:1,hint:'Unter dieser Höhe sitzt das Kind; Raumhöhe 240 cm.'},
+    {k:'kbRidge',label:'Hausdach: First über Boden',min:170,max:230,step:1,hint:'Bis 230 cm, damit oben noch Luft zur Decke bleibt.'},
+    {k:'kbRail',label:'Rausfallschutz über der Matratze',min:10,max:30,step:1,hint:'Kinderbetten: mindestens 16 cm über der Matratze.'}
+  ];
+  const fmt=v=>(Math.round(v*10)/10).toLocaleString('de-DE',{maximumFractionDigits:1});
+  const mat={wood:lam(0xd8c09a),woodDk:lam(0xb99a72),front:lam(0xe9e1d2),knob:lam(0x9c8a72),mattress:lam(0xf4f1ea),
+    sheet:lam(0xe6ddd0),duvet:lam(0xc9d4cf),pillow:lam(0xf3eee6),cushA:lam(0xd9a89a),cushB:lam(0xa9b8a3),plush:lam(0xc9a27a),
+    fabric:new THREE.MeshLambertMaterial({color:0xf3ece0,transparent:true,opacity:0.72,side:THREE.DoubleSide,depthWrite:false}),
+    bulb:new THREE.MeshBasicMaterial({color:0xffd99a}),rug:lam(0xd8cdbd),book:[lam(0xb56f4e),lam(0x6f8f9a),lam(0xe0b85a)]};
+  // Nische in Hauskoordinaten: x0 an der NW-Außenwand, y1 an der Außenwand Straßenseite
+  const geo=()=>{const x0=T,x1=T+S.kbW/100,y1=B-T,y0=y1-S.kbD/100;return {x0,x1,y0,y1,xc:(x0+x1)/2,yc:(y0+y1)/2,top:S.kbTop/100,eave:S.kbEave/100,ridge:Math.min(Z_EGC-0.1,S.kbRidge/100)};};
+  function beamXZ(g,a,b,w,m){const va=P(...a),vb=P(...b),len=va.distanceTo(vb);const o=new THREE.Mesh(BOXG,m);o.scale.set(w,w,len);o.position.copy(va).add(vb).multiplyScalar(0.5);o.lookAt(vb);o.castShadow=true;o.receiveShadow=true;g.add(o);return o;}
+  function build(){
+    const g=G.egBed;clearGroup(g);dropColl('kb');if(!st.on){report();return;}
+    const q=geo(),bt=0.025,mt=0.16,base=q.top-mt,gap=0.005;
+    const mx0=q.x0+(q.x1-q.x0-1.90)/2,mx1=mx0+1.90,my1=q.y1-0.025,my0=my1-1.20;   // Matratze 190 × 120, mittig in der Länge, hinten 2,5 cm Luft
+    // Bettkasten: Front mit zwei Schubladen, Stirnbretter an den Wänden, Lattenrost-Auflage
+    const fy0=Math.min(my0-0.002,q.y0+gap),fy1=fy0+bt;
+    ebox(g,q.x0+gap,fy0,q.x1-gap,fy1,0.06,base,mat.front);                    // Front
+    ebox(g,q.x0+gap,fy0+0.03,q.x1-gap,q.y1-gap,0,0.06,mat.woodDk,false);       // Sockel zurückgesetzt
+    ebox(g,q.x0+gap,fy0,q.x0+gap+bt,q.y1-gap,0.06,base+0.06,mat.wood);       // Stirnbretter
+    ebox(g,q.x1-gap-bt,fy0,q.x1-gap,q.y1-gap,0.06,base+0.06,mat.wood);
+    ebox(g,q.x0+gap+bt,fy1,q.x1-gap-bt,q.y1-gap,base-0.02,base,mat.woodDk,false);
+    const dw=(q.x1-q.x0-0.08)/2;
+    [0,1].forEach(i=>{const a=q.x0+0.04+i*dw;ebox(g,a+0.01,fy0-0.018,a+dw-0.01,fy0,0.09,base-0.03,mat.front);
+      const kx=a+dw/2;ebox(g,kx-0.06,fy0-0.03,kx+0.06,fy0-0.018,(0.09+base-0.03)/2-0.012,(0.09+base-0.03)/2+0.012,mat.knob,false);});
+    // Matratze, Bettwäsche, Kissen am Kopfende
+    ebox(g,mx0,my0,mx1,my1,base,q.top,mat.mattress);
+    const head=st.head==='aussen'?-1:1, hx=head<0?mx0:mx1;
+    ebox(g,head<0?mx0+0.55:mx0+0.08,my0+0.04,head<0?mx1-0.08:mx1-0.55,my1-0.04,q.top,q.top+0.07,mat.duvet,false);
+    const pl=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.12,0.6),mat.pillow);pl.position.copy(P(hx-head*0.28,(my0+my1)/2,q.top+0.06));pl.castShadow=true;g.add(pl);
+    [[mat.cushA,0.32],[mat.cushB,0.66],[mat.cushA,1.0],[mat.cushB,1.3]].forEach(([m,dx],i)=>{const c=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.32,0.12),m);
+      c.position.copy(P(head<0?mx0+0.55+dx:mx1-0.55-dx,my1-0.09,q.top+0.17));c.rotation.x=-0.18;c.castShadow=true;g.add(c);});
+    const bear=new THREE.Mesh(new THREE.SphereGeometry(0.1,14,10),mat.plush);bear.position.copy(P(hx-head*0.6,my1-0.25,q.top+0.17));g.add(bear);
+    const bh=new THREE.Mesh(new THREE.SphereGeometry(0.07,12,8),mat.plush);bh.position.copy(P(hx-head*0.6,my1-0.25,q.top+0.32));g.add(bh);
+    // Rausfallschutz an der offenen Längsseite, am Fußende 70 cm Einstieg
+    if(st.rail){const rh=q.top+S.kbRail/100,ra=head<0?mx0-0.0:mx0+0.70,rb=head<0?mx1-0.70:mx1;
+      ebox(g,ra,fy0,rb,fy1,base,rh,mat.wood);}
+    // Hausdach: Giebelrahmen an beiden Wänden, First längs, zwei Pfosten an der offenen Seite
+    const w=0.045,yf=fy0+w/2,yb=q.y1-w/2-0.005,yr=(yf+yb)/2;
+    [q.x0+gap+w/2,q.x1-gap-w/2].forEach(x=>{
+      beamXZ(g,[x,yf,base],[x,yf,q.eave],w,mat.wood);beamXZ(g,[x,yb,base],[x,yb,q.eave],w,mat.wood);
+      beamXZ(g,[x,yf,q.eave],[x,yr,q.ridge],w,mat.wood);beamXZ(g,[x,yb,q.eave],[x,yr,q.ridge],w,mat.wood);
+      beamXZ(g,[x,yf-0.05,q.eave-0.03],[x,yr,q.ridge+0.04],0.018,mat.woodDk);                      // Dachüberstand vorne
+    });
+    beamXZ(g,[q.x0+gap,yr,q.ridge],[q.x1-gap,yr,q.ridge],w,mat.wood);                               // First
+    beamXZ(g,[q.x0+gap,yb,q.eave],[q.x1-gap,yb,q.eave],w*0.8,mat.wood);                             // hinten an der Wand
+    // Betthimmel: Leinen hinten über das Dach, vorne an beiden Enden als zurückgebundene Vorhänge
+    if(st.canopy){
+      const sheet=(xa,xb,p1,p2,p3,p4)=>{const geo=new THREE.BufferGeometry();const v=[p1,p2,p3,p4].map(p=>P(...p));
+        geo.setFromPoints([v[0],v[1],v[2],v[0],v[2],v[3]]);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat.fabric);m.renderOrder=3;g.add(m);};
+      const X0=q.x0+0.02,X1=q.x1-0.02;
+      sheet(0,0,[X0,yr,q.ridge+0.03],[X1,yr,q.ridge+0.03],[X1,yb-0.01,q.eave+0.02],[X0,yb-0.01,q.eave+0.02]);
+      [[X0,X0+0.5],[X1-0.5,X1]].forEach(([a,b])=>{
+        sheet(0,0,[a,yr,q.ridge+0.03],[b,yr,q.ridge+0.03],[b,yf-0.04,q.eave],[a,yf-0.04,q.eave]);
+        const out=a<q.xc?a:b,inn=a<q.xc?b:a;                                                          // Vorhang, unten zur Wand hin gerafft
+        sheet(0,0,[a,yf-0.04,q.eave],[b,yf-0.04,q.eave],[out+(inn-out)*0.25,yf-0.05,0.75],[out,yf-0.05,0.75]);
+        sheet(0,0,[out,yf-0.05,0.75],[out+(inn-out)*0.25,yf-0.05,0.75],[out+(inn-out)*0.3,yf-0.05,base+0.05],[out,yf-0.05,base+0.05]);
+      });
+      ebox(g,X0+0.02,yf-0.07,X0+0.16,yf-0.03,0.73,0.77,mat.cushA,false);ebox(g,X1-0.16,yf-0.07,X1-0.02,yf-0.03,0.73,0.77,mat.cushA,false);
+    }
+    // Lichterkette am First, kleines Wandbord am Kopfende
+    if(st.lights)for(let i=0;i<14;i++){const x=q.x0+0.1+i*(q.x1-q.x0-0.2)/13,s=new THREE.Mesh(new THREE.SphereGeometry(0.018,8,6),mat.bulb);s.position.copy(P(x,yr+0.02,q.ridge-0.07-0.04*Math.abs(Math.sin(i*1.3))));g.add(s);}
+    const sx=head<0?q.x0+0.12:q.x1-0.55;
+    ebox(g,sx,q.y1-0.13,sx+0.43,q.y1-0.005,q.top+0.5,q.top+0.52,mat.wood);
+    [0,1,2].forEach(i=>ebox(g,sx+0.05+i*0.035,q.y1-0.11,sx+0.08+i*0.035,q.y1-0.02,q.top+0.52,q.top+0.72-i*0.02,mat.book[i],false));
+    // Teppich vor dem Bett
+    ebox(g,q.xc-0.7,fy0-1.0,q.xc+0.7,fy0-0.1,0.002,0.012,mat.rug,false);
+    COLL_TAG='kb';COLL.push({x0:q.x0,x1:q.x1,y0:fy0,y1:q.y1,z0:0,z1:q.top,tag:'kb'});COLL_TAG=null;
+    report();
+  }
+  function report(){
+    const q=geo(),el=document.getElementById('kbOut');if(!el)return;
+    const endGap=(S.kbW-190)/2,sideGap=S.kbD-120,inside=(q.eave-q.top)*100,ridgeIn=(q.ridge-q.top)*100,ceil=(Z_EGC-q.ridge)*100;
+    const cls=ok=>ok?'ok':'warn';
+    const rows=!st.on?[['Ausgeblendet','']]:[
+      ['Bett (L × T)',`${fmt(S.kbW)} × ${fmt(S.kbD)} cm, Wand zu Wand`],
+      ['Matratze',`190 × 120 cm, Kopfende ${st.head==='aussen'?'an der Außenwand (Giebel)':'an der Badwand'}`],
+      ['Luft an den Enden / hinten',`<span class="${cls(endGap>=2)}">je ${fmt(endGap)} cm</span> / ${fmt(Math.max(0,sideGap-2.5-2.5))} cm vorne + 2,5 cm hinten`],
+      ['Liegehöhe',`${fmt(S.kbTop)} cm`],
+      ['Sitzhöhe unter der Traufe',`<span class="${cls(inside>=80)}">${fmt(inside)} cm</span> über der Matratze`],
+      ['Unter dem First',`${fmt(ridgeIn)} cm über der Matratze, ${fmt(ceil)} cm bis zur Decke`],
+      ['Rausfallschutz',st.rail?`${fmt(S.kbRail)} cm über der Matratze, 70 cm Einstieg am Fußende`:'ohne']
+    ];
+    el.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  }
+  return {S,st,sliderDefs,build,report,geo};
+})();
+
+buildKitchenEG();WZ.build();buildEGGarden();KK.build();HS.build();KB.build();
 buildStairs(W2);buildStairs(W3);
 [W2,W3].forEach(u=>{buildFurniture(u,'fixed');buildFurniture(u,'furn');});
 flushSlats();
@@ -1440,7 +1540,7 @@ controls.addEventListener('change',()=>requestRender());
 
 function applyVisibility(){
   const v=state.view,l=state.lvl;
-  const show={EG:true,EGceil:true,egGarden:true,egKitchen:true,egWZ:true,egKids:true,egHang:true,OG:true,OGceil:true,DG:true,roof:true,balOG:true,furnOG:state.furn,furnDG:state.furn};
+  const show={EG:true,EGceil:true,egGarden:true,egKitchen:true,egWZ:true,egKids:true,egHang:true,egBed:true,OG:true,OGceil:true,DG:true,roof:true,balOG:true,furnOG:state.furn,furnDG:state.furn};
   if(v==='puppe'){show.roof=false;
     if(l==='EG'){['EGceil','OG','OGceil','DG','balOG','furnOG','furnDG'].forEach(k=>show[k]=false);}
     else if(l==='OG'){show.OGceil=false;show.DG=false;show.furnDG=false;}else{show.furnOG=false;}}
@@ -1698,6 +1798,8 @@ function egCam(name){
   let t,p;
   if(WZ.views[name])[t,p]=WZ.camWorld(WZ.views[name]());
   else if(name==='kueche'){t=P(11.3,2.3,0.8);p=P(7.9,0.9,3.3);}
+  else if(name==='bett'){const q=KB.geo();t=P(q.xc,q.yc+0.1,0.9);p=P(q.xc+1.1,q.y0-2.9,1.55);}
+  else if(name==='bettOben'){const q=KB.geo();t=P(q.xc,q.yc,0.6);p=P(q.xc+0.3,q.y0-1.2,2.3);}
   else if(name==='haenge'){const h=HS.geo();t=P(h.xc+0.2,(h.y0+h.y1)/2+0.2,1.45);p=P(h.xc-2.9,h.y0-1.0,1.65);}
   else{const q=KK.geo();t=P(q.xc,q.yf+0.1,0.55);p=P(q.xc-2.3,q.yf-0.45,1.75);}
   camera.fov=45;camera.updateProjectionMatrix();controls.target.copy(t);camera.position.copy(p);controls.update();
@@ -1712,8 +1814,15 @@ function renderPanelEG(){
    '<div class="sub">Ganze Hausbreite, lichte Raumhöhe 2,40 m</div>'+
    '<div class="big">ca. '+fmt(sumW(u))+' m²</div><div class="sub">Grundfläche der Räume im Modell (nach Werkplan, ohne Gewähr)</div>'+
    '<h3>Ansichten</h3><div class="chips">'+
-     [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal']]
+     [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal'],['bett','Kinderbett'],['bettOben','Kinderbett von oben']]
      .map(([k,n])=>'<button class="chip" data-cam="'+k+'">'+n+'</button>').join('')+'</div>'+
+   '<h3>Projekt 4 · Hausbett in der Nische, Kinderzimmer 1</h3>'+
+   '<div class="chips" role="group" aria-label="Kopfende">'+[['aussen','Kopfende Außenwand'],['bad','Kopfende Badwand']].map(([k,n])=>'<button class="chip" data-kbh="'+k+'" aria-pressed="'+(KB.st.head===k)+'">'+n+'</button>').join('')+'</div>'+
+   '<div class="chips">'+tb('kbCan',KB.st.canopy)+'Betthimmel</button>'+tb('kbRail',KB.st.rail)+'Rausfallschutz</button>'+tb('kbLight',KB.st.lights)+'Lichterkette</button>'+tb('kbOn',KB.st.on)+'Bett zeigen</button></div>'+
+   '<div id="kbSl"></div><h4>Ergebnis</h4><table class="res" id="kbOut"></table>'+
+   '<p class="note"><b>Idee:</b> Das Bett füllt die Nische von Wand zu Wand. Unten ein Bettkasten mit zwei großen Schubladen, darauf die Matratze 190 × 120. Darüber ein Hausdach aus hellen Holzlatten: die Giebel stehen an den beiden Wänden, der First läuft längs, vorne bleibt es offen. Ein Leinen-Betthimmel liegt über der hinteren Dachseite und fällt vorne an beiden Enden als zurückgebundener Vorhang. Lichterkette am First, kleines Bord für Bücher und Nachtlicht am Kopfende.</p>'+
+   '<p class="note"><b>Gemessen:</b> Nische 1,99 × 1,25 m. <b>Gesetzt:</b> Matratze 190 × 120 cm, Liegehöhe 46 cm, Traufe 135 cm, First 200 cm, Rausfallschutz 18 cm mit 70 cm Einstieg. <b>Hinweis:</b> Im Werkplan ist die Nische 1,35 m tief; das Bett richtet sich nach eurem Aufmaß an der Rückwand aus.</p>'+
+   '<p class="note"><b>Bauen:</b> Bettkasten als Korpus aus Multiplex oder Fichte-Leimholz, Lattenrost auf Leisten. Das Dach aus Latten 4,5 × 4,5 cm an Wand und Boden verschraubt; ein freistehendes Hausbett 190 × 120 passt nicht hinein, weil es außen mindestens 200 × 130 cm misst. 2,5 cm Luft hinter der Matratze an der Außenwand gegen Feuchte.</p>'+
    '<h3>Projekt 3 · Hängeregal über der Halbinsel</h3>'+
    '<div class="chips" role="group" aria-label="Variante">'+[['2','Alternative 2: Hängeschrank'],['1','Alternative 1: Regal mit Rahmen'],['aus','Ausblenden']]
      .map(([k,n])=>'<button class="chip" data-hv="'+k+'" aria-pressed="'+(HS.st.v===k)+'">'+n+'</button>').join('')+'</div>'+
@@ -1751,8 +1860,12 @@ function renderPanelEG(){
   KK.report();WZ.report();
   const tog=(id,obj,key,fn)=>{const b=document.getElementById(id);b.addEventListener('click',()=>{obj[key]=!obj[key];b.setAttribute('aria-pressed',obj[key]);fn&&fn();egChanged();});};
   sliderUI(document.getElementById('hsSl'),HS.sliderDefs,HS.S,()=>{HS.build();egChanged();});HS.report();
+  sliderUI(document.getElementById('kbSl'),KB.sliderDefs,KB.S,()=>{KB.build();egChanged();});KB.report();
+  panel.querySelectorAll('[data-kbh]').forEach(b=>b.addEventListener('click',()=>{KB.st.head=b.dataset.kbh;
+    panel.querySelectorAll('[data-kbh]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));KB.build();egChanged();}));
   panel.querySelectorAll('[data-hv]').forEach(b=>b.addEventListener('click',()=>{HS.st.v=b.dataset.hv;
     panel.querySelectorAll('[data-hv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));HS.build();egChanged();}));
+  tog('kbCan',KB.st,'canopy',KB.build);tog('kbRail',KB.st,'rail',KB.build);tog('kbLight',KB.st,'lights',KB.build);tog('kbOn',KB.st,'on',KB.build);
   tog('kkOpen',KK.st,'open');tog('kkCush',KK.st,'cushion',KK.build);
   tog('tOpen',WZ.st,'open');tog('tXray',WZ.st,'xray',WZ.applyXray);tog('tSofa',WZ.st,'sofa',WZ.build);tog('tBeam',WZ.st,'beamFull',WZ.build);
   panel.querySelectorAll('[data-pose]').forEach(b=>b.addEventListener('click',()=>{KK.st.pose=b.dataset.pose;
@@ -1852,7 +1965,7 @@ try{
     SURF.push({poly:rect(KU.door[0]+0.05,-0.01,KU.door[1]-0.05,T+0.01),z:0,lvl:'EG'});} // Schwelle der Schiebetür
 }catch(err){console.error('Garten konnte nicht geladen werden',err);GARTEN=null;}
 renderPanel();resize();setView('puppe');resize();
-window.__tour={GARTEN,cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,G};
+window.__tour={GARTEN,cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,KB,G};
 })();
 </script>
 </body>
