@@ -63,7 +63,7 @@ const CFG = {
     pav: { u: -15.3, v: 18.7, r: 0.95 },                                         // achteckiger Pavillon an der Grenze (Foto)
     // Nachbarhaus NW: Ostecke (u, v), Richtung der Fassade zur Südecke (Grad), Länge, Tiefe, Höhen (Lageplan + Fotos)
     nb: { u: -19.3, v: 18.7, ang: 255.4, len: 10.3, dep: 10.0, floor: 0.3, og: 3.0, eave: 5.8, ridge: 8.6 },
-    zaun: { typ: 'stak', h: 1.8, v0: -2.6, v1: 28.4, off: 0.1 },                  // Zaun an der Grenze NW (Planung: Staketenzaun Lärche)
+    zaun: { typ: 'stak', h: 1.2, v0: -2.6, v1: 28.4, off: 0.1 },                  // Zaun an der Grenze NW (Planung: Staketenzaun Lärche)
     car: true,
     b1: { zaun: true, h: 0.9, mulch: true, tree: 'fireglow' },
     // Beet 3: Wiese mit rechteckigem Trampolin, teilweise versenkt. L × B = Sprungtuch-Außenmaß, matH = Höhe des Rahmens unversenkt
@@ -541,7 +541,7 @@ function plantChecks(p) {
 const VP = {
   // Betonpodest am Fuß der Außentreppe: jenseits der NW-Hauskante, die Stahltreppe endet bündig mit der Hauskante (Angabe).
   // Breite so, dass zwischen Podest und Beet B2 ca. 1,2 m zum Vorbeigehen bleiben; Stufen Richtung Hof.
-  // An der NW-Seite (zum Nachbarn) ein blickdichter Sichtschutz aus Lärche über Podest und Stufen, screenH ab Gelände.
+  // An der NW-Seite (zum Nachbarn) ein blickdichter Sichtschutz aus Lärche über Podest und Stufen, screenH ab Oberkante Podest.
   podest: { u0: -14.84, u1: -13.54, v0: 9.95, v1: 11.15, steps: 2, stepD: 0.3, screenH: 2.5 },
   beete: [ // nur 90°- und 45°-Kanten (Angabe)
     { id: 'B1', name: 'Beet vor der Hausfront', pts: [[-11.7, 10.8], [-6.9, 10.8], [-6.9, 12.4], [-8.2, 13.7], [-11.7, 13.7]] },
@@ -651,7 +651,7 @@ function vpCrowns() {
   { const F = garFrame(), cs = [F.S, F.Wc, F.N, F.E], us = cs.map(p => p[0]), vs = cs.map(p => p[1]);
     opaque([Math.min(...us), Math.min(...vs), 0], [Math.max(...us), Math.max(...vs), (G.eave + G.ridge) / 2]); }
   out.push({ cr: { shape: 'cyl', c: [P.u, P.v], r: P.r, h0: 0, h1: 2.9 }, k: 80 });
-  { const Q = VP.podest; opaque([Q.u0 - 0.1, Q.v0, 0], [Q.u0 - 0.02, Q.v1 + Q.steps * Q.stepD, Q.screenH]); }
+  { const Q = VP.podest; opaque([Q.u0 - 0.1, Q.v0, 0], [Q.u0 - 0.02, Q.v1 + Q.steps * Q.stepD, podestTop() + Q.screenH]); }
   opaque([-26.5, 23.0, 0], [-18.8, 28.2, 4.0]);
   if (CFG.vp.car) { const C = VP.car; opaque([C.u - C.B / 2, C.v - C.L / 2, 0.2], [C.u + C.B / 2, C.v + C.L / 2, 1.0]); opaque([C.u - C.B / 2 + 0.1, C.v - 1.2, 1.0], [C.u + C.B / 2 - 0.1, C.v + 1.4, 1.55], 4); }
   return out;
@@ -1596,8 +1596,9 @@ function buildGarage(g) {
   const lw = label('Wärmepumpe', { size: 0.3 }); lw.position.copy(W(-(Wd + P.a1) - 0.2, P.h1 + 0.4, (P.b0 + P.b1) / 2)); h.add(lw);
   const ln = label('Nebengebäude', { size: 0.4 }); ln.position.copy(W(-Wd / 2, G.ridge + 0.7, L / 2)); h.add(ln);
 }
+function podestTop() { return (VP.podest.steps + 1) * (2.74 + CFG.haus.floor0) / 17; } // Außentreppe mit 17 gleichen Steigungen
 function buildPodest(g) {
-  const P = VP.podest, n = P.steps + 1, zTop = n * (2.74 + CFG.haus.floor0) / 17;   // Außentreppe mit 17 gleichen Steigungen: 13 Stahlstufen, Podest, 2 Betonstufen zum Hof
+  const P = VP.podest, n = P.steps + 1, zTop = podestTop();   // Außentreppe mit 17 gleichen Steigungen: 13 Stahlstufen, Podest, 2 Betonstufen zum Hof
   g.add(box(P.u0, P.u1, P.v0, P.v1, 0, zTop, MAT.concrete));
   for (let i = 1; i <= P.steps; i++) g.add(box(P.u0, P.u1, P.v1, P.v1 + i * P.stepD, 0, zTop * (n - i) / n, MAT.concrete));
   const rl = (a, b, h) => { const du = b[0] - a[0], dv = b[1] - a[1], L = Math.hypot(du, dv), m = new THREE.Mesh(new THREE.BoxGeometry(L, 0.04, 0.12), MAT.larch); m.position.copy(W((a[0] + b[0]) / 2, h, (a[1] + b[1]) / 2)); m.rotation.y = Math.atan2(dv, du); m.castShadow = true; g.add(m); };
@@ -1606,7 +1607,7 @@ function buildPodest(g) {
   g.add(box(A[0] - 0.04, A[0] + 0.04, A[1] - 0.04, A[1] + 0.04, zTop, zTop + 1.0, MAT.larch));
   for (const h of [zTop + 0.5, zTop + 0.97]) rl(A, A2, h);
   // Sichtschutz an der NW-Seite über Podest und Stufen: Pfosten 9 × 9 cm, waagrechte Lärchenbretter, oben Abdeckleiste
-  const sv1 = P.v1 + P.steps * P.stepD, su = P.u0 - 0.06, H = P.screenH;
+  const sv1 = P.v1 + P.steps * P.stepD, su = P.u0 - 0.06, H = zTop + P.screenH;
   for (const v of [P.v0 + 0.045, (P.v0 + sv1) / 2, sv1 - 0.045]) g.add(box(su - 0.045, su + 0.045, v - 0.045, v + 0.045, 0, H + 0.03, MAT.larchDark));
   for (let z = 0.05; z < H - 0.05; z += 0.12) g.add(box(su + 0.045, su + 0.065, P.v0, sv1, z, Math.min(H, z + 0.115), MAT.larch));
   g.add(box(su - 0.05, su + 0.07, P.v0 - 0.01, sv1 + 0.01, H, H + 0.03, MAT.larchDark));
@@ -2455,7 +2456,7 @@ function renderVPNotes() {
     'Hecken bis 2 m Höhe brauchen 0,5 m Grenzabstand und passen in den Streifen neben dem Kiesweg und ins Beet B2.',
     'Einfriedungen bis 2 m Höhe sind in Bayern verfahrensfrei (Art. 57 Abs. 1 Nr. 7a BayBO), wenn kein Bebauungsplan und keine Ortssatzung etwas anderes regeln. Ein Zaun direkt auf der Grenze braucht die Zustimmung des Nachbarn. Keine Rechtsberatung.',
     'Vor dem Pavillon führt ein Weg zum Nachbarn NW. Im Zaun ist dort ein Tor mit 1,1 m Breite vorgesehen.',
-    'Am Podest der Außentreppe steht zur Grenze NW ein blickdichter Sichtschutz aus Lärche, 2,5 m hoch ab Gelände und 1,8 m lang (Podest und Stufen). Er steht ca. 1,7 m von der Grenze. Über 2 m Höhe ist er nicht mehr verfahrensfrei als Einfriedung; ob er als Teil der Treppe gilt, bitte mit dem Bauamt klären. Die Stufen zum Hof sind auf ganzer Breite frei.',
+    'Am Podest der Außentreppe steht zur Grenze NW ein blickdichter Sichtschutz aus Lärche, 2,5 m über dem Podest (ca. 3,0 m ab Gelände) und 1,8 m lang (Podest und Stufen). Er steht ca. 1,7 m von der Grenze. Über 2 m Höhe ist er nicht mehr verfahrensfrei als Einfriedung; ob er als Teil der Treppe gilt, bitte mit dem Bauamt klären. Die Stufen zum Hof sind auf ganzer Breite frei.',
   ].map(t => `<li>${t}</li>`).join('');
 }
 const B1_LIST = [ // [Pflanze, botanisch, Höhe, Blüte, Menge, Platz im Beet]
