@@ -65,6 +65,8 @@ const CFG = {
     nb: { u: -19.3, v: 18.7, ang: 255.4, len: 10.3, dep: 10.0, floor: 0.3, og: 3.0, eave: 5.8, ridge: 8.6 },
     zaun: { typ: 'stak', h: 1.2, v0: -2.6, v1: 28.4, off: 0.1 },                  // Zaun an der Grenze NW (Planung: Staketenzaun Lärche)
     car: true,
+    cars: true,  // Autos auf den Stellplätzen 1–3 (optional)
+    carType: 'kombi', spW: 2.3, doors: 'fahrer', // Autotyp, Stellplatzbreite (2,3 = Aufteilungsplan, 2,5 / 2,7 / 2,9 = Vergleich), offene Türen: '' | fahrer | beifahrer | alle
     b1: { zaun: true, h: 0.9, mulch: true, tree: 'fireglow' },
     // Beet 3: Wiese mit rechteckigem Trampolin, teilweise versenkt. L × B = Sprungtuch-Außenmaß, matH = Höhe des Rahmens unversenkt
     b3: { on: true, size: '244', sink: 0.4, matH: 0.75, net: 1.8, du: 0.4 },                                     // Beet 1: Staketenzaun (Kastanie) und Rindenmulch
@@ -548,7 +550,7 @@ const VP = {
     // B2: 45°-Kante von der Grenze (2,0 m vor der Hausfront) bis zur inneren Kante; vor dem Podest bleibt das Pflaster frei (Angabe 23.11.)
     { id: 'B2', name: 'Beet an der Grenze NW', pts: [[nwU(11.6), 11.6], [nwU(11.15) + 2.75, 11.6 + nwU(11.15) + 2.75 - nwU(11.6)], [nwU(11.15) + 2.75, 16.5], [nwU(16.5), 16.5]] },
     { id: 'B3', name: 'Wiese mit Trampolin (zwischen Haus und Nebengebäude)', pts: [[-3.6, 11.05], [0.5, 11.05], [0.5, 13.75], [-3.6, 13.75]] },
-    { id: 'B4', name: 'Streifen an der Grenze NW zur Straße', pts: [[nwU(19.9), 19.9], [-15.5, 19.9], [-13.4, 28.3], [nwU(28.3), 28.3]] },
+    { id: 'B4', name: 'Streifen an der Grenze NW zur Straße', pts: [[nwU(17.75), 17.75], [-14.6, 17.75], [-13.7, 18.65], [-10.8, 30.6], [nwU(30.6), 30.6]] }, // ab dem Weg vor dem Pavillon, 45°-Ecke am Pavillon, schräge Kante bis zum Asphalt (Skizze 23.11.)
   ],
   wegNb: { v0: 16.5, v1: 17.75 },                                               // Pflaster vor dem Pavillon: Weg zum Nachbarn NW, Tor im Zaun
   schacht: [-6.7, 13.7],                                                        // Schachtdeckel
@@ -568,7 +570,28 @@ function garFrame() {
 function kiesWP() { const F = garFrame(), W = F.G.W; return [[W, 2.1], [W + 1.35, 2.1], [W + 1.35, 0.4], [W - 0.3, -1.05], [W - 1.45, 0], [W, 0]].map(([a, b]) => F.P(a, b)); }
 const WP_LOC = { a0: 0.12, a1: 0.72, b0: 0.35, b1: 1.6, h0: 0.15, h1: 1.55 };     // a ab Hofseite der Garage nach außen
 // Stellplätze 1–3 vor dem Giebel zur Straße (Aufteilungsplan: je 2,3 × 5,0 m, 0,7 m vor dem Giebel, 0,6 m von der Grenze)
-function stellplaetze() { const F = garFrame(), b0 = F.G.L + 0.7; return [[3, 0.1], [2, 2.4], [1, 4.7]].map(([nr, a]) => ({ nr, pts: [F.P(a, b0), F.P(a + 2.3, b0), F.P(a + 2.3, b0 + 5.0), F.P(a, b0 + 5.0)] })); }
+function stellplaetze() { const F = garFrame(), b0 = F.G.L + 0.7, w = CFG.vp.spW; return [3, 2, 1].map((nr, k) => { const a = 0.1 + k * w; return { nr, a, pts: [F.P(a, b0), F.P(a + w, b0), F.P(a + w, b0 + 5.0), F.P(a, b0 + 5.0)] }; }); }
+// Autotypen: Breite ohne / mit Spiegeln (mir = Spiegel je Seite), Länge, Höhe, Türlängen vorn / hinten (typische Werte)
+const CAR_TYPES = {
+  klein: { name: 'Kleinwagen (1,70 m)', B: 1.70, mir: 0.10, L: 4.05, H: 1.48, df: 1.00, dr: 0.80 },
+  kombi: { name: 'Kombi (1,85 m)', B: 1.85, mir: 0.11, L: 4.75, H: 1.50, df: 1.08, dr: 0.88 },
+  suv: { name: 'SUV (1,95 m)', B: 1.95, mir: 0.11, L: 4.70, H: 1.72, df: 1.10, dr: 0.92 },
+};
+const DOOR_MAX = 65; // größter Öffnungswinkel einer Autotür (Grad)
+// Freiraum neben jedem Auto (Karosserie bis Hindernis) und daraus der Öffnungswinkel der Türen.
+// Fahrerseite (links) zeigt zur Grenze SO, weil die Autos vorwärts Richtung Nebengebäude stehen.
+function parkCalc() {
+  const T = CAR_TYPES[CFG.vp.carType] || CAR_TYPES.kombi, w = CFG.vp.spW, G = CFG.vp.garage, n = 3;
+  const rate = g => g >= 0.80 ? ['bequem', 'ok'] : g >= 0.60 ? ['eng', 'warn'] : g >= 0.45 ? ['sehr eng', 'warn'] : ['kaum aussteigen', 'bad'];
+  const ang = (g, Ld) => Math.min(DOOR_MAX, Math.asin(Math.max(0, Math.min(1, (g - 0.03) / Ld))) * 180 / Math.PI);
+  const side = (g0, what) => { const g = isFinite(g0) ? Math.round(g0 * 100) / 100 : g0; return { g, what, free: !isFinite(g), front: isFinite(g) ? ang(g, T.df) : DOOR_MAX, rear: isFinite(g) ? ang(g, T.dr) : DOOR_MAX, rate: isFinite(g) ? rate(g) : ['frei', 'ok'] }; };
+  return stellplaetze().map((sp, k) => {
+    const left = k === 0 ? side(G.gap + 0.1 + (w - T.B) / 2, 'Grenze') : side(w - T.B, 'Auto auf ' + (4 - k)),
+      right = k === n - 1 ? side(Infinity, 'Hof') : side(w - T.B, 'Auto auf ' + (2 - k));
+    return { nr: sp.nr, left, right };
+  });
+}
+
 // Pflaster im Hof: bis 0,55 m vor den SO-Giebel, vom Nebengebäude bis zur Straße an der Grenze SO
 function hofPoly() {
   const H = CFG.haus, F = garFrame();
@@ -654,6 +677,12 @@ function vpCrowns() {
   { const Q = VP.podest; opaque([Q.u0 - 0.1, Q.v0, 0], [Q.u0 - 0.02, Q.v1 + Q.steps * Q.stepD, podestTop() + Q.screenH]); }
   opaque([-26.5, 23.0, 0], [-18.8, 28.2, 4.0]);
   if (CFG.vp.car) { const C = VP.car; opaque([C.u - C.B / 2, C.v - C.L / 2, 0.2], [C.u + C.B / 2, C.v + C.L / 2, 1.0]); opaque([C.u - C.B / 2 + 0.1, C.v - 1.2, 1.0], [C.u + C.B / 2 - 0.1, C.v + 1.4, 1.55], 4); }
+  if (CFG.vp.cars) for (const c of spCars()) { // gedrehtes Auto als umschließender Kasten (Drehung nur ca. 2°)
+    const ext = (l, b) => [Math.abs(c.e[0]) * l + Math.abs(c.e[1]) * b, Math.abs(c.e[1]) * l + Math.abs(c.e[0]) * b];
+    const T = CAR_TYPES[CFG.vp.carType] || CAR_TYPES.kombi, hb = T.H * 0.57;
+    const [du, dv] = ext(T.L / 2, T.B / 2), [cu, cv] = ext(T.L * 0.23, T.B / 2 - 0.08), cm = [c.u - c.e[0] * 0.05, c.v - c.e[1] * 0.05];
+    opaque([c.u - du, c.v - dv, 0.3], [c.u + du, c.v + dv, hb]); opaque([cm[0] - cu, cm[1] - cv, hb], [cm[0] + cu, cm[1] + cv, T.H], 4);
+  }
   return out;
 }
 function vpCoverage(plants, season, stage, grp, tgt) {
@@ -723,6 +752,24 @@ const PANEL_HTML = `<h2 class="gtitle">Garten · Sichtschutz und Bachseite</h2>
         <h2>Straßenseite und Grenze Nordwest</h2>
         <p class="small muted">Hof, Beete, Nebengebäude, Wärmepumpe, Podest an der Außentreppe, Pavillon grob nach den Fotos vom 23.11. Zaun NW als Planung (Staketenzaun), der Bauzaun ist unter „Zaun“ wählbar. Die Lage der Grenze stammt aus dem Kataster. Genaue Maße folgen; geschätzte Werte stehen im Tab „Annahmen“.</p>
         <div class="row"><button class="btn" id="vpPlan">Draufsicht Straßenseite</button><button class="btn" id="vpOver">Übersicht</button><label class="small"><input type="checkbox" id="vp-car" style="accent-color:var(--accent)"> Auto zeigen</label></div>
+      </div>
+      <div class="vdesc">
+        <h2>Stellplätze 1–3: reicht der Platz?</h2>
+        <div class="row"><button class="btn" id="pkView">Im Modell zeigen</button><label class="small"><input type="checkbox" id="vp-cars" style="accent-color:var(--accent)"> Autos zeigen</label></div>
+        <div class="row">
+          <div class="ctl"><label for="pkW" class="glbl">Stellplatzbreite</label><select id="pkW"><option value="2.3">3 × 2,30 m (Aufteilungsplan)</option><option value="2.5">3 × 2,50 m (Vergleich)</option><option value="2.7">3 × 2,70 m (Vergleich)</option><option value="2.9">3 × 2,90 m (Vergleich)</option></select></div>
+          <div class="ctl"><label for="pkT" class="glbl">Autos</label><select id="pkT"></select></div>
+          <div class="ctl"><label for="vp-doors" class="glbl">Türen offen</label><select id="vp-doors"><option value="fahrer">Fahrerseite</option><option value="beifahrer">Beifahrerseite</option><option value="alle">alle (überschneiden sich)</option><option value="">keine</option></select></div>
+        </div>
+        <div class="tablewrap"><table id="pkTab"></table></div>
+        <p class="small muted" id="pkNote"></p>
+      </div>
+      <div class="vdesc">
+        <h2>Fahrweg in die Garage: Tesla Model Y</h2>
+        <div class="row"><button class="btn" id="drV" aria-pressed="false">Vorwärts hinein</button><button class="btn" id="drR" aria-pressed="false">Rückwärts hinein</button><button class="btn" id="drOff">Aus</button><button class="btn" id="drView">Im Modell zeigen</button></div>
+        <div class="row"><button class="btn" id="drPlay">▶ Abspielen</button><input type="range" id="drT" min="0" max="1000" value="0" style="flex:1;accent-color:var(--accent)" aria-label="Stelle auf dem Fahrweg"></div>
+        <div class="small" id="drInfo"></div>
+        <p class="small muted" id="drNote">Grün = vorwärts, orange = rückwärts; die Rahmen zeigen den Umriss alle 0,5 m. Gesucht wird der kürzeste Weg mit möglichst wenig Richtungswechseln, von der Straße (schon zur Einfahrt ausgerichtet) bis mittig ins Tor, 40 cm vor der Rückwand. Auto: Tesla Model Y Standard, 4,79 × 1,98 m (2,13 m mit Spiegeln), Radstand 2,89 m, Wendekreis 12,1 m, also kleinster Radius der Hinterachse ca. 4,5 m. Diese Maße sind aus dem Gedächtnis, bitte prüfen. Mindestabstand 10 cm zu Wänden, Zaun, Wärmepumpe und den Autos auf den Stellplätzen (mit Spiegeln), 5 cm zu Beeten und Kanten. Garagentor 3,0 m breit (Lage geschätzt), Garage innen leer, Wand 12 cm.</p>
       </div>
       <div class="vdesc">
         <h2>Zaun zum Nachbarn Nordwest</h2>
@@ -965,6 +1012,10 @@ function load() {
       for (const k of ['garage', 'pav', 'nb', 'zaun']) if (s.vp[k]) for (const [f, x] of Object.entries(s.vp[k])) if (f in CFG.vp[k] && typeof x === typeof CFG.vp[k][f] && (typeof x === 'string' || isFinite(x))) CFG.vp[k][f] = x;
       if (!ZAUN[CFG.vp.zaun.typ]) CFG.vp.zaun.typ = 'bau';
       if (typeof s.vp.car === 'boolean') CFG.vp.car = s.vp.car;
+      if (typeof s.vp.cars === 'boolean') CFG.vp.cars = s.vp.cars;
+      if (['', 'fahrer', 'beifahrer', 'alle'].includes(s.vp.doors)) CFG.vp.doors = s.vp.doors;
+      if (CAR_TYPES[s.vp.carType]) CFG.vp.carType = s.vp.carType;
+      if ([2.3, 2.5, 2.7, 2.9].includes(s.vp.spW)) CFG.vp.spW = s.vp.spW;
       if (s.vp.b3) { const t = s.vp.b3; if (typeof t.on === 'boolean') CFG.vp.b3.on = t.on; if (TRAMP[t.size]) CFG.vp.b3.size = t.size; for (const f of ['sink', 'du']) if (isFinite(t[f])) CFG.vp.b3[f] = t[f]; }
       if (s.vp.b1 && B1_TREES[s.vp.b1.tree]) CFG.vp.b1.tree = s.vp.b1.tree; else ST.b1Migrate = true;
       if (s.vp.b1) for (const f of ['zaun', 'mulch']) if (typeof s.vp.b1[f] === 'boolean') CFG.vp.b1[f] = s.vp.b1[f];
@@ -1200,7 +1251,7 @@ function drawGround() {
   // Kiesstreifen am Giebel
   poly([[0, 0], [ub, 0], [ub, 0.6], [1.6, 0.6], [1.6, 7.9], [boundaryUAt(9.6), 9.6], [0, 9.6]], '#bcae97');
   // Grenzabstands-Zonen (Art. 47 AGBGB)
-  for (const [zu0, zv1, zw, zh] of [[-0.6, 30.2, 7.2, 42], [-16.9, 32.6, 2.4, 40.6]]) {
+  for (const [zu0, zv1, zw, zh] of [[-0.6, 30.2, 7.2, 42], [-16.9, 30.6, 2.4, 38.6]]) { // NW nur bis zum Asphalt an der Straße
   const img = c.getImageData(X(zu0), Y(zv1), Math.ceil(zw * P), Math.ceil(zh * P));
   const d = img.data, wpx = img.width;
   for (let j = 0; j < img.height; j++) for (let i = 0; i < wpx; i++) {
@@ -1696,6 +1747,211 @@ function buildCar(g) {
   g.add(box(u0, u1, v0, v1, 0.22, 0.95, MAT.car)); g.add(box(u0 + 0.12, u1 - 0.12, C.v - 1.25, C.v + 1.45, 0.95, 1.55, MAT.carGlass));
   for (const [uu, vv] of [[u0 + 0.12, v0 + 0.8], [u1 - 0.12, v0 + 0.8], [u0 + 0.12, v1 - 0.85], [u1 - 0.12, v1 - 0.85]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 14), MAT.tyre); w.rotation.z = Math.PI / 2; w.position.copy(W(uu, 0.34, vv)); g.add(w); }
 }
+// Autos auf den Stellplätzen 1–3: einfache Kästen, 4,5 × 1,8 × 1,5 m, Front Richtung Nebengebäude
+const CAR_PAINT = [lam(0x2d4a6b), lam(0xb9bcbf), lam(0x8e2f2a)];
+function spCars() { // Mitte und Lage je Stellplatz; e = Längsachse Richtung Straße, c = quer Richtung Hof
+  const F = garFrame(); return stellplaetze().map(sp => ({ nr: sp.nr, u: sp.pts.reduce((a, q) => a + q[0] / 4, 0), v: sp.pts.reduce((a, q) => a + q[1] / 4, 0), e: F.e, c: F.c }));
+}
+// einfaches Auto nach Typ; lokal: x quer (+x = Beifahrerseite), v längs, Front Richtung +v. ang = Türwinkel [links vorn, links hinten, rechts vorn, rechts hinten]
+function carMesh(paint, T, ang) {
+  const g = new THREE.Group(), L2 = T.L / 2, B2 = T.B / 2, hb = T.H * 0.57, hinge = L2 - 1.62;
+  g.add(box(-B2, B2, -L2, L2, 0.3, hb, paint));
+  g.add(box(-B2 + 0.08, B2 - 0.08, -L2 * 0.5, L2 * 0.42, hb, T.H, paint));
+  g.add(box(-B2 + 0.06, B2 - 0.06, -L2 * 0.5 + 0.08, L2 * 0.42 - 0.08, hb + 0.05, T.H - 0.07, MAT.glass, false));
+  for (const a of [-1, 1]) g.add(box(a * B2 + (a > 0 ? 0 : -T.mir), a * B2 + (a > 0 ? T.mir : 0), hinge + 0.12, hinge + 0.3, hb, hb + 0.13, MAT.frame, false)); // Spiegel
+  for (const a of [-B2 + 0.12, B2 - 0.32]) { g.add(box(a, a + 0.2, L2 - 0.02, L2 + 0.01, hb - 0.2, hb - 0.08, MAT.cream, false)); g.add(box(a, a + 0.2, -L2 - 0.01, -L2 + 0.02, hb - 0.16, hb - 0.06, MAT.box, false)); }
+  const wg = new THREE.CylinderGeometry(0.33, 0.33, 0.23, 18); wg.rotateZ(Math.PI / 2);
+  for (const su of [-1, 1]) for (const sv of [-(L2 - 0.85), L2 - 0.9]) { const w = new THREE.Mesh(wg, MAT.tyre); w.position.copy(W(su * (B2 - 0.1), 0.33, sv)); w.castShadow = true; g.add(w); }
+  if (ang) { // geöffnete Türen: Drehpunkt an der Vorderkante, Tür schwenkt nach außen
+    const doors = [[-1, hinge, T.df, ang[0]], [-1, hinge - T.df, T.dr, ang[1]], [1, hinge, T.df, ang[2]], [1, hinge - T.df, T.dr, ang[3]]];
+    for (const [sd, hv, Ld, deg] of doors) {
+      if (deg < 0.5) continue;
+      const piv = new THREE.Group(); piv.position.copy(W(sd * B2, 0, hv)); piv.rotation.y = sd * deg * Math.PI / 180;
+      // in der Drehgruppe: Tür liegt entlang +z (= nach hinten), Außenseite bei x = sd * 0.05
+      const x0 = sd > 0 ? 0 : -0.05, x1 = sd > 0 ? 0.05 : 0;
+      piv.add(box(x0, x1, -Ld, 0, 0.32, hb, paint)); piv.add(box(x0, x1, -Ld + 0.05, -0.05, hb, T.H - 0.1, MAT.glass, false));
+      g.add(piv);
+    }
+  }
+  return g;
+}
+function buildSpCars(g) {
+  if (!CFG.vp.cars) return;
+  const T = CAR_TYPES[CFG.vp.carType] || CAR_TYPES.kombi, R = parkCalc(), cars = spCars(), fmt2 = x => x.toFixed(2).replace('.', ',');
+  cars.forEach((c, i) => {
+    const r = R[i], D = CFG.vp.doors, L = D === 'fahrer' || D === 'alle', Rt = D === 'beifahrer' || D === 'alle', ang = D ? [L ? r.left.front : 0, L ? r.left.rear : 0, Rt ? r.right.front : 0, Rt ? r.right.rear : 0] : null;
+    const m = carMesh(CAR_PAINT[i % 3], T, ang); m.position.copy(W(c.u, groundH(c.u, c.v), c.v)); m.rotation.y = Math.atan2(c.e[0], -c.e[1]); g.add(m);
+  });
+  // Maßband: Lücke zwischen den Karosserien (Klammer: zwischen den Spiegeln) und zur Grenze
+  const z = 0.06, bar = (p, q, lab) => {
+    const L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (L < 0.02) return;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(L, 0.02, 0.05), MAT.gate); m.position.copy(W((p[0] + q[0]) / 2, z, (p[1] + q[1]) / 2)); m.rotation.y = Math.atan2(q[1] - p[1], q[0] - p[0]); g.add(m);
+    for (const e of [p, q]) g.add(box(e[0] - 0.03, e[0] + 0.03, e[1] - 0.03, e[1] + 0.03, 0, 0.25, MAT.gate, false));
+    const lb = label(lab, { size: 0.3, bg: 'rgba(28,36,29,0.88)' }); lb.position.copy(W((p[0] + q[0]) / 2, T.H + 0.45, (p[1] + q[1]) / 2)); g.add(lb);
+  };
+  const at = (c, d) => [c.u + c.c[0] * d, c.v + c.c[1] * d];
+  for (let i = 0; i < cars.length - 1; i++) { const gp = R[i].right.g; bar(at(cars[i], T.B / 2), at(cars[i + 1], -T.B / 2), `${fmt2(gp)} m (Spiegel ${fmt2(gp - 2 * T.mir)})`); }
+  { const c0 = cars[0], gp = R[0].left.g; bar(at(c0, -T.B / 2 - gp), at(c0, -T.B / 2), `${fmt2(gp)} m zur Grenze`); }
+}
+// ---------- Fahrweg in die Garage: Tesla Model Y Standard (Werte aus dem Gedächtnis, bitte prüfen) ----------
+// Länge 4,79 m, Breite 1,98 m ohne / 2,13 m mit Spiegeln, Höhe 1,62 m, Radstand 2,89 m, Spur ca. 1,64 m, Wendekreis 12,1 m.
+const MY = { L: 4.79, B: 1.98, Bm: 2.13, H: 1.62, wb: 2.89, ro: 0.97, fo: 0.93, track: 1.64, turn: 12.1 };
+MY.Rmin = Math.sqrt((MY.turn / 2) ** 2 - MY.wb ** 2) - MY.track / 2;   // kleinster Radius der Hinterachsmitte (≈ 4,5 m)
+const DRIVE = { mode: '', path: null, info: null, t: 0, play: false, last: 0, grp: new THREE.Group() };
+vpGrp.parent.add(DRIVE.grp);
+// Hindernisse in (u, v): tall = Wände, Autos, Zaun (Spiegelbreite zählt), low = Beete, Kanten, Stufen (Karosseriebreite)
+function driveObstacles() {
+  const F = garFrame(), G = F.G, P = F.P, t = 0.12, ob = [];
+  const poly = (name, pts, tall) => ob.push({ name, pts, closed: true, tall });
+  const line = (name, pts, tall) => ob.push({ name, pts, closed: false, tall });
+  // Garage: Innenkante der Wände, Tor 2,9–5,9 m in der Hofwand
+  line('Garagenwand', [P(G.W - t, 2.9), P(G.W - t, t), P(t, t), P(t, G.L - t), P(G.W - t, G.L - t), P(G.W - t, 5.9)], true);
+  line('Garagenwand außen', [P(G.W, 2.9), P(G.W, 0), P(0, 0)], true); line('Garagenwand außen', [P(0, G.L), P(G.W, G.L), P(G.W, 5.9)], true);
+  line('Torlaibung', [P(G.W - t, 2.9), P(G.W, 2.9)], true); line('Torlaibung', [P(G.W - t, 5.9), P(G.W, 5.9)], true);
+  { const W0 = WP_LOC; poly('Wärmepumpe', [P(G.W + W0.a0, W0.b0), P(G.W + W0.a1, W0.b0), P(G.W + W0.a1, W0.b1), P(G.W + W0.a0, W0.b1)], true); }
+  poly('Kiesbett Wärmepumpe', kiesWP(), false);
+  const H = CFG.haus; poly('Haus', [[H.u0, 0], [H.u1, 0], [H.u1, H.v1], [H.u0, H.v1]], true);
+  poly('Außentreppe und Podest', [[-14.84, 9.6], [-9.44, 9.6], [-9.44, 11.15], [-14.84, 11.15]], true);
+  { const S = VP.stufe; poly('Stufe Haustür', [[S.u0, S.v0], [S.u1, S.v0], [S.u1, S.v1], [S.u0, S.v1]], false); }
+  for (const b of VP.beete) poly(b.name, b.pts, false);
+  { const Pv = CFG.vp.pav, n = 8; poly('Pavillon', Array.from({ length: n }, (_, i) => [Pv.u + Pv.r * Math.cos(i * 2 * Math.PI / n), Pv.v + Pv.r * Math.sin(i * 2 * Math.PI / n)]), true); }
+  { const [vu, vv] = VP.verteiler; poly('Verteilerkasten', [[vu - 0.45, vv - 0.22], [vu + 0.45, vv - 0.22], [vu + 0.45, vv + 0.22], [vu - 0.45, vv + 0.22]], true); }
+  { const Z = CFG.vp.zaun; for (let v = Math.max(Z.v0, 9); v < Z.v1 - 1e-6; v += 2) { const v1 = Math.min(Z.v1, v + 2); line('Zaun NW', [[nwU(v) + Z.off, v], [nwU((v + v1) / 2) + Z.off, (v + v1) / 2], [nwU(v1) + Z.off, v1]], true); } }
+  line('Grenze SO', [[boundaryUAt(F.E[1]), F.E[1]], [0.71, 30.17]], true);
+  if (CFG.vp.cars) { const T = CAR_TYPES[CFG.vp.carType] || CAR_TYPES.kombi; for (const c of spCars()) {
+    const f = c.e, l = c.c, a = T.L / 2, b = T.B / 2 + T.mir;
+    poly('Auto auf Platz ' + c.nr, [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => [c.u + f[0] * a * x + l[0] * b * y, c.v + f[1] * a * x + l[1] * b * y]), true); } }
+  return ob;
+}
+// Geometrie: Abstand zweier Polygone / Polylinien (0 bei Überschneidung)
+function segDist(p, q, a, b) {
+  const d = (x, s0, s1) => { const dx = s1[0] - s0[0], dy = s1[1] - s0[1], L2 = dx * dx + dy * dy; let t = L2 ? ((x[0] - s0[0]) * dx + (x[1] - s0[1]) * dy) / L2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(s0[0] + t * dx - x[0], s0[1] + t * dy - x[1]); };
+  const cr = (o, a1, b1) => (a1[0] - o[0]) * (b1[1] - o[1]) - (a1[1] - o[1]) * (b1[0] - o[0]);
+  const d1 = cr(a, b, p), d2 = cr(a, b, q), d3 = cr(p, q, a), d4 = cr(p, q, b);
+  if (((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0))) return 0;
+  return Math.min(d(p, a, b), d(q, a, b), d(a, p, q), d(b, p, q));
+}
+function obDist(car, o) {
+  if (o.closed) { if (inPoly(o.pts[0][0], o.pts[0][1], car)) return 0; for (const p of car) if (inPoly(p[0], p[1], o.pts)) return 0; }
+  let m = Infinity; const n = o.pts.length, segs = o.closed ? n : n - 1;
+  for (let i = 0; i < 4; i++) { const p = car[i], q = car[(i + 1) % 4]; for (let j = 0; j < segs; j++) { m = Math.min(m, segDist(p, q, o.pts[j], o.pts[(j + 1) % n])); if (m === 0) return 0; } }
+  return m;
+}
+function carRect(x, y, th, hw) { const c = Math.cos(th), s = Math.sin(th), f = [c, s], l = [-s, c], b = -MY.ro, fr = MY.wb + MY.fo;
+  return [[b, -hw], [fr, -hw], [fr, hw], [b, hw]].map(([a, w]) => [x + f[0] * a + l[0] * w, y + f[1] * a + l[1] * w]); }
+const DRIVE_MARGIN = { tall: 0.10, low: 0.05 };
+function poseClear(x, y, th, ob) { // kleinster Abstand (über Sollabstand) und das nächste Hindernis
+  const rt = carRect(x, y, th, MY.Bm / 2), rl = carRect(x, y, th, MY.B / 2);
+  let m = Infinity, who = null;
+  for (const o of ob) { const bb = o.bb; if (bb && (bb[0] > x + 4.3 || bb[2] < x - 4.3 || bb[1] > y + 4.3 || bb[3] < y - 4.3)) continue;
+    const d = obDist(o.tall ? rt : rl, o) - (o.tall ? DRIVE_MARGIN.tall : DRIVE_MARGIN.low); if (d < m) { m = d; who = o; } }
+  return { m, who };
+}
+// Bogen-Schritt der Hinterachsmitte: s mit Vorzeichen (vorwärts > 0), k = Krümmung
+function arcStep(x, y, th, s, k) { if (Math.abs(k) < 1e-9) return [x + s * Math.cos(th), y + s * Math.sin(th), th];
+  const t1 = th + k * s; return [x + (Math.sin(t1) - Math.sin(th)) / k, y - (Math.cos(t1) - Math.cos(th)) / k, t1]; }
+// Suche (Hybrid-A*) rückwärts von der Endstellung in der Garage bis auf die Straße. mode: 'vor' | 'rueck'
+function planDrive(mode) {
+  const F = garFrame(), G = F.G, ob = driveObstacles(), t = 0.12;
+  for (const o of ob) { const us = o.pts.map(p => p[0]), vs = o.pts.map(p => p[1]); o.bb = [Math.min(...us), Math.min(...vs), Math.max(...us), Math.max(...vs)]; }
+  const bm = 4.4, gap = 0.4;                      // Mitte des Tors, Abstand zur Rückwand
+  const thIn = Math.atan2(-F.c[1], -F.c[0]);       // Blick in die Garage (Richtung SO-Wand)
+  let x0, y0, th0;
+  if (mode === 'vor') { const a = t + gap + MY.wb + MY.fo; [x0, y0] = F.P(a, bm); th0 = thIn; }
+  else { const a = t + gap + MY.ro; [x0, y0] = F.P(a, bm); th0 = thIn + Math.PI; }
+  const kmax = 1 / MY.Rmin, KS = [-kmax, -kmax / 2, 0, kmax / 2, kmax], STEP = 0.5, RES = 0.2, NTH = 72;
+  const norm = a => { a %= 2 * Math.PI; return a < 0 ? a + 2 * Math.PI : a; };
+  const key = (x, y, th, d) => `${Math.round(x / RES)},${Math.round(y / RES)},${Math.round(norm(th) / (2 * Math.PI / NTH)) % NTH},${d}`;
+  const vEnd = 31.6, inBox = (x, y) => x > -18 && x < 4 && y > 8.5 && y < 35.5;
+  // Zustand: x, y, th; d = Fahrtrichtung der echten Fahrt im zuletzt gefahrenen Stück (+1 vor, −1 zurück)
+  const dFirst = mode === 'vor' ? 1 : -1;
+  const start = { x: x0, y: y0, th: th0, d: dFirst, g: 0, par: null, sw: 0 };
+  const open = [start], seen = new Map([[key(x0, y0, th0, dFirst), 0]]);
+  const push = (n) => { open.push(n); let i = open.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (open[p].f <= open[i].f) break; [open[p], open[i]] = [open[i], open[p]]; i = p; } };
+  const pop = () => { const top = open[0], last = open.pop(); if (open.length) { open[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < open.length && open[l].f < open[m].f) m = l; if (r < open.length && open[r].f < open[m].f) m = r; if (m === i) break; [open[m], open[i]] = [open[i], open[m]]; i = m; } } return top; };
+  start.f = Math.max(0, vEnd - y0); open.length = 0; push(start);
+  let goal = null, it = 0;
+  while (open.length && it < 400000) {
+    const n = pop(); it++;
+    if (n.y >= vEnd && n.d === 1 && Math.sin(n.th) < -0.6) { goal = n; break; }  // auf der Straße, Fahrt vorwärts Richtung Hof
+    for (const d of [1, -1]) for (const k of KS) {
+      // echte Fahrt mit Richtung d endet in n; in der Suche fahren wir sie rückwärts (−d)
+      let x = n.x, y = n.y, th = n.th, ok = true, mn = Infinity;
+      for (let s = 0; s < STEP - 1e-9; s += 0.25) { [x, y, th] = arcStep(x, y, th, -d * 0.25, k); if (!inBox(x, y)) { ok = false; break; }
+        const c = poseClear(x, y, th, ob); if (c.m < 0) { ok = false; break; } mn = Math.min(mn, c.m); }
+      if (!ok) continue;
+      const sw = d !== n.d, g = n.g + STEP * (d < 0 ? 1.4 : 1) + (sw ? 6 : 0) + (k ? 0.05 : 0) + (mn < 0.15 ? 0.3 : 0);
+      if (n.par === null && d !== dFirst) continue;                  // letzte Bewegung in die Garage: vor- bzw. rückwärts
+      const kk = key(x, y, th, d); if (seen.has(kk) && seen.get(kk) <= g) continue; seen.set(kk, g);
+      push({ x, y, th, d, k, g, f: g + Math.max(0, vEnd - y) * 1.2, par: n, sw: n.sw + (sw ? 1 : 0) });
+    }
+  }
+  if (!goal) return { ok: false, it };
+  // Pfad in echter Fahrtrichtung: von der Straße zur Garage
+  const nodes = []; for (let n = goal; n; n = n.par) nodes.push(n);
+  const pts = [];
+  for (let i = 0; i < nodes.length; i++) { const n = nodes[i], nx = nodes[i + 1]; if (!nx) { pts.push({ x: n.x, y: n.y, th: n.th, d: n.d }); break; }
+    // Stück von n nach nx wird in echter Richtung n.d?: Bewegung, die in nx endet, hatte Richtung nx.d... (Suchkante par→kind = echte Fahrt kind→par)
+    let x = n.x, y = n.y, th = n.th; for (let s = 0; s < STEP - 1e-9; s += 0.05) { pts.push({ x, y, th, d: n.d }); [x, y, th] = arcStep(x, y, th, n.d * 0.05, n.k || 0); } }
+  return { ok: true, it, pts, ob, switches: goal.sw };
+}
+// Anzeige: Spur (Umriss alle 0,5 m), Auto, Auswertung
+const DRIVE_MAT = { f: new THREE.LineBasicMaterial({ color: 0x2e7d4f, transparent: true, opacity: 0.55 }), r: new THREE.LineBasicMaterial({ color: 0xc0602a, transparent: true, opacity: 0.6 }) };
+const MY_T = { B: MY.B, mir: (MY.Bm - MY.B) / 2, L: MY.L, H: MY.H, df: 1.1, dr: 0.9 };
+const DRIVE_CACHE = new Map();
+function driveKey(mode) { return JSON.stringify([mode, CFG.vp.spW, CFG.vp.carType, CFG.vp.cars, CFG.vp.garage, CFG.vp.zaun, CFG.vp.pav]); }
+function driveEval(pts, ob) { // kleinste echte Abstände je Hindernis (Wände/Autos/Zaun mit Spiegeln, Beete/Kanten mit Karosserie)
+  const best = new Map();
+  for (let i = 0; i < pts.length; i += 2) { const q = pts[i], rt = carRect(q.x, q.y, q.th, MY.Bm / 2), rl = carRect(q.x, q.y, q.th, MY.B / 2);
+    for (const o of ob) { const bb = o.bb; if (bb[0] > q.x + 4.3 || bb[2] < q.x - 4.3 || bb[1] > q.y + 4.3 || bb[3] < q.y - 4.3) continue;
+      const d = obDist(o.tall ? rt : rl, o), b = best.get(o.name); if (!b || d < b.d) best.set(o.name, { d, tall: o.tall }); } }
+  return [...best.entries()].sort((a, b) => a[1].d - b[1].d);
+}
+function driveSegs(pts) { const s = []; for (let i = 1; i < pts.length; i++) { const q = pts[i - 1], L = Math.hypot(pts[i].x - q.x, pts[i].y - q.y);
+  if (!s.length || s.at(-1).d !== q.d) s.push({ d: q.d, len: 0 }); s.at(-1).len += L; } return s; }
+function drivePoseAt(t) { const P = DRIVE.path.pts, f = Math.max(0, Math.min(1, t)) * (P.length - 1), i = Math.min(P.length - 2, Math.floor(f)), k = f - i, a = P[i], b = P[i + 1];
+  let dth = b.th - a.th; dth = Math.atan2(Math.sin(dth), Math.cos(dth)); return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, th: a.th + dth * k, d: a.d }; }
+function placeDriveCar() {
+  if (!DRIVE.car || !DRIVE.path) return;
+  const q = drivePoseAt(DRIVE.t), off = MY.L / 2 - MY.ro, cx = q.x + Math.cos(q.th) * off, cy = q.y + Math.sin(q.th) * off;
+  DRIVE.car.position.copy(W(cx, groundH(cx, cy), cy)); DRIVE.car.rotation.y = Math.atan2(-Math.cos(q.th), Math.sin(q.th));
+  const el = $('drT'); if (el && document.activeElement !== el) el.value = String(Math.round(DRIVE.t * 1000));
+  req();
+}
+function renderDrive() {
+  clearGroup(DRIVE.grp); DRIVE.car = null;
+  const info = $('drInfo'); if (!info) return;
+  ['drV', 'drR'].forEach(id => $(id).setAttribute('aria-pressed', String((id === 'drV' ? 'vor' : 'rueck') === DRIVE.mode)));
+  if (!DRIVE.mode) { info.textContent = 'Kein Fahrweg gewählt. Das schwarze Auto steht im Hof.'; req(); return; }
+  const R = DRIVE.path;
+  if (!R) { info.textContent = 'Rechne Fahrweg …'; return; }
+  if (!R.ok) { info.innerHTML = '<span class="pill bad">kein Weg gefunden</span> Mit diesen Annahmen passt das Auto nicht hinein, auch nicht mit Rangieren.'; req(); return; }
+  const P = R.pts;
+  for (let i = 0; i < P.length; i += 10) { const q = P[i], r = carRect(q.x, q.y, q.th, MY.B / 2), z = 0.04;
+    const g = new THREE.BufferGeometry().setFromPoints(r.concat([r[0]]).map(([u, v]) => W(u, groundH(u, v) + z, v))); DRIVE.grp.add(new THREE.Line(g, q.d > 0 ? DRIVE_MAT.f : DRIVE_MAT.r)); }
+  { const g = new THREE.BufferGeometry().setFromPoints(P.map(q => W(q.x, groundH(q.x, q.y) + 0.05, q.y))); DRIVE.grp.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x1c1e21 }))); }
+  DRIVE.car = carMesh(MAT.car, MY_T, null); DRIVE.grp.add(DRIVE.car); placeDriveCar();
+  const segs = driveSegs(P), ev = driveEval(P, R.ob), f2 = x => x.toFixed(2).replace('.', ',');
+  const segTxt = segs.map((s, i) => `${i + 1}. ${s.d > 0 ? 'vorwärts' : 'rückwärts'} ${f2(s.len)} m`).join(' · ');
+  const tight = ev.slice(0, 4).map(([n, o]) => `<tr><td>${n}</td><td class="n">${f2(o.d)} m</td><td class="small muted">${o.tall ? 'mit Spiegeln' : 'Karosserie'}</td></tr>`).join('');
+  info.innerHTML = `<b>${segs.length} ${segs.length === 1 ? 'Zug' : 'Züge'}</b>, ${segs.length - 1} Richtungswechsel: ${segTxt}.<div class="tablewrap" style="margin-top:6px"><table><tr><th>Engste Stellen</th><th>Abstand</th><th></th></tr>${tight}</table></div>`;
+  req();
+}
+let driveTimer = 0;
+function showDrive(mode) {
+  DRIVE.mode = mode; DRIVE.play = false; DRIVE.t = 0;
+  const key = driveKey(mode);
+  DRIVE.path = mode ? (DRIVE_CACHE.get(key) || null) : null; DRIVE.key0 = key;
+  buildVorplatz(); renderDrive();
+  if (mode && !DRIVE.path) { clearTimeout(driveTimer); driveTimer = setTimeout(() => { if (DRIVE.mode !== mode) return; const r = planDrive(mode); DRIVE_CACHE.set(key, r); if (DRIVE.mode === mode && driveKey(mode) === key) { DRIVE.path = r; renderDrive(); } }, 60); }
+}
+function driveStep(now) {
+  if (!DRIVE.play || !DRIVE.path || !DRIVE.path.ok) { DRIVE.last = 0; return false; }
+  const dt = DRIVE.last ? Math.min(0.1, (now - DRIVE.last) / 1000) : 0; DRIVE.last = now;
+  const len = DRIVE.path.pts.length * 0.05; DRIVE.t = Math.min(1, DRIVE.t + dt * 1.6 / len);
+  placeDriveCar(); if (DRIVE.t >= 1) { DRIVE.play = false; DRIVE.last = 0; $('drPlay').textContent = '▶ Abspielen'; }
+  return true;
+}
 function buildStaketen(g) { // Kastanien-Staketenzaun rund um Beet 1, 10 cm innerhalb der Einfassung
   const B = CFG.vp.b1; if (!B.zaun) return;
   const P = VP.beete.find(b => b.id === 'B1').pts, n = P.length, cx = P.reduce((a, q) => a + q[0], 0) / n, cy = P.reduce((a, q) => a + q[1], 0) / n;
@@ -1740,7 +1996,9 @@ function buildTrampolin(g) { // rechteckiges Trampolin mit Sicherheitsnetz und k
 function buildVorplatz() {
   clearGroup(vpGrp); const g = vpGrp;
   buildGarage(g); buildPodest(g); buildPavillon(g); buildZaunNW(g); buildNbNW(g); buildStaketen(g); buildTrampolin(g);
-  if (CFG.vp.car) buildCar(g);
+  if (CFG.vp.car && !DRIVE.mode) buildCar(g);
+  buildSpCars(g);
+  if (DRIVE.mode && DRIVE.path && driveKey(DRIVE.mode) !== DRIVE.key0) { clearTimeout(DRIVE.deb); DRIVE.deb = setTimeout(() => showDrive(DRIVE.mode), 400); }
   const [su, sv] = VP.schacht; g.add(cyl(su, sv, 0.36, 0, 0.02, MAT.frame, 20));
   { const S = VP.stufe; g.add(box(S.u0, S.u1, S.v0, S.v1, 0, S.h, MAT.granite)); }
   { const [vu, vv] = VP.verteiler; g.add(box(vu - 0.45, vu + 0.45, vv - 0.22, vv + 0.22, 0, 1.3, MAT.foot)); }
@@ -1758,7 +2016,7 @@ function drawVorplatz(c, X, Y, poly, winter) {
   poly([[GA.u0, 36.0], [GA.u1, 36.0], [GA.u1, 37.6], [GA.u0, 37.6]], winter ? '#8a917a' : '#7b955a');
   poly([[GA.u0, 37.6], [GA.u1, 37.6], [GA.u1, 40.6], [GA.u0, 40.6]], '#8d877d');
   c.fillStyle = '#5a4a3c'; for (let u = GA.u0; u < GA.u1; u += 0.6) c.fillRect(X(u), Y(40.0), 0.16 * P, 2.0 * P);
-  poly([[-16.35, 32.53], [-11.71, 31.92], [-12.43, 30.64], [-16.4, 30.66]], '#a49e93');               // Ecke der Parzelle an der Straße (Kies)
+  poly([[-16.35, 32.53], [-11.71, 31.92], [-12.43, 30.64], [nwU(30.6), 30.6]], '#727270');            // Ecke der Parzelle an der Straße: von der Straße her asphaltiert
   // Hof: Betonpflaster in Reihen parallel zur Hausfront, gemischte Steine (Foto)
   const hof = hofPoly();
   poly(hof, '#6f685e'); c.save(); path(hof); c.clip();
@@ -1790,9 +2048,9 @@ function drawVorplatz(c, X, Y, poly, winter) {
   curb(kw.slice(0, 5));
   poly([GF.P(0.3, 0), GF.P(GF.G.W - 0.4, 0), GF.P(GF.G.W - 0.4, -0.12), GF.P(0.3, -0.12)], '#26282a');   // Rinne vor dem Giebel zum Haus
   // Stellplätze 1–3 vor dem Giebel zur Straße (Aufteilungsplan)
-  c.strokeStyle = 'rgba(255,255,255,0.95)'; c.lineWidth = 0.08 * P; c.setLineDash([]);
+  c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 0.08 * P; c.setLineDash([]);   // leichte Markierung
   for (const sp of stellplaetze()) { path(sp.pts); c.stroke(); const m = sp.pts.reduce((a, q) => [a[0] + q[0] / 4, a[1] + q[1] / 4], [0, 0]);
-    c.save(); c.fillStyle = 'rgba(255,255,255,0.95)'; c.font = `700 ${Math.round(0.7 * P)}px "Source Sans 3", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(sp.nr), X(m[0]), Y(m[1])); c.restore(); }
+    c.save(); c.fillStyle = 'rgba(255,255,255,0.5)'; c.font = `700 ${Math.round(0.7 * P)}px "Source Sans 3", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(sp.nr), X(m[0]), Y(m[1])); c.restore(); }
   const [su, sv] = VP.schacht; c.fillStyle = '#6f6a62'; c.beginPath(); c.arc(X(su), Y(sv), 0.52 * P, 0, 7); c.fill();
   // Garten des Nachbarn NW: Plattenweg und Sitzplatz vor der Hofseite (Fotos)
   const F = nbFrame(), sitz = [F.P(0.4, 0.15), F.P(9.6, 0.15), F.P(9.6, 2.9), F.P(0.4, 2.9)];
@@ -2012,6 +2270,8 @@ const VIEWS = [
   { id: 'treppe', name: 'Treppe' },
   { id: 'vp', name: 'Straßenseite' },
   { id: 'vpPlan', name: 'Draufsicht Hof' },
+  { id: 'park', name: 'Stellplätze' },
+  { id: 'garage', name: 'Fahrweg Garage' },
   { id: 'laub', name: 'Vom Laubengang' },
   { id: 'nwOG', name: 'Blick NW-Giebel OG' },
   { id: 'nwEG', name: 'Blick Kinderzimmer EG' },
@@ -2033,6 +2293,8 @@ function viewPose(id) {
   if (id === 'treppe') { const P = stairPlan(); return { pos: W(3.4, P.bot + 6.4, waterV(3.4) + 0.2), tgt: W(-1.7, (P.top + P.bot) / 2 - 0.9, -5.5), fov: 60 }; }
   if (id === 'hang') { const pu = 3.3, pv = Math.max(waterV(3.3) + 2.6, -T7.depth - 2.4); return { pos: W(pu, groundH(pu, pv) + 1.6, pv), tgt: W(-0.6, 0.5, -1.4), fov: 64 }; }
   if (id === 'vp') return { pos: W(5, 13, 41), tgt: W(-9, 0.8, 15.5), fov: 50 };
+  if (id === 'garage') return { pos: W(-14.5, 13, 31), tgt: W(-6.5, 0, 20.5), fov: 50 };
+  if (id === 'park') { const cs = spCars(), m = cs[1], e = m.e, c = m.c; return { pos: W(m.u + e[0] * 7.5 + c[0] * 2.5, 6.5, m.v + e[1] * 7.5 + c[1] * 2.5), tgt: W(m.u - c[0] * 0.3, 0.6, m.v - e[1] * 0.3), fov: 50 }; }
   if (id === 'laub') return { pos: W(-6.0, H.floor0 + 2.74 + CFG.eyeStand, 10.95), tgt: W(-15.5, 1.6, 17.5), fov: 66 };
   if (id === 'bad') return { pos: W(-8.84, H.floor0 + CFG.eyeStand, H.v1 - 0.6), tgt: W(-8.84, 1.5, 16), fov: 70 };
   if (id === 'beet3') return { pos: W(-4.6, 7.5, 13.0), tgt: W(-1.4, 0.2, 12.4), fov: 50 };
@@ -2403,7 +2665,19 @@ function renderVPInfo() {
   if (Z.typ !== 'bau' && h > 2.0 + 1e-6) lines.push('<span style="color:var(--warn)">Über 2 m Höhe ist eine Einfriedung in Bayern nicht mehr verfahrensfrei.</span>');
   $('vzInfo').innerHTML = lines.filter(Boolean).join(' ');
 }
+function renderPark() {
+  if (!$('pkTab')) return;
+  const T = CAR_TYPES[CFG.vp.carType] || CAR_TYPES.kombi, R = parkCalc(), f2 = x => x.toFixed(2).replace('.', ',');
+  const row = (nr, nm, sd) => `<tr><td><b>${nr}</b> · ${nm}<br><span class="small muted">zu: ${sd.what}</span></td><td class="n">${sd.free ? 'frei' : f2(sd.g) + ' m'}<br><span class="small muted">vorn ${Math.round(sd.front)}° · hinten ${Math.round(sd.rear)}°</span></td><td><span class="pill ${sd.rate[1]}">${sd.rate[0]}</span></td></tr>`;
+  $('pkTab').innerHTML = '<tr><th>Platz · Seite</th><th>Freiraum · Türwinkel</th><th></th></tr>'
+    + R.slice().reverse().map(r => row(r.nr, 'Fahrer', r.left) + row(r.nr, 'Beifahrer', r.right)).join('');
+  $('pkNote').textContent = `Freiraum = Karosserie bis zum Nachbarauto, zur Grenze oder in den Hof. Zwischen den Spiegeln bleiben je ${f2(2 * T.mir)} m weniger. `
+    + `Türwinkel: so weit, bis die Türkante das Hindernis berührt (3 cm Luft), höchstens ${DOOR_MAX}°; gerechnet mit Türlänge vorn ${f2(T.df)} m, hinten ${f2(T.dr)} m und geschlossenen Türen beim Nachbarn. `
+    + `Faustwerte: ab 0,80 m bequem, 0,60–0,80 m eng, 0,45–0,60 m sehr eng, darunter kaum aussteigen. Die Autos stehen vorwärts, Fahrertür zur Grenze. An der Grenze ist ein Zaun angenommen, die Tür geht nicht darüber hinaus. `
+    + (CFG.vp.spW > 2.3 ? `Achtung: ${f2(CFG.vp.spW)} m ist nur ein Vergleich und weicht vom Aufteilungsplan ab; Platz 1 rückt dabei ${f2(3 * (CFG.vp.spW - 2.3))} m weiter in den Hof.` : 'Breite und Länge wie im Aufteilungsplan.');
+}
 function renderVPCov() {
+  renderPark();
   if (ST.tab !== 't-vp') return;
   const T = VP_TGT[ST.vpTgt];
   $('vpTgt').innerHTML = Object.entries(VP_TGT).map(([k, t]) => `<button data-t="${k}" aria-pressed="${ST.vpTgt === k}">${t.name}</button>`).join('');
@@ -2525,6 +2799,9 @@ function renderB3Notes() {
 }
 function renderVP() {
   $('vp-car').checked = CFG.vp.car;
+  renderDrive();
+  $('vp-cars').checked = CFG.vp.cars; $('vp-doors').value = CFG.vp.doors;
+  $('pkT').innerHTML = Object.entries(CAR_TYPES).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join(''); $('pkT').value = CFG.vp.carType; $('pkW').value = String(CFG.vp.spW);
   renderVPFields(); renderVPCov(); renderVPList(); renderVPAreas(); renderVPNotes(); renderB1(); renderB3();
 }
 // Annahmen der Straßenseite: [id, Text, Quelle, lesen, schreiben, Schritt, min, max]
@@ -2592,6 +2869,17 @@ panelEl.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click'
   if ((was === 't-vp') !== (b.id === 't-vp')) rebuildSight();
 }));
 $('vz-typ').addEventListener('change', (e) => { CFG.vp.zaun.typ = e.target.value; buildVorplatz(); rebuildSight(); renderVPFields(); renderVPCov(); renderVPNotes(); save(); });
+$('vp-cars').addEventListener('change', (e) => { CFG.vp.cars = e.target.checked; buildVorplatz(); rebuildSight(); renderVPCov(); save(); });
+$('vp-doors').addEventListener('change', (e) => { CFG.vp.doors = e.target.value; buildVorplatz(); save(); });
+$('pkT').addEventListener('change', (e) => { CFG.vp.carType = e.target.value; buildVorplatz(); rebuildSight(); renderVPCov(); save(); });
+$('pkW').addEventListener('change', (e) => { CFG.vp.spW = +e.target.value; drawGround(); buildVorplatz(); rebuildSight(); renderVPCov(); save(); });
+$('pkView').onclick = () => setView('park');
+$('drV').onclick = () => showDrive(DRIVE.mode === 'vor' ? '' : 'vor');
+$('drR').onclick = () => showDrive(DRIVE.mode === 'rueck' ? '' : 'rueck');
+$('drOff').onclick = () => showDrive('');
+$('drView').onclick = () => setView('garage');
+$('drPlay').onclick = () => { if (!DRIVE.path || !DRIVE.path.ok) return; if (DRIVE.t >= 1) DRIVE.t = 0; DRIVE.play = !DRIVE.play; DRIVE.last = 0; $('drPlay').textContent = DRIVE.play ? '❚❚ Pause' : '▶ Abspielen'; req(); };
+$('drT').addEventListener('input', (e) => { DRIVE.play = false; $('drPlay').textContent = '▶ Abspielen'; DRIVE.t = +e.target.value / 1000; placeDriveCar(); });
 $('vp-car').addEventListener('change', (e) => { CFG.vp.car = e.target.checked; buildVorplatz(); rebuildSight(); renderVPCov(); save(); });
 $('b3-on').addEventListener('change', (e) => { CFG.vp.b3.on = e.target.checked; buildVorplatz(); save(); });
 $('b3-size').addEventListener('change', (e) => { CFG.vp.b3.size = e.target.value; buildVorplatz(); renderB3Notes(); save(); });
@@ -2610,13 +2898,14 @@ $('plToggle').onclick = () => { plantGrp.visible = !plantGrp.visible; $('plToggl
 // ---------- Kamerafahrt (vom Hausmodell in jedem Bild aufgerufen) ----------
 const ease = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 function step(now) {
-  if (!tween) return false;
+  const dr = driveStep(now);
+  if (!tween) return dr;
   if (!active()) { tween = null; return false; }
   const k = tween.dur ? Math.min(1, (now - tween.t0) / tween.dur) : 1, e = ease(k);
   camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.q0, tween.q1, e);
   camera.fov = tween.f0 + (tween.f1 - tween.f0) * e; camera.updateProjectionMatrix(); controls.update();
   if (k >= 1) tween = null;
-  return !!tween;
+  return !!tween || dr;
 }
 
 // ---------- Start ----------
@@ -2640,6 +2929,6 @@ return {
   floor0: () => CFG.haus.floor0,
   // begehbare Terrasse für den Rundgang (Hauskoordinaten: x, y, z ab FFB EG)
   terrace() { const T = CFG.terrasse; return { x0: T.uA + OFF_X, x1: T.over - T.curb + OFF_X, y0: -T.depth + T.curb, y1: 0, z: T.top - T.fill - CFG.haus.floor0 }; },
-  debug: { ST, CFG, VP, vpGroups, vpCoverage, renderVP, setView, loadVariant, coverage, setSeason, rebuildSite, groundH, stairPlan, stairChecks },
+  debug: { planDrive, driveObstacles, MY, ST, CFG, VP, vpGroups, vpCoverage, renderVP, setView, loadVariant, coverage, setSeason, rebuildSite, groundH, stairPlan, stairChecks },
 };
 };
