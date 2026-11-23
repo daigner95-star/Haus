@@ -1,10 +1,11 @@
-# Holzhaus · 3D-Modell
+# Holzhaus mit Garten · 3D-Modell
 
-3D-Modell des Holzhauses mit drei Wohnungen:
+Ein gemeinsames 3D-Modell von Haus und Garten:
 - **Wohnung 1** im Erdgeschoss, mit unseren Einbau-Projekten
 - **Wohnungen 2 und 3** als Maisonette in OG und DG
+- **Garten:** Gelände nach Aufmaß, Terrasse, Hang zum Bach, Sichtschutz zum Nachbarn, Treppe zum Bach
 
-Seite: `index.html`. three.js 0.147 (MIT-Lizenz) liegt lokal in `vendor/`, es werden keine externen Dienste geladen.
+Seite: `index.html`, der Garten-Teil liegt in `garten/garten.js`. three.js 0.147 (MIT-Lizenz) liegt lokal in `vendor/`, es werden keine externen Dienste geladen.
 
 **Ansichten:** Außen, Puppenhaus (Dach und obere Geschosse ausgeblendet), Rundgang auf Augenhöhe (Handy: wischen und auf den Boden tippen, Computer: W A S D), Grundriss mit Flächen. Die Beispielmöblierung in OG und DG lässt sich ein- und ausblenden.
 
@@ -20,7 +21,14 @@ Wände, Türen und Fenster stammen aus dem Fensterplan EG. Die Küche ist nach F
 **Neues Projekt hinzufügen:** in `index.html` ein Modul nach dem Muster von `KK` (Kinderküche) anlegen: Maße `S`, Regler `sliderDefs`, `build()`, `report()`. Dazu eine eigene Gruppe in `G` und einen Abschnitt in `renderPanelEG()`.
 
 ## Garten
-Ordner `garten/`, übernommen aus dem früheren Repo „Garten“ (mit Historie). Modell: `garten/sichtschutz/index.html`, im Haus-Modell oben über „Garten →“ erreichbar. Inhalt und Datengrundlage stehen in `garten/README.md`: Sichtschutz Giebelgarten, Bachseite nach Aufmaß des Vermessers, Treppe zum Bach. Das Gartenmodell nutzt dasselbe three.js aus `vendor/`. Es hat noch ein eigenes, vereinfachtes Hausmodell und ist nicht in die Szene von `index.html` eingebaut.
+Oben auf **Garten** tippen. Das Haus ist dasselbe Modell wie in den Wohnungen, der Garten liegt drumherum und ist in allen 3D-Ansichten zu sehen. Im Rundgang geht es durch die Schiebetür auf die Terrasse. Beschriftungen, Sichtlinien und das Verschieben von Pflanzen gibt es nur im Bereich Garten.
+- **Ansichten:** Übersicht, Draufsicht, Garten, Blick aus EG 1 und OG 1–3, vom Nachbarbalkon, von der Nachbarterrasse, vom Nachbargrund, Terrasse, Bachseite, vom Hang, Treppe. Dazu Sonnenstand per Regler, Sommer und Winter, Wuchsstadium.
+- **Sichtschutz:** Varianten mit 2 m Grenzabstand (A, B, D) und unter 2 m, nur mit Zustimmung des Nachbarn (C, E, F, G, H). Pflanzen lassen sich ziehen. Berechnet wird, wie viel der Blickachsen Fenster → Nachbarbalkon bzw. Nachbarterrasse verdeckt ist, dazu Grenzabstand (Art. 47 AGBGB), Überhang und Abstand zur Hauswand.
+- **Bachseite:** Terrassenmauer, Hang, Bach und Grenzen aus dem Aufmaß des Vermessers (16.01.2024, Höhen DHHN2016), als Dreiecksnetz hinterlegt. Seither Gebautes (Betonbalken, Geländer, Kalksteinmauer, Beet) nach Fotos vom 11.11.
+- **Treppe zum Bach:** Beton-Blockstufen auf dem bestehenden Weg, mit Podesten in den Bögen. Stufenhöhe, Auftritt, Bogenradius und Breite sind einstellbar; geprüft werden Steigung, Auftritt, Schrittmaß, Trittfläche innen und Lauflänge, dazu ein Längsschnitt.
+- **Annahmen:** Im Tab „Annahmen“ steht, was aus dem Aufmaß stammt, was am Meterstab abgelesen und was geschätzt ist. Nachbarhaus und Nachbarbalkon sind aus Fotos geschätzt.
+
+Gartenkoordinaten: „vor Giebel“ = Abstand von der Südost-Hauswand Richtung Nachbar, „ab Gartenecke“ = Abstand von der Hausecke Süd Richtung Straße. Umrechnung ins Hausmodell: Gartenkoordinate = Hauskoordinate x − 13,54 m; Höhe 0 im Garten = Gelände am Südost-Giebel, 0,25 m unter FFB EG. Der Sonnenstand wird mit gerundeter Lage gerechnet. Eigene Pflanzanordnungen speichert der Browser.
 
 ## Veröffentlichen (GitHub Pages)
 Settings → Pages → *Deploy from a branch* → Branch wählen (z. B. `main`), Ordner `/ (root)`.
