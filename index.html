@@ -884,7 +884,7 @@ const WZ=(function(){
 const F = {wall:244, depth:13.5, boardD:14.5, boardT:3, boxH:65, strip:3, flapW:70,
   sofaLen:240, sillU:87, ply:0.4, rail:2.4, railH:4.5, sockZ:30, postD:14, postW:12, reveal:4,
   twLen:210, seatH:45, benchD:55, backT:10, backH:85, benchWin:180, tableL:180, tableW:95, tableH:75, beamH:14, ofBench:20};
-const S = {clad:2, outer:15, zb:45, ww:126.5, twH:90, box2:120, ofenY:322.5, beamLen:490, legW:40, legIn:30, ablW:35};
+const S = {clad:2, outer:15, zb:45, ww:126.5, twH:90, box2:120, ofenY:322.5, beamLen:516.1, legW:40, legIn:30, ablW:35};
 const st={open:false, xray:false, sofa:true, angle:0, beamFull:true};
 const sliderDefs = [
   {k:'clad', label:'Verkleidung Pfosten und Trennwand (Altholz)', min:0, max:5, step:0.5, hint:'Dicke je Seite. Noch offen.'},
@@ -893,7 +893,7 @@ const sliderDefs = [
   {k:'zb', label:'Höhe Zwischenboden im Kasten', min:20, max:60, step:1, hint:'Oberkante, ab Boden.'},
   {k:'ww', label:'Fensterbreite', min:100, max:200, step:0.5, hint:'126,5 cm laut Werkplan. Ändert auch die Fenster in der Hauswand.'},
   {k:'ofenY', label:'Fensterwand bis TV-Seite Ofen', min:250, max:420, step:0.5, hint:'Aus Werkplan abgeleitet. Bitte messen.'},
-  {k:'beamLen', label:'Balkenlänge ab Fensterwand (durchgehend)', min:300, max:700, step:1, hint:'Geschätzt. Nur bei durchgehendem Balken.'},
+  {k:'beamLen', label:'Balkenlänge ab Fensterwand (durchgehend)', min:300, max:516.1, step:0.1, hint:'516,1 cm = bis an die Wand zu Bad und Abstellraum (Werkplan). Nur bei durchgehendem Balken.'},
   {k:'box2', label:'Länge Rollkasten an der Trennwand', min:60, max:155, step:1, hint:'Noch offen. So viel Platz braucht er auch davor.'},
   {k:'legW', label:'Breite Tischfuß-Platte', min:25, max:90, step:1, hint:'Geschätzt. Quer zum Tisch.'},
   {k:'legIn', label:'Tischfuß eingerückt ab Tischende', min:10, max:60, step:1, hint:'Geschätzt.'},
@@ -1784,7 +1784,7 @@ const AR=(function(){
 const SD=(function(){
   const O={a:7.83,b:8.83,h:2.01,wall:6.558,xEnd:9.987};   // Öffnung, Flurseite der Wand, Ecke rechts (Wand zu Kinderzimmer 2)
   const S={w:110,k:3,t:5,over:6};
-  const st={open:false,mirror:true,on:true};
+  const st={open:false,on:true};
   const sliderDefs=[
     {k:'w',label:'Türblatt: mittlere Breite',min:100,max:120,step:1,hint:'Öffnung 100 cm. Rechts neben der Öffnung sind bis zur Ecke 115,7 cm Platz zum Parken.'},
     {k:'k',label:'Baumkante: wie stark sie schwankt (je Seite)',min:0,max:8,step:0.5,hint:'0 = gerade Kante. Gesetzt 3 cm.'},
@@ -1818,10 +1818,9 @@ const SD=(function(){
   function build(){
     const g=G.egSD;clearGroup(g);if(!st.on){report();return;}
     const q=geo(),{e,t,y0,y1}=q,dx=st.open?q.shift:0;
-    // Bestand an der Wand (aus dem Foto): Sprechanlage, Schalter links, Spiegel rechts
+    // Bestand an der Wand (aus dem Foto): Sprechanlage und Schalter links
     ebox(g,7.48,O.wall-0.015,7.66,O.wall,1.42,1.55,mat.sw);ebox(g,7.495,O.wall-0.017,7.645,O.wall-0.015,1.445,1.53,mat.screen,false);
     ebox(g,7.65,O.wall-0.012,7.73,O.wall,0.93,1.17,mat.sw);
-    if(st.mirror){ebox(g,9.11,O.wall-0.025,9.56,O.wall,0.32,1.76,mat.frame);ebox(g,9.125,O.wall-0.027,9.545,O.wall-0.025,0.335,1.745,mat.mirror,false);}
     // Türblatt: Umriss mit Baumkante, in der Wandebene extrudiert
     const sh=new THREE.Shape();sh.moveTo(e.L[0][0],e.L[0][1]);
     e.R.forEach(p=>sh.lineTo(p[0],p[1]));for(let i=e.L.length-1;i>=0;i--)sh.lineTo(e.L[i][0],e.L[i][1]);
@@ -1863,8 +1862,7 @@ const SD=(function(){
       ['Überdeckung zu, schmalste Stelle',`<span class="${cls(ovL>=2)}">links ${fmt(ovL)} cm</span> · <span class="${cls(ovR>=2)}">rechts ${fmt(ovR)} cm</span>`],
       ['Durchgang offen',`<span class="${cls(clear>=95)}">${fmt(clear)} cm</span>`],
       ['Platz rechts zum Parken',`${fmt((O.xEnd-O.b)*100)} cm bis zur Ecke`],
-      ['Gewicht Türblatt ca.',`<span class="${cls(kg<=100)}">${fmt(Math.round(kg))} kg</span> (Eiche ca. 720 kg/m³)`],
-      ['Spiegel rechts (9,11–9,56 m)',st.mirror?'<span class="warn">liegt im Weg der offenen Tür, umhängen</span>':'ausgeblendet']
+      ['Gewicht Türblatt ca.',`<span class="${cls(kg<=100)}">${fmt(Math.round(kg))} kg</span> (Eiche ca. 720 kg/m³)`]
     ];
     el.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
   }
@@ -2174,10 +2172,10 @@ function renderPanelEG(){
      [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal'],['bett','Kinderbett'],['bettOben','Kinderbett von oben'],['sd','Schiebetür vom Flur'],['sdE','Schiebetür vom Eingang'],['arRegal','Abstellraum Regal rechts'],['ar','Abstellraum durch die Tür'],['arTuer','Abstellraum Türwand'],['arOben','Abstellraum von oben']]
      .map(([k,n])=>'<button class="chip" data-cam="'+k+'">'+n+'</button>').join('')+'</div>'+
    '<h3>Projekt 6 · Schiebetür zwischen Flur und Eingang</h3>'+
-   '<div class="chips">'+tb('sdOpen',SD.st.open)+'Tür offen</button>'+tb('sdMirror',SD.st.mirror)+'Spiegel zeigen</button>'+tb('sdOn',SD.st.on)+'Tür zeigen</button></div>'+
+   '<div class="chips">'+tb('sdOpen',SD.st.open)+'Tür offen</button>'+tb('sdOn',SD.st.on)+'Tür zeigen</button></div>'+
    '<div id="sdSl"></div><h4>Ergebnis</h4><table class="res" id="sdOut"></table>'+
    '<p class="note"><b>Idee:</b> Das Türblatt ist ein Stück Eiche, geölt, links und rechts mit natürlicher Baumkante. Es hängt flurseitig vor der Wand an zwei Laufrollen auf einer Schiene aus schwarzem Flachstahl und läuft nach rechts. Unten führt es ein kleiner Führungsnocken am Boden rechts neben der Öffnung, der in eine Nut im Türblatt greift. Flurseitig sitzt ein Griff aus Flachstahl, eingangsseitig eine Griffmulde.</p>'+
-   '<p class="note"><b>Gemessen:</b> Wand links neben der Öffnung 45 cm, Öffnung 1,00 m. Die Öffnung ist im Modell entsprechend verschoben. <b>Aus dem Foto geschätzt:</b> Höhe der Öffnung 2,01 m wie die anderen Türen, Sprechanlage, Schalter, Spiegel 45 × 144 cm. <b>Gesetzt:</b> mittlere Breite 110 cm, Baumkante ±3 cm, Dicke 5 cm, 6 cm über der Öffnung, 1,5 cm Abstand zur Wand.</p>'+
+   '<p class="note"><b>Gemessen:</b> Wand links neben der Öffnung 45 cm, Öffnung 1,00 m. Die Öffnung ist im Modell entsprechend verschoben. <b>Aus dem Foto geschätzt:</b> Höhe der Öffnung 2,01 m wie die anderen Türen, Sprechanlage und Schalter. Der Spiegel kommt weg. <b>Gesetzt:</b> mittlere Breite 110 cm, Baumkante ±3 cm, Dicke 5 cm, 6 cm über der Öffnung, 1,5 cm Abstand zur Wand.</p>'+
    '<p class="note"><b>Bitte beachten:</b> Ein Brett aus einem Stück mit 1,1 m Breite braucht einen Stamm von gut 1,2 m Durchmesser. Das ist selten und teuer. Es muss technisch trocken sein (8–10 % Holzfeuchte) und braucht hinten eingelassene Gratleisten oder Flachstähle, damit es sich nicht wölbt. Wo die Baumkante schmal ist, bleibt seitlich ein Spalt, sie schließt also nicht dicht. Bei ca. 80 kg braucht es einen Beschlag für mindestens 100 kg und Halter, die in tragendes Holz der Wand geschraubt sind.</p>'+
    '<h3>Projekt 5 · Abstellraum (Technik)</h3>'+
    '<p class="note">Raum 1,09 × 1,78 m, Holzregale, Euroboxen als Schubladen auf Leisten. Ansichten oben: „Abstellraum Regal rechts“, „Abstellraum durch die Tür“, „Abstellraum Türwand“ und „Abstellraum von oben“.</p>'+
@@ -2244,7 +2242,7 @@ function renderPanelEG(){
   tog('kbPics',KB.st,'pics',KB.build);tog('kbBack',KB.st,'back',KB.build);tog('kbPull',KB.st,'pull',KB.build);
 tog('kbOn',KB.st,'on',KB.build);
   sliderUI(document.getElementById('sdSl'),SD.sliderDefs,SD.S,()=>{SD.build();egChanged();});SD.report();
-  tog('sdOpen',SD.st,'open',SD.build);tog('sdMirror',SD.st,'mirror',SD.build);tog('sdOn',SD.st,'on',SD.build);
+  tog('sdOpen',SD.st,'open',SD.build);tog('sdOn',SD.st,'on',SD.build);
   sliderUI(document.getElementById('arSl'),AR.sliderDefs,AR.S,()=>{AR.build();egChanged();});AR.report();
   panel.querySelectorAll('[data-arv]').forEach(b=>b.addEventListener('click',()=>{AR.st.v=b.dataset.arv;
     panel.querySelectorAll('[data-arv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));AR.build();egChanged();}));
