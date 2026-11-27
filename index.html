@@ -537,7 +537,7 @@ const M={
   floorEG:lam(0xcfae84), larch:lam(0xbd8650), tread:lam(0xc7a072), steel:lam(0x2a2a2a), ground:lam(0x8db06a), white:lam(0xf5f5f3), eg:lam(0xb07c4a),
   slab:lam(0xd8d2c6), glassShower:new THREE.MeshLambertMaterial({color:0xd8ecf2,transparent:true,opacity:0.3,depthWrite:false,side:THREE.DoubleSide})
 };
-const G={}; ['EG','EGceil','egGarden','egKitchen','egWZ','egKids','egHang','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
+const G={}; ['EG','EGceil','egGarden','egKitchen','egWZ','egKids','egHang','egAR','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
 const COLL=[]; // {x0,y0,x1,y1,z0,z1,furn?,tag?}
 let COLL_TAG=null; // Kennung für Kollisionsboxen, die beim Neubau eines Bauteils ersetzt werden
 function dropColl(tag){for(let i=COLL.length-1;i>=0;i--)if(COLL[i].tag===tag)COLL.splice(i,1);}
@@ -1423,7 +1423,214 @@ const HS=(function(){
   return {S,st,sliderDefs,build,report,geo};
 })();
 
-buildKitchenEG();WZ.build();buildEGGarden();KK.build();HS.build();
+/* ================= EG Projekt 4: Abstellraum (Technik) =================
+   Raum nach Werkplan 1,09 × 1,78 m, lichte Höhe 2,40 m. Tür (76 cm, geht nach außen auf) am Ende der Türwand.
+   Bestand nach Video: Rückwand mit Zählerschrank, Medienkasten, Steckdose und Heizkreisverteiler unten rechts;
+   links offene Ständerwand mit roten und blauen Rohren; rechts senkrechte Rohre, oben in der Ecke Rohrverteiler.
+   Drei Modelle, alle in Holz, Euroboxen als Schubladen auf Leisten. Maße in cm, Hauskoordinaten in m. */
+const AR=(function(){
+  const R={X0:6.097,X1:7.187,Y0:5.698,Y1:7.477,dA:5.748,dB:6.508};
+  const S={pipe:18,hkvW:80,hkvH:70,hkvD:15,zsUK:105,bh:22,bay:50,bord:20};
+  const st={v:'B',items:true,out:false};
+  const sliderDefs=[
+    {k:'bh',label:'Höhe der Euroboxen',min:12,max:32,step:5,hint:'Euroboxen gibt es 12, 17, 22, 27 und 32 cm hoch. Gesetzt: 22 cm.'},
+    {k:'bay',label:'Fach unten (Staubsauger, Eimer)',min:35,max:70,step:1,hint:'Nur Modell A und B. Bodenstaubsauger ca. 30 cm hoch.'},
+    {k:'bord',label:'Tiefe der Borde an der Rückwand',min:15,max:30,step:1,hint:'Nur Modell B. Kleine Euroboxen 30 × 20 cm brauchen 21 cm.'},
+    {k:'pipe',label:'Rohrzone an der rechten Wand',min:10,max:30,step:1,hint:'Geschätzt (18 cm). Bitte messen: Wand bis Vorderkante der Rohre.'},
+    {k:'hkvW',label:'Heizkreisverteiler Breite',min:50,max:100,step:1,hint:'Geschätzt (80 cm). Maße kommen noch.'},
+    {k:'hkvH',label:'Heizkreisverteiler Höhe (Oberkante)',min:50,max:90,step:1,hint:'Geschätzt (70 cm).'},
+    {k:'hkvD',label:'Heizkreisverteiler Tiefe',min:8,max:25,step:1,hint:'Geschätzt (15 cm).'},
+    {k:'zsUK',label:'Unterkante Zählerschrank',min:90,max:130,step:1,hint:'Geschätzt (105 cm). Bitte messen.'}
+  ];
+  const fmt=v=>(Math.round(v*10)/10).toLocaleString('de-DE',{maximumFractionDigits:1});
+  const mat={wood:lam(0xdcc39a),strip:lam(0xc8a874),box:lam(0x8e9499),boxD:lam(0x5d6266),white:lam(0xe3e6ea),grey:lam(0xb9bcc0),
+    red:lam(0xc65a50),blue:lam(0x5574a8),pipe:lam(0xd4d7da),stud:lam(0xd9b880),ins:lam(0xc7a46a),
+    vac:lam(0x2d3270),hose:lam(0x8f9499),bucket:lam(0x4f8fc9),iron:lam(0xe9d3de),ironL:lam(0x9a9ea3),rack:lam(0x34407e),wire:lam(0xf0f0f0),
+    mop:lam(0x3f9a8a),stick:lam(0xcfcfcf),carton:lam(0xb8915c),bottle:lam(0x7cc06a),bottle2:lam(0xe2e2e2),wheel:lam(0x222222)};
+  let areaM2=0, stripM=0, nBox=[], cart=null, coll=[], nB=0, ukC=0;
+  const T=0.019;
+  // Platte (zählt Fläche: größte zwei Maße)
+  function pan(g,x0,y0,x1,y1,z0,z1){const d=[Math.abs(x1-x0),Math.abs(y1-y0),Math.abs(z1-z0)].sort((a,b)=>b-a);areaM2+=d[0]*d[1];return ebox(g,x0,y0,x1,y1,z0,z1,mat.wood);}
+  function strip(g,x0,y0,x1,y1,z0,z1){stripM+=Math.max(Math.abs(x1-x0),Math.abs(y1-y0),Math.abs(z1-z0));return ebox(g,x0,y0,x1,y1,z0,z1,mat.strip,false);}
+  function cylZ(g,x,y,z0,z1,r,m,seg){const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,z1-z0,seg||14),m);c.position.copy(P(x,y,(z0+z1)/2));c.castShadow=true;g.add(c);return c;}
+  function cylAB(g,a,b,r,m){const va=P(...a),vb=P(...b);const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,va.distanceTo(vb),12),m);
+    c.position.copy(va).add(vb).multiplyScalar(0.5);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vb.clone().sub(va).normalize());c.castShadow=true;g.add(c);return c;}
+  // Eurobox: Front bei xf, Tiefe dx (Vorzeichen = Richtung in den Kasten), Breite y0..y1
+  function ebx(g,xf,dx,y0,y1,z0,z1,label){
+    ebox(g,xf,y0,xf+dx,y1,z0,z1,mat.box);
+    const s=Math.sign(dx),yc=(y0+y1)/2,hw=Math.min(0.05,(y1-y0)/5);
+    ebox(g,xf-s*0.002,yc-hw,xf+s*0.004,yc+hw,z1-0.045,z1-0.02,mat.boxD,false);
+    nBox.push(label);
+  }
+  /* Regal mit Euroboxen auf Leisten. Front bei xf, dir = Richtung von der Front zur Wand (+1/−1), Tiefe D.
+     y0: linke Kante, n Spalten der Breite bw, Reihen ab zr0 mit Raster pitch bis zTop. */
+  function shelf(g,o){
+    const {xf,dir,D,y0,n,bw,zr0,rows,pitch,zTop,label,bottom}=o, cw=bw+0.006, xb=xf+dir*D;
+    const W=n*cw+(n+1)*T;
+    for(let i=0;i<=n;i++){const y=y0+i*(cw+T),mid=i>0&&i<n&&bottom!==false;
+      if(o.notch&&!mid){pan(g,xf,y,o.notch.x,y+T,0,o.notch.z);pan(g,xf,y,xb,y+T,o.notch.z,zTop);}  // unten ausgeklinkt
+      else pan(g,xf,y,xb,y+T,mid?zr0-T:0,zTop);}
+    if(bottom!==false)pan(g,xf,y0,xb,y0+W,zr0-T,zr0);
+    pan(g,xf,y0,xb,y0+W,zTop-T,zTop);
+    for(let r=0;r<rows;r++){const z=zr0+r*pitch;
+      for(let i=0;i<n;i++){const ya=y0+T+i*(cw+T),yb=ya+cw;
+        const zs=z+S.bh/100-0.035;
+        strip(g,xf+dir*0.01,ya,xb-dir*0.01,ya+0.012,zs-0.015,zs);strip(g,xf+dir*0.01,yb-0.012,xb-dir*0.01,yb,zs-0.015,zs);
+        ebx(g,xf+dir*0.005,dir*Math.min(0.4,D-0.01),ya+0.004,yb-0.004,z+0.003,z+S.bh/100,label);}}
+    coll.push({x0:Math.min(xf,xb),x1:Math.max(xf,xb),y0,y1:y0+W,z0:0,z1:zTop});
+    return W;
+  }
+  function rowsFit(z0,z1){return Math.max(0,Math.floor((z1-z0+0.001)/(S.bh/100+0.025)));}
+  function kartons(g,x0,x1,y0,y1,z,hmax){let y=y0+0.01;const ws=[0.40,0.32,0.36,0.30];let i=0;
+    while(y+0.25<y1){const w=Math.min(ws[i%4],y1-y-0.01),h=Math.min(hmax,[0.30,0.24,0.28,0.22][i%4]);
+      ebox(g,x0+0.01,y,x1-0.02,y+w,z,z+h,mat.carton);y+=w+0.02;i++;}}
+  /* ---------- Bestand ---------- */
+  function bestand(g){
+    const {X0,X1,Y0,Y1}=R, C=Z_EGC;
+    // Rückwand: Zählerschrank, Medienkasten, Steckdose
+    const zu=S.zsUK/100;
+    ebox(g,X0,5.86,X0+0.02,6.41,zu,zu+1.0,mat.white);ebox(g,X0+0.02,6.36,X0+0.025,6.38,zu+0.45,zu+0.55,mat.grey,false);
+    ebox(g,X0,5.89,X0+0.015,6.38,0.40,Math.min(0.95,zu-0.08),mat.white);
+    ebox(g,X0,6.50,X0+0.012,6.62,1.08,1.16,mat.white);
+    // Heizkreisverteiler unten rechts
+    const h=hkv();ebox(g,X0,h.y0,h.x1,h.y1,0,h.z1,mat.white);ebox(g,h.x1,h.y0+0.03,h.x1+0.004,h.y1-0.03,0.05,h.z1-0.05,mat.grey,false);
+    // Linke Wand: Ständer, Dämmung, Rohre
+    [6.35,6.75,7.13].forEach(x=>ebox(g,x-0.03,Y0-0.002,x+0.03,Y0+0.02,0,C,mat.stud));
+    ebox(g,X0+0.01,Y0-0.004,X1-0.01,Y0+0.006,0,C,mat.ins,false);
+    cylZ(g,6.18,Y0+0.08,0,C-0.12,0.065,mat.red);cylZ(g,6.27,Y0+0.07,0.9,C-0.12,0.05,mat.blue);
+    cylAB(g,[X0+0.09,Y0+0.08,C-0.1],[X0+0.09,Y1-0.35,C-0.1],0.075,mat.red);
+    cylAB(g,[6.18,Y0+0.08,C-0.1],[X1-0.05,Y0+0.08,C-0.1],0.065,mat.red);
+    // Rechte Wand: senkrechte Rohre, waagrechte Rohre zum Verteiler, Rohrverteiler oben in der Ecke
+    const pz=S.pipe/100, yp=Y1-pz/2;
+    for(let i=0;i<7;i++){const x=X0+0.12+i*(X1-X0-0.24)/6;cylZ(g,x,yp,0,C,Math.min(0.05,pz/2-0.01),mat.pipe,10);}
+    [0.86,0.98].forEach(z=>cylAB(g,[X0+0.05,yp-0.01,z],[X1-0.12,yp-0.01,z],0.045,mat.pipe));
+    ebox(g,X0,Y1-0.45,X0+0.55,Y1,C-0.34,C,mat.pipe);
+    coll.push({x0:X0,x1:X1,y0:Y1-pz,y1:Y1,z0:0,z1:C});
+    coll.push({x0:X0,x1:h.x1,y0:h.y0,y1:h.y1,z0:0,z1:h.z1});
+  }
+  function hkv(){const y1=R.Y1-0.05,y0=y1-S.hkvW/100;return {y0,y1,x1:R.X0+S.hkvD/100,z1:S.hkvH/100};}
+  /* ---------- Gegenstände ---------- */
+  function vacuum(g,xa,xb,ya,yb){ // Bodenstaubsauger ca. 38 × 28 × 27 cm
+    ebox(g,xa,ya,xb,yb,0.03,0.27,mat.vac);ebox(g,xa+0.02,ya+0.02,xb-0.02,yb-0.02,0,0.03,mat.wheel,false);
+  }
+  function bucket(g,x,y){const c=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.12,0.28,20),mat.bucket);c.position.copy(P(x,y,0.14));c.castShadow=true;g.add(c);}
+  // flach an einer Wand: axis 'x' = Fläche parallel zur x-Achse (Dicke in y), 'y' = parallel zur y-Achse (Dicke in x)
+  function ironBoard(g,axis,a0,b0,z0){ // 125 × 38 × 4 cm, Spitze oben
+    if(axis==='x'){ebox(g,a0,b0,a0+0.38,b0+0.04,z0,z0+1.10,mat.iron);ebox(g,a0+0.07,b0,a0+0.31,b0+0.04,z0+1.10,z0+1.25,mat.iron);ebox(g,a0+0.08,b0+0.04,a0+0.30,b0+0.06,z0+0.1,z0+0.9,mat.ironL,false);}
+    else{ebox(g,b0,a0,b0+0.04,a0+0.38,z0,z0+1.10,mat.iron);ebox(g,b0,a0+0.07,b0+0.04,a0+0.31,z0+1.10,z0+1.25,mat.iron);ebox(g,b0-0.02,a0+0.08,b0,a0+0.30,z0+0.1,z0+0.9,mat.ironL,false);}
+  }
+  function rack(g,axis,a0,b0,z0){ // Wäscheständer zusammengeklappt 55 × 110 × 7 cm
+    const w=0.55,h=1.10,t=0.07,f=0.025;
+    const bx=(a,b,c,d,z,zz,m,e)=>axis==='x'?ebox(g,a,b,c,d,z,zz,m,e):ebox(g,b,a,d,c,z,zz,m,e);
+    bx(a0,b0,a0+f,b0+t,z0,z0+h,mat.rack);bx(a0+w-f,b0,a0+w,b0+t,z0,z0+h,mat.rack);
+    bx(a0,b0,a0+w,b0+t,z0+h-f,z0+h,mat.rack);bx(a0,b0,a0+w,b0+t,z0,z0+f,mat.rack);
+    for(let i=1;i<8;i++){const z=z0+i*h/8;bx(a0+f,b0+t/2-0.003,a0+w-f,b0+t/2+0.003,z-0.003,z+0.003,mat.wire,false);}
+  }
+  function mop(g,x,y,axis){ // Bodenwischer (Klappwischer), Kopf unten hochgeklappt, Stiel im Clip
+    if(axis==='x')ebox(g,x-0.06,y-0.015,x+0.06,y+0.015,0.04,0.44,mat.mop);else ebox(g,x-0.015,y-0.06,x+0.015,y+0.06,0.04,0.44,mat.mop);
+    cylZ(g,x,y,0.44,1.75,0.012,mat.stick,8);
+  }
+  function bottles(g,x0,x1,y0,y1,z){let i=0;for(let y=y0+0.05;y<y1-0.04;y+=0.09,i++){cylZ(g,(x0+x1)/2,y,z,z+0.18+(i%3)*0.04,0.035,i%2?mat.bottle:mat.bottle2,10);}}
+  /* ---------- Modelle ---------- */
+  function build(){
+    const g=G.egAR;clearGroup(g);dropColl('ar');areaM2=0;stripM=0;nBox=[];coll=[];cart=null;
+    bestand(g);nB=coll.length;
+    if(st.v==='aus'){COLL.push(...coll.map(c=>Object.assign(c,{tag:'ar'})));report();return;}
+    const {X0,X1,Y0,Y1,dB}=R, C=Z_EGC, yPipe=Y1-S.pipe/100, bh=S.bh/100, pitch=bh+0.025;
+    if(st.v==='A'||st.v==='B'){
+      // Türwand: Regal 42 cm tief, Euroboxen 40 × 30 längs, an die Rohrzone geschoben
+      const D=0.42, cw=0.306, n=Math.max(1,Math.floor((yPipe-dB-0.03-T)/(cw+T))), W=n*cw+(n+1)*T, y0=yPipe-W;
+      const zr0=0.05+S.bay/100+T, zTop=Math.min(C-0.02,2.35);
+      const rows=rowsFit(zr0,1.95);
+      shelf(g,{xf:X1-D,dir:1,D,y0,n,bw:0.30,zr0,rows,pitch,zTop,label:'40 × 30'});
+      const zTopBoard=zr0+rows*pitch; // Kartonfach darüber
+      pan(g,X1-D,y0,X1,y0+W,zTopBoard,zTopBoard+T);
+      if(st.items){kartons(g,X1-D,X1,y0+T,y0+W-T,zTopBoard+T,zTop-T-zTopBoard-T-0.01);
+        vacuum(g,X1-0.40,X1-0.02,y0+T+0.01,y0+T+0.29);
+        if(n>1)bucket(g,X1-0.21,y0+W-T-0.17);}
+      // Lücke zwischen Türzarge und Regal: Bodenwischer an Clips
+      const gap=y0-(dB+0.03);
+      if(st.items&&gap>0.04){mop(g,X1-0.30,dB+0.03+Math.min(gap,0.08)*0.35,'x');mop(g,X1-0.14,dB+0.03+Math.min(gap,0.08)*0.75,'x');}
+      // Linke Ständerwand: Hakenleiste für Wäscheständer und Bügelbrett
+      strip(g,6.42,Y0+0.02,7.10,Y0+0.045,1.68,1.75);
+      [6.55,6.78,6.98].forEach(x=>ebox(g,x-0.01,Y0+0.045,x+0.01,Y0+0.09,1.64,1.70,mat.strip,false));
+      if(st.items){rack(g,'x',6.47,Y0+0.03,0.55);ironBoard(g,'x',6.62,Y0+0.10,0.38);}
+      if(st.v==='B'){
+        // Kartonbrücke über der Tür, an das Regal anschließend
+        const zb=2.06;pan(g,X1-D,Y0+0.03,X1,y0,zb,zb+T);strip(g,X1-D,Y0+0.03,X1-D+0.03,Y0+0.06,zb-0.25,zb);
+        if(st.items)kartons(g,X1-D,X1,Y0+0.05,y0,zb+T,C-zb-T-0.02);
+        // Rollwagen vor Medienkasten, unter dem Zählerschrank
+        cart=new THREE.Group();g.add(cart);
+        const cy0=5.76,cy1=6.42,cx0=X0+0.01,cx1=X0+0.44,zMax=S.zsUK/100-0.03;
+        const rr=Math.max(1,Math.floor((zMax-0.12)/(bh+0.02)));
+        const ztop=0.10+rr*(bh+0.02)+T;
+        [cy0,cy1-T].forEach(y=>pan(cart,cx0,y,cx1,y+T,0.08,ztop));
+        pan(cart,cx0,cy0,cx1,cy1,0.08,0.10);pan(cart,cx0,cy0,cx1,cy1,ztop-T,ztop);
+        [[cx0+0.04,cy0+0.04],[cx1-0.04,cy0+0.04],[cx0+0.04,cy1-0.04],[cx1-0.04,cy1-0.04]].forEach(([x,y])=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.025,14),mat.wheel);w.rotation.x=Math.PI/2;w.position.copy(P(x,y,0.04));cart.add(w);});
+        ebox(cart,cx1,cy0+0.12,cx1+0.03,cy1-0.12,ztop-0.06,ztop-0.03,mat.strip,false);
+        for(let r=0;r<rr;r++){const z=0.105+r*(bh+0.02);ebx(cart,cx1-0.01,-0.40,cy0+T+0.01,cy1-T-0.01,z,z+bh,'60 × 40');}
+        if(st.items)bottles(cart,cx0,cx1,cy0+0.05,cy0+0.3,ztop);
+        cart.position.x=st.out?0.45:0;
+        coll.push({x0:cx0+(st.out?0.45:0),x1:cx1+(st.out?0.45:0),y0:cy0,y1:cy1,z0:0,z1:ztop});
+        // Borde über dem Heizkreisverteiler, rechts neben der Steckdose
+        const bd=S.bord/100, by0=6.66, by1=yPipe;
+        [1.15,1.45,1.75].forEach(z=>{pan(g,X0,by0,X0+bd,by1,z,z+T);
+          [by0+0.08,by1-0.08].forEach(y=>ebox(g,X0,y-0.01,X0+Math.min(bd,0.15),y+0.01,z-0.12,z,mat.strip,false));
+          const nb=Math.floor((by1-by0)/0.31);
+          for(let i=0;i<nb;i++){const ya=by0+0.01+i*0.31;ebx(g,X0+Math.min(bd,0.205),-Math.min(bd-0.005,0.2),ya,ya+0.30,z+T,z+T+0.12,'30 × 20');}});
+      }
+    }
+    if(st.v==='C'){
+      // Rückwand: Regal über dem Heizkreisverteiler, Front zur Türwand
+      const D=0.42,cw=0.306,h=hkv();
+      const n=Math.max(1,Math.floor((yPipe-6.62-T)/(cw+T))), W=n*cw+(n+1)*T, y0=yPipe-W;
+      const zr0=Math.max(h.z1+0.10,0.75)+T, zLim=C-0.34-0.02; // unter dem Rohrverteiler
+      const rows=rowsFit(zr0,zLim-T);
+      const zTop=zr0+rows*pitch+T;
+      shelf(g,{xf:X0+D,dir:-1,D,y0,n,bw:0.30,zr0,rows,pitch,zTop,label:'40 × 30',notch:{x:h.x1+0.01,z:zr0-T}});
+      coll[coll.length-1].z0=zr0-T;ukC=zr0-T;
+      strip(g,6.45,Y0+0.02,7.05,Y0+0.045,1.45,1.52);
+      // Türwand: Hakenleisten, Hochboard über die ganze Wand (auch über der Tür)
+      const zb=2.06,Dh=0.40;
+      pan(g,X1-Dh,Y0+0.03,X1,yPipe,zb,zb+T);
+      [Y0+0.08,6.9,yPipe-0.05].forEach(y=>strip(g,X1-0.03,y-0.015,X1,y+0.015,zb-0.3,zb));
+      strip(g,X1-0.03,dB+0.04,X1,yPipe,1.66,1.74);strip(g,X1-0.03,dB+0.04,X1,yPipe,0.96,1.02);
+      if(st.items){
+        kartons(g,X1-Dh,X1,Y0+0.05,yPipe,zb+T,C-zb-T-0.02);
+        rack(g,'y',6.58,X1-0.10,0.52);ironBoard(g,'y',6.64,X1-0.145,0.36);
+        mop(g,6.62,Y0+0.04,'x');mop(g,6.90,Y0+0.08,'x');
+        vacuum(g,h.x1+0.005,h.x1+0.285,h.y1-0.42,h.y1-0.04);bucket(g,X0+0.19,6.45);
+      }
+    }
+    COLL.push(...coll.map(c=>Object.assign(c,{tag:'ar'})));
+    report();
+  }
+  function aisle(){const {X0,X1}=R,h=hkv();
+    if(st.v==='A')return X1-0.42-h.x1;
+    if(st.v==='B')return X1-0.42-Math.max(h.x1,X0+S.bord/100);
+    if(st.v==='C')return X1-0.145-(X0+0.42);
+    return X1-h.x1;}
+  function report(){
+    const cls=ok=>ok?'ok':'warn';
+    const cnt={};nBox.forEach(k=>cnt[k]=(cnt[k]||0)+1);
+    const boxes=Object.keys(cnt).map(k=>cnt[k]+' × '+k+' cm').join(', ')||'keine';
+    const a=aisle()*100, h=hkv();
+    const names={A:'A · Regal an der Türwand',B:'B · Maximal: Regal, Rollwagen, Borde',C:'C · Regal über dem Heizkreisverteiler',aus:'Nur Bestand'};
+    const rows=[['Modell',names[st.v]],['Euroboxen',boxes],
+      ['Gang (schmalste Stelle)',st.v==='aus'?'–':`<span class="${cls(a>=50)}">${fmt(a)} cm</span>`]];
+    if(st.v!=='aus'){
+      rows.push(['Zählerschrank',st.v==='B'?'frei, Rollwagen steht darunter vor dem Medienkasten':'frei']);
+      rows.push(['Heizkreisverteiler',st.v==='C'?`frei, Regal darüber ab ${fmt(ukC*100)} cm (${fmt((ukC-h.z1)*100)} cm Luft)`:st.v==='B'?'frei, Borde darüber ab 115 cm':'frei']);
+      rows.push(['Holz (Platten, grob)',`ca. ${fmt(areaM2)} m² Multiplex oder Leimholz 18–19 mm`]);
+      rows.push(['Leisten für die Boxen',`ca. ${fmt(stripM)} m`]);
+    }
+    const el=document.getElementById('arOut');if(el)el.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  }
+  function planRects(){return coll.slice(nB);}
+  return {R,S,st,sliderDefs,build,report,planRects};
+})();
+
+buildKitchenEG();WZ.build();buildEGGarden();KK.build();HS.build();AR.build();
 buildStairs(W2);buildStairs(W3);
 [W2,W3].forEach(u=>{buildFurniture(u,'fixed');buildFurniture(u,'furn');});
 flushSlats();
@@ -1438,7 +1645,7 @@ controls.addEventListener('change',()=>requestRender());
 
 function applyVisibility(){
   const v=state.view,l=state.lvl;
-  const show={EG:true,EGceil:true,egGarden:true,egKitchen:true,egWZ:true,egKids:true,egHang:true,OG:true,OGceil:true,DG:true,roof:true,balOG:true,furnOG:state.furn,furnDG:state.furn};
+  const show={EG:true,EGceil:true,egGarden:true,egKitchen:true,egWZ:true,egKids:true,egHang:true,egAR:true,OG:true,OGceil:true,DG:true,roof:true,balOG:true,furnOG:state.furn,furnDG:state.furn};
   if(v==='puppe'){show.roof=false;
     if(l==='EG'){['EGceil','OG','OGceil','DG','balOG','furnOG','furnDG'].forEach(k=>show[k]=false);}
     else if(l==='OG'){show.OGceil=false;show.DG=false;show.furnDG=false;}else{show.furnOG=false;}}
@@ -1668,6 +1875,7 @@ function egPlanItems(){
   R(K.penX0,K.penY0,K.penX1,K.wallN);
   WZ.planRects().forEach(r=>R(r.x0,r.y0,r.x1,r.y1));
   const q=KK.geo();R(q.x0,q.yf,q.x1,q.yb,q.r,true);
+  AR.planRects().forEach(r=>R(r.x0,r.y0,r.x1,r.y1,0.01,true));
   if(HS.st.v!=='aus'){const h=HS.geo();s+='<rect x="'+h.x0.toFixed(3)+'" y="'+svgY(h.y1).toFixed(3)+'" width="'+(h.x1-h.x0).toFixed(3)+'" height="'+(h.y1-h.y0).toFixed(3)+'" fill="none" stroke="var(--hl)" stroke-width="0.025" stroke-dasharray="0.1 0.06"/>';}
   s+='<text x="'+q.xc+'" y="'+(svgY(q.yf)+0.3)+'" font-size="0.16" fill="var(--hl)" text-anchor="middle">Kinderküche</text>';
   return s;
@@ -1696,9 +1904,12 @@ function egCam(name){
   let t,p;
   if(WZ.views[name])[t,p]=WZ.camWorld(WZ.views[name]());
   else if(name==='kueche'){t=P(11.3,2.3,0.8);p=P(7.9,0.9,3.3);}
+  else if(name==='ar'){t=P(6.1,6.35,1.05);p=P(8.25,6.2,1.62);}
+  else if(name==='arTuer'){t=P(7.0,6.95,0.95);p=P(6.32,5.95,2.12);}
+  else if(name==='arOben'){t=P(6.64,6.58,0.4);p=P(6.66,6.62,3.9);}
   else if(name==='haenge'){const h=HS.geo();t=P(h.xc+0.2,(h.y0+h.y1)/2+0.2,1.45);p=P(h.xc-2.9,h.y0-1.0,1.65);}
   else{const q=KK.geo();t=P(q.xc,q.yf+0.1,0.55);p=P(q.xc-2.3,q.yf-0.45,1.75);}
-  camera.fov=45;camera.updateProjectionMatrix();controls.target.copy(t);camera.position.copy(p);controls.update();
+  camera.fov=name==='arTuer'?80:name==='ar'?62:45;camera.updateProjectionMatrix();controls.target.copy(t);camera.position.copy(p);controls.update();
   syncChips();applyVisibility();requestRender();
 }
 function renderPanelEG(){
@@ -1710,8 +1921,19 @@ function renderPanelEG(){
    '<div class="sub">Ganze Hausbreite, lichte Raumhöhe 2,40 m</div>'+
    '<div class="big">ca. '+fmt(sumW(u))+' m²</div><div class="sub">Grundfläche der Räume im Modell (nach Werkplan, ohne Gewähr)</div>'+
    '<h3>Ansichten</h3><div class="chips">'+
-     [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal']]
+     [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal'],['ar','Abstellraum durch die Tür'],['arTuer','Abstellraum Türwand'],['arOben','Abstellraum von oben']]
      .map(([k,n])=>'<button class="chip" data-cam="'+k+'">'+n+'</button>').join('')+'</div>'+
+   '<h3>Projekt 4 · Abstellraum (Technik)</h3>'+
+   '<p class="note">Raum 1,09 × 1,78 m, Holzregale, Euroboxen als Schubladen auf Leisten. Ansichten oben: „Abstellraum durch die Tür“, „Abstellraum Türwand“ und „Abstellraum von oben“.</p>'+
+   '<div class="chips" role="group" aria-label="Modell">'+[['A','A: Türwand'],['B','B: Maximal'],['C','C: Über dem Verteiler'],['aus','Nur Bestand']]
+     .map(([k,n])=>'<button class="chip" data-arv="'+k+'" aria-pressed="'+(AR.st.v===k)+'">'+n+'</button>').join('')+'</div>'+
+   '<div class="chips">'+tb('arItems',AR.st.items)+'Sachen zeigen</button>'+tb('arCart',AR.st.out)+'Rollwagen herausziehen (B)</button></div>'+
+   '<div id="arSl"></div><h4>Ergebnis</h4><table class="res" id="arOut"></table>'+
+   '<p class="note"><b>A · Regal an der Türwand:</b> Regal 42 cm tief vom Boden bis 2,35 m, an die Rohre rechts geschoben. Unten ein offenes Fach für Staubsauger und Eimer, darüber Euroboxen 40 × 30, oben Kartons. Die Bodenwischer hängen an Clips zwischen Türzarge und Regal. Bügelbrett und Wäscheständer hängen an einer Leiste an den Holzständern links. Die Rückwand mit der Technik bleibt frei.</p>'+
+   '<p class="note"><b>B · Maximal:</b> wie A, dazu ein Rollwagen mit Euroboxen 60 × 40 vor dem Medienkasten. Er bleibt unter dem Zählerschrank und lässt sich in Sekunden herausziehen. Dazu drei Borde mit kleinen Euroboxen über dem Heizkreisverteiler, rechts neben der Steckdose, und eine Ablage für Kartons über der Tür.</p>'+
+   '<p class="note"><b>C · Regal über dem Heizkreisverteiler:</b> Regal an der Rückwand, unten ausgeklinkt, damit der Verteiler frei bleibt. Der Staubsauger parkt davor und der Eimer daneben. An der Türwand hängen Wäscheständer und Bügelbrett an Leisten, darüber läuft eine Ablage für Kartons über die ganze Wand. Die Wischer hängen links an den Ständern. Die Boxen sind bequem zwischen Knie und Augenhöhe, es passen aber weniger hinein.</p>'+
+   '<p class="note"><b>Aus dem Video, geschätzt, bitte prüfen:</b> Zählerschrank 55 × 100 cm, Unterkante 105 cm. Medienkasten darunter. Steckdose bei 115 cm. Heizkreisverteiler unten rechts 80 × 70 × 15 cm. Rohrzone rechts 18 cm. Rohrverteiler oben in der Ecke ca. 55 × 45 × 34 cm. Holzständer links ca. alle 40 cm. Die Tür geht nach außen auf.</p>'+
+   '<p class="note"><b>Gesetzt:</b> Euroboxen 40 × 30 (Regal), 60 × 40 (Rollwagen), 30 × 20 (Borde). Platten 19 mm. Staubsauger ca. 38 × 28 × 27 cm, Eimer Ø 30 cm, Bügelbrett 125 × 38 cm, Wäscheständer zusammengeklappt 110 × 55 × 7 cm. Raummaße aus dem Werkplan.</p>'+
    '<h3>Projekt 3 · Hängeregal über der Halbinsel</h3>'+
    '<div class="chips" role="group" aria-label="Variante">'+[['2','Alternative 2: Hängeschrank'],['1','Alternative 1: Regal mit Rahmen'],['aus','Ausblenden']]
      .map(([k,n])=>'<button class="chip" data-hv="'+k+'" aria-pressed="'+(HS.st.v===k)+'">'+n+'</button>').join('')+'</div>'+
@@ -1751,6 +1973,10 @@ function renderPanelEG(){
   sliderUI(document.getElementById('hsSl'),HS.sliderDefs,HS.S,()=>{HS.build();egChanged();});HS.report();
   panel.querySelectorAll('[data-hv]').forEach(b=>b.addEventListener('click',()=>{HS.st.v=b.dataset.hv;
     panel.querySelectorAll('[data-hv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));HS.build();egChanged();}));
+  sliderUI(document.getElementById('arSl'),AR.sliderDefs,AR.S,()=>{AR.build();egChanged();});AR.report();
+  panel.querySelectorAll('[data-arv]').forEach(b=>b.addEventListener('click',()=>{AR.st.v=b.dataset.arv;
+    panel.querySelectorAll('[data-arv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));AR.build();egChanged();}));
+  tog('arItems',AR.st,'items',AR.build);tog('arCart',AR.st,'out',AR.build);
   tog('kkOpen',KK.st,'open');tog('kkCush',KK.st,'cushion',KK.build);
   tog('tOpen',WZ.st,'open');tog('tXray',WZ.st,'xray',WZ.applyXray);tog('tSofa',WZ.st,'sofa',WZ.build);tog('tBeam',WZ.st,'beamFull',WZ.build);
   panel.querySelectorAll('[data-pose]').forEach(b=>b.addEventListener('click',()=>{KK.st.pose=b.dataset.pose;
@@ -1850,7 +2076,7 @@ try{
     SURF.push({poly:rect(KU.door[0]+0.05,-0.01,KU.door[1]-0.05,T+0.01),z:0,lvl:'EG'});} // Schwelle der Schiebetür
 }catch(err){console.error('Garten konnte nicht geladen werden',err);GARTEN=null;}
 renderPanel();resize();setView('puppe');resize();
-window.__tour={GARTEN,cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,G};
+window.__tour={AR,GARTEN,cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,G};
 })();
 </script>
 </body>

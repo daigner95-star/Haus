@@ -11,9 +11,10 @@ Seite: `index.html`, der Garten-Teil liegt in `garten/garten.js`. three.js 0.147
 
 ## Erdgeschoss (Wohnung 1)
 Wände, Türen und Fenster stammen aus dem Fensterplan EG. Die Küche ist nach Fotos und Aufmaß gebaut. In der rechten Leiste stehen:
-- **Ansichten:** Wohnraum, Essecke, Von vorne, Von oben, Linkes Fach, Küche, Kinderküche
+- **Ansichten:** Wohnraum, Essecke, Von vorne, Von oben, Linkes Fach, Küche, Kinderküche, Hängeregal, Abstellraum
 - **Projekt 1 · Wohnzimmer-Einbauten:** Rückkasten mit Klappen, Trennwand mit Balken, Eckbank mit Rollkästen und Ablage, Ofen, Sofa und Tisch. Alle Regler und Schalter aus dem Einzelmodell sind übernommen.
 - **Projekt 3 · Hängeregal über der Halbinsel:** zwei Varianten zum Umschalten. Standard ist der Hängeschrank (50 cm tief) mit zwei zu beiden Seiten offenen Nischen für Vasen, die zweite Variante ein offenes Regal im Stahlrahmen. Maße per Regler.
+- **Projekt 4 · Abstellraum (Technik):** drei Modelle zum Umschalten, alle aus Holz und mit Euroboxen als Schubladen auf Leisten. A: Regal an der Türwand, Hakenleiste an den Holzständern links. B: Maximal, also A mit Rollwagen vor dem Medienkasten (unter dem Zählerschrank, herausziehbar), Borden über dem Heizkreisverteiler und einer Kartonablage über der Tür. C: Regal an der Rückwand über dem Heizkreisverteiler, Türwand als Hängewand mit Hochboard. Bestand (Zählerschrank, Heizkreisverteiler, Rohre) ist aus dem Video geschätzt, Maße per Regler. Ansichten: durch die Tür, Türwand, von oben.
 - **Projekt 2 · Kinderküche an der Halbinsel:** Bank, Trittstufe und Kinder-Arbeitsplatz in einem (45 cm hoch, höchstens 40 cm tief, runde Ecken vorn). Ein Kind lässt sich stehend, sitzend oder schneidend zeigen.
 
 `wohnzimmer.html` ist das ursprüngliche Einzelmodell der Wohnzimmer-Einbauten. Es bleibt zum Vergleich erhalten.
