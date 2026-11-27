@@ -885,7 +885,7 @@ const F = {wall:244, depth:13.5, boardD:14.5, boardT:3, boxH:65, strip:3, flapW:
   sofaLen:240, sillU:87, ply:0.4, rail:2.4, railH:4.5, sockZ:30, postD:14, postW:12, reveal:4,
   twLen:210, seatH:45, benchD:55, backT:10, backH:85, benchWin:180, tableL:180, tableW:95, tableH:75, beamH:14, ofBench:20};
 const S = {clad:2, outer:15, zb:45, ww:126.5, twH:90, box2:120, ofenY:322.5, beamLen:490, legW:40, legIn:30, ablW:35};
-const st={open:false, xray:false, sofa:true, angle:0, beamFull:false};
+const st={open:false, xray:false, sofa:true, angle:0, beamFull:true};
 const sliderDefs = [
   {k:'clad', label:'Verkleidung Pfosten und Trennwand (Altholz)', min:0, max:5, step:0.5, hint:'Dicke je Seite. Noch offen.'},
   {k:'twH', label:'Höhe Trennwand', min:90, max:150, step:1, hint:'Standard 90 cm.'},
@@ -2017,8 +2017,9 @@ window.addEventListener('resize',resize);
 
 /* ---------- Raumbeschriftung im Puppenhaus ---------- */
 const lblBox=document.getElementById('labels');
+const SHOW_LABELS=false; // Raumnamen im 3D-Modell ausgeblendet (im Grundriss bleiben sie)
 function updateLabels(){
-  if(state.view!=='puppe'){lblBox.innerHTML='';return;}
+  if(state.view!=='puppe'||!SHOW_LABELS){lblBox.innerHTML='';return;}
   const u=UNITS[state.unit];const rooms=u.rooms.filter(r=>r.lvl===state.lvl);
   if(lblBox.childElementCount!==rooms.length){lblBox.innerHTML='';rooms.forEach(r=>{const d=document.createElement('div');d.className='lbl';d.innerHTML='<b>'+r.name+'</b> · '+fmt(r.wfl)+' m²';lblBox.appendChild(d);});}
   const rc=canvas.getBoundingClientRect();
