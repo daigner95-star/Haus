@@ -405,7 +405,7 @@ const W1={
     {lvl:'EG',r:[5.907,5.698,6.097,B-T]},
     {lvl:'EG',r:[6.097,7.477,7.187,7.667]},
     {lvl:'EG',r:[7.187,5.698,7.380,B-T],op:[{a:5.748,b:6.508,s:0,h:2.01,k:'door'},{a:8.273,b:9.158,s:0,h:2.01,k:'door'}]},
-    {lvl:'EG',r:[7.380,6.558,9.987,6.703],op:[{a:8.175,b:9.191,s:0,h:2.01,k:'door'}]},
+    {lvl:'EG',r:[7.380,6.558,9.987,6.703],op:[{a:7.83,b:8.83,s:0,h:2.01,k:'door'}]},   // Aufmaß: Wand links 45 cm, Öffnung 1,00 m
     {lvl:'EG',r:[9.987,3.873,10.178,B-T],op:[{a:5.619,b:6.504,s:0,h:2.01,k:'door'},{a:8.269,b:9.154,s:0,h:2.01,k:'door'}]},
     {lvl:'EG',r:[10.178,7.066,L-T,7.256]},
     {lvl:'EG',r:[10.178,3.873,L-T,4.063]}
@@ -537,7 +537,7 @@ const M={
   floorEG:lam(0xcfae84), larch:lam(0xbd8650), tread:lam(0xc7a072), steel:lam(0x2a2a2a), ground:lam(0x8db06a), white:lam(0xf5f5f3), eg:lam(0xb07c4a),
   slab:lam(0xd8d2c6), glassShower:new THREE.MeshLambertMaterial({color:0xd8ecf2,transparent:true,opacity:0.3,depthWrite:false,side:THREE.DoubleSide})
 };
-const G={}; ['EG','EGceil','egGarden','egKitchen','egWZ','egKids','egHang','egBed','egAR','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
+const G={}; ['EG','EGceil','egGarden','egKitchen','egWZ','egKids','egHang','egBed','egAR','egSD','OG','OGceil','DG','roof','balOG','furnOG','furnDG'].forEach(k=>{G[k]=new THREE.Group();scene.add(G[k]);});
 const COLL=[]; // {x0,y0,x1,y1,z0,z1,furn?,tag?}
 let COLL_TAG=null; // Kennung für Kollisionsboxen, die beim Neubau eines Bauteils ersetzt werden
 function dropColl(tag){for(let i=COLL.length-1;i>=0;i--)if(COLL[i].tag===tag)COLL.splice(i,1);}
@@ -1777,7 +1777,102 @@ const AR=(function(){
   return {R,S,st,sliderDefs,build,report,planRects};
 })();
 
-buildKitchenEG();WZ.build();buildEGGarden();KK.build();HS.build();KB.build();AR.build();
+/* ================= EG Projekt 6: Schiebetür zwischen Flur und Eingang =================
+   Öffnung nach Aufmaß: Wand links bis zur Öffnung 45 cm, Öffnung 1,00 m breit, 2,01 m hoch (wie die anderen Türen).
+   Türblatt aus einem Stück Eiche, geölt, links und rechts natürliche Baumkante. Läuft flurseitig vor der Wand nach rechts
+   auf einer Laufschiene aus Flachstahl. Maße in cm, Hauskoordinaten in m. */
+const SD=(function(){
+  const O={a:7.83,b:8.83,h:2.01,wall:6.558,xEnd:9.987};   // Öffnung, Flurseite der Wand, Ecke rechts (Wand zu Kinderzimmer 2)
+  const S={w:110,k:3,t:5,over:6};
+  const st={open:false,mirror:true,on:true};
+  const sliderDefs=[
+    {k:'w',label:'Türblatt: mittlere Breite',min:100,max:120,step:1,hint:'Öffnung 100 cm. Rechts neben der Öffnung sind bis zur Ecke 115,7 cm Platz zum Parken.'},
+    {k:'k',label:'Baumkante: wie stark sie schwankt (je Seite)',min:0,max:8,step:0.5,hint:'0 = gerade Kante. Gesetzt 3 cm.'},
+    {k:'t',label:'Türblatt: Dicke',min:3,max:7,step:0.5,hint:'Gesetzt 5 cm. Dünner als 4 cm verzieht sich eine breite Eichenbohle leichter.'},
+    {k:'over',label:'Türblatt über der Öffnung oben',min:3,max:12,step:1,hint:'So weit reicht das Türblatt über die Oberkante der Öffnung.'}
+  ];
+  const fmt=v=>(Math.round(v*10)/10).toLocaleString('de-DE',{maximumFractionDigits:1});
+  // Eichenmaserung als Textur, 1 Kachel = 1 m
+  const tex=(function(){const c=document.createElement('canvas');c.width=256;c.height=512;const x=c.getContext('2d');
+    x.fillStyle='#b4824f';x.fillRect(0,0,256,512);let sd=11;const r=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
+    for(let i=0;i<140;i++){const x0=r()*256,a=0.05+r()*0.12,w=1+r()*2.5;x.strokeStyle=r()<0.5?`rgba(95,58,25,${a})`:`rgba(230,190,135,${a})`;x.lineWidth=w;
+      x.beginPath();x.moveTo(x0,0);for(let y=0;y<=512;y+=32)x.lineTo(x0+Math.sin(y/90+i)*6+Math.sin(y/23+i*3)*1.5,y);x.stroke();}
+    for(let i=0;i<10;i++){const cx=r()*256,cy=r()*512;x.strokeStyle='rgba(90,55,25,0.25)';x.lineWidth=1;for(let j=1;j<5;j++){x.beginPath();x.ellipse(cx,cy,j*2.2,j*7,0,0,7);x.stroke();}}
+    const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1,0.5);t.anisotropy=4;return t;})();
+  const mat={face:lam(0xffffff,{map:tex}),edge:lam(0xd8b98c),steel:lam(0x1e1e1e),wall:lam(0xf3f1ec),sw:lam(0xf7f7f5),screen:lam(0x2a2d31),
+    mirror:new THREE.MeshLambertMaterial({color:0xcfd8dc}),frame:lam(0x1a1a1a)};
+  const H=()=>O.h+S.over/100;           // Oberkante Türblatt
+  // Baumkante: Breite schwankt mit der Höhe, deterministisch
+  function edges(){const n=42,k=S.k/100,xc=(O.a+O.b)/2,hw=S.w/200,L=[],Rr=[];
+    for(let i=0;i<=n;i++){const z=0.01+(H()-0.01)*i/n,u=i/n;
+      const fl=Math.sin(u*5.3+0.7)*0.55+Math.sin(u*13.1+2.1)*0.25+Math.sin(u*29.0)*0.12+(u-0.5)*0.35;
+      const fr=Math.sin(u*4.1+2.6)*0.55+Math.sin(u*11.7+0.4)*0.28+Math.sin(u*31.0+1.0)*0.1-(u-0.5)*0.25;
+      L.push([xc-hw-k*fl,z]);Rr.push([xc+hw+k*fr,z]);}
+    return {L,R:Rr};}
+  function geo(){const e=edges(),xl=e.L.map(p=>p[0]),xr=e.R.map(p=>p[0]);
+    const minL=Math.min(...xl),maxL=Math.max(...xl),minR=Math.min(...xr),maxR=Math.max(...xr);
+    const stop=O.xEnd-0.04;                                   // Puffer vor der Ecke
+    const shift=Math.max(0,Math.min(O.b-minL,stop-maxR));
+    const t=S.t/100,y1=O.wall-0.015,y0=y1-t;
+    return {e,minL,maxL,minR,maxR,shift,t,y0,y1,stop};}
+  function build(){
+    const g=G.egSD;clearGroup(g);if(!st.on){report();return;}
+    const q=geo(),{e,t,y0,y1}=q,dx=st.open?q.shift:0;
+    // Bestand an der Wand (aus dem Foto): Sprechanlage, Schalter links, Spiegel rechts
+    ebox(g,7.48,O.wall-0.015,7.66,O.wall,1.42,1.55,mat.sw);ebox(g,7.495,O.wall-0.017,7.645,O.wall-0.015,1.445,1.53,mat.screen,false);
+    ebox(g,7.65,O.wall-0.012,7.73,O.wall,0.93,1.17,mat.sw);
+    if(st.mirror){ebox(g,9.11,O.wall-0.025,9.56,O.wall,0.32,1.76,mat.frame);ebox(g,9.125,O.wall-0.027,9.545,O.wall-0.025,0.335,1.745,mat.mirror,false);}
+    // Türblatt: Umriss mit Baumkante, in der Wandebene extrudiert
+    const sh=new THREE.Shape();sh.moveTo(e.L[0][0],e.L[0][1]);
+    e.R.forEach(p=>sh.lineTo(p[0],p[1]));for(let i=e.L.length-1;i>=0;i--)sh.lineTo(e.L[i][0],e.L[i][1]);
+    const leaf=new THREE.Group();g.add(leaf);
+    const gg=new THREE.ExtrudeGeometry(sh,{depth:t,bevelEnabled:true,bevelThickness:0.002,bevelSize:0.002,bevelSegments:1,curveSegments:4});
+    const m=new THREE.Mesh(gg,[mat.face,mat.edge]);m.position.z=-y1;m.castShadow=true;m.receiveShadow=true;leaf.add(m);
+    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(gg,30),EDGE_MAT));
+    // Griff flurseitig (Flachstahl), Griffmulde eingangsseitig
+    const xg=Math.max(...e.L.filter(p=>p[1]>0.8&&p[1]<1.4).map(p=>p[0]))+0.09;
+    ebox(leaf,xg-0.012,y0-0.045,xg+0.012,y0-0.035,0.82,1.38,mat.steel,false);
+    [0.86,1.34].forEach(z=>ebox(leaf,xg-0.006,y0-0.035,xg+0.006,y0,z-0.006,z+0.006,mat.steel,false));
+    const xm=O.a+0.07;ebox(leaf,xm-0.02,y1-0.001,xm+0.02,y1+0.001,0.9,1.3,lam(0x6e4a2a),false);
+    // Laufrollen mit Flachstahl-Bändern
+    const zt=H(),zr=zt+0.09,yc=(y0+y1)/2,ext=[q.minL,q.maxR];
+    [ext[0]+0.16,ext[1]-0.16].forEach(x=>{
+      [y0-0.006,y1].forEach(y=>ebox(leaf,x-0.02,y,x+0.02,y+0.006,zt-0.12,zr,mat.steel,false));
+      const w=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.022,24),mat.steel);w.rotation.x=Math.PI/2;w.position.copy(P(x,yc,zr+0.025));leaf.add(w);});
+    leaf.position.x=dx;
+    // Laufschiene (Flachstahl 40 × 8) mit Wandhaltern, Stopper an beiden Enden
+    const xa=q.minL-0.06,xb=q.stop+0.02,ry0=yc-0.004,ry1=yc+0.004;
+    ebox(g,xa,ry0,xb,ry1,zr-0.04,zr,mat.steel,false);
+    const nH=Math.max(3,Math.round((xb-xa)/0.45));
+    for(let i=0;i<=nH;i++){const x=xa+0.05+(xb-xa-0.1)*i/nH;const c=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,O.wall-ry1,12),mat.steel);
+      c.rotation.x=Math.PI/2;c.position.copy(P(x,(O.wall+ry1)/2,zr-0.02));g.add(c);}
+    [xa+0.02,xb-0.02].forEach(x=>ebox(g,x-0.012,ry0-0.012,x+0.012,ry1+0.012,zr,zr+0.03,mat.steel,false));
+    // Bodenführung rechts neben der Öffnung (greift in eine Nut unten im Türblatt)
+    ebox(g,O.b+0.02,y0+t*0.3,O.b+0.06,y1-t*0.3,0,0.015,mat.steel,false);
+    report();
+  }
+  function report(){
+    const el=document.getElementById('sdOut');if(!el)return;
+    if(!st.on){el.innerHTML='<tr><td>Ausgeblendet</td><td></td></tr>';return;}
+    const q=geo(),cls=ok=>ok?'ok':'warn';
+    const ovL=(O.a-q.maxL)*100,ovR=(q.minR-O.b)*100,clear=(q.minL+q.shift-O.a)*100;
+    const kg=0.72*(q.maxR-q.minL)*H()*q.t*1000*0.97;
+    const rows=[
+      ['Öffnung',`100 × ${fmt(O.h*100)} cm, Wand links 45 cm`],
+      ['Türblatt (H × B × D)',`${fmt(H()*100-1)} × ${fmt((q.minR-q.maxL)*100)}–${fmt((q.maxR-q.minL)*100)} × ${fmt(S.t)} cm`],
+      ['Überdeckung zu, schmalste Stelle',`<span class="${cls(ovL>=2)}">links ${fmt(ovL)} cm</span> · <span class="${cls(ovR>=2)}">rechts ${fmt(ovR)} cm</span>`],
+      ['Durchgang offen',`<span class="${cls(clear>=95)}">${fmt(clear)} cm</span>`],
+      ['Platz rechts zum Parken',`${fmt((O.xEnd-O.b)*100)} cm bis zur Ecke`],
+      ['Gewicht Türblatt ca.',`<span class="${cls(kg<=100)}">${fmt(Math.round(kg))} kg</span> (Eiche ca. 720 kg/m³)`],
+      ['Spiegel rechts (9,11–9,56 m)',st.mirror?'<span class="warn">liegt im Weg der offenen Tür, umhängen</span>':'ausgeblendet']
+    ];
+    el.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  }
+  function plan(){const q=geo();return {x0:q.minL+(st.open?q.shift:0),x1:q.maxR+(st.open?q.shift:0),y0:q.y0,y1:q.y1,rx0:q.minL-0.06,rx1:q.stop+0.02};}
+  return {O,S,st,sliderDefs,build,report,plan};
+})();
+
+buildKitchenEG();WZ.build();buildEGGarden();KK.build();HS.build();KB.build();AR.build();SD.build();
 buildStairs(W2);buildStairs(W3);
 [W2,W3].forEach(u=>{buildFurniture(u,'fixed');buildFurniture(u,'furn');});
 flushSlats();
@@ -1792,7 +1887,7 @@ controls.addEventListener('change',()=>requestRender());
 
 function applyVisibility(){
   const v=state.view,l=state.lvl;
-  const show={EG:true,EGceil:true,egGarden:true,egKitchen:true,egWZ:true,egKids:true,egHang:true,egBed:true,egAR:true,OG:true,OGceil:true,DG:true,roof:true,balOG:true,furnOG:state.furn,furnDG:state.furn};
+  const show={EG:true,EGceil:true,egGarden:true,egKitchen:true,egWZ:true,egKids:true,egHang:true,egBed:true,egAR:true,egSD:true,OG:true,OGceil:true,DG:true,roof:true,balOG:true,furnOG:state.furn,furnDG:state.furn};
   if(v==='puppe'){show.roof=false;
     if(l==='EG'){['EGceil','OG','OGceil','DG','balOG','furnOG','furnDG'].forEach(k=>show[k]=false);}
     else if(l==='OG'){show.OGceil=false;show.DG=false;show.furnDG=false;}else{show.furnOG=false;}}
@@ -2024,6 +2119,7 @@ function egPlanItems(){
   WZ.planRects().forEach(r=>R(r.x0,r.y0,r.x1,r.y1));
   const q=KK.geo();R(q.x0,q.yf,q.x1,q.yb,q.r,true);
   AR.planRects().forEach(r=>R(r.x0,r.y0,r.x1,r.y1,0.01,true));
+  if(SD.st.on){const d=SD.plan();R(d.x0,d.y0,d.x1,d.y1,0.005,true);s+='<line x1="'+d.rx0.toFixed(3)+'" x2="'+d.rx1.toFixed(3)+'" y1="'+svgY(d.y0-0.02).toFixed(3)+'" y2="'+svgY(d.y0-0.02).toFixed(3)+'" stroke="var(--hl)" stroke-width="0.02" stroke-dasharray="0.08 0.05"/>';}
   if(HS.st.v!=='aus'){const h=HS.geo();s+='<rect x="'+h.x0.toFixed(3)+'" y="'+svgY(h.y1).toFixed(3)+'" width="'+(h.x1-h.x0).toFixed(3)+'" height="'+(h.y1-h.y0).toFixed(3)+'" fill="none" stroke="var(--hl)" stroke-width="0.025" stroke-dasharray="0.1 0.06"/>';}
   s+='<text x="'+q.xc+'" y="'+(svgY(q.yf)+0.3)+'" font-size="0.16" fill="var(--hl)" text-anchor="middle">Kinderküche</text>';
   return s;
@@ -2056,11 +2152,13 @@ function egCam(name){
   else if(name==='bettOben'){const q=KB.geo();t=P(q.xc,q.yc,0.6);p=P(q.xc+0.3,q.y0-1.2,2.3);}
   else if(name==='ar'){t=P(6.1,6.35,1.05);p=P(8.25,6.2,1.62);}
   else if(name==='arTuer'){t=P(7.0,6.95,0.95);p=P(6.32,5.95,2.12);}
+  else if(name==='sd'){t=P(8.45,6.6,1.1);p=P(8.45,4.35,1.55);}
+  else if(name==='sdE'){t=P(8.4,6.6,1.1);p=P(8.6,8.75,1.55);}
   else if(name==='arRegal'){t=P(6.64,7.2,1.1);p=P(6.82,5.86,1.7);}
   else if(name==='arOben'){t=P(6.64,6.58,0.4);p=P(6.66,6.62,3.9);}
   else if(name==='haenge'){const h=HS.geo();t=P(h.xc+0.2,(h.y0+h.y1)/2+0.2,1.45);p=P(h.xc-2.9,h.y0-1.0,1.65);}
   else{const q=KK.geo();t=P(q.xc,q.yf+0.1,0.55);p=P(q.xc-2.3,q.yf-0.45,1.75);}
-  camera.fov=(name==='arTuer'||name==='arRegal')?80:name==='ar'?62:45;camera.updateProjectionMatrix();controls.target.copy(t);camera.position.copy(p);controls.update();
+  camera.fov=(name==='sd'||name==='sdE')?62:(name==='arTuer'||name==='arRegal')?80:name==='ar'?62:45;camera.updateProjectionMatrix();controls.target.copy(t);camera.position.copy(p);controls.update();
   syncChips();applyVisibility();requestRender();
 }
 function renderPanelEG(){
@@ -2072,8 +2170,14 @@ function renderPanelEG(){
    '<div class="sub">Ganze Hausbreite, lichte Raumhöhe 2,40 m</div>'+
    '<div class="big">ca. '+fmt(sumW(u))+' m²</div><div class="sub">Grundfläche der Räume im Modell (nach Werkplan, ohne Gewähr)</div>'+
    '<h3>Ansichten</h3><div class="chips">'+
-     [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal'],['bett','Kinderbett'],['bettOben','Kinderbett von oben'],['arRegal','Abstellraum Regal rechts'],['ar','Abstellraum durch die Tür'],['arTuer','Abstellraum Türwand'],['arOben','Abstellraum von oben']]
+     [['raum','Wohnraum'],['ess','Essecke'],['vorne','Von vorne'],['oben','Von oben'],['detail','Linkes Fach'],['kueche','Küche'],['kinder','Kinderküche'],['haenge','Hängeregal'],['bett','Kinderbett'],['bettOben','Kinderbett von oben'],['sd','Schiebetür vom Flur'],['sdE','Schiebetür vom Eingang'],['arRegal','Abstellraum Regal rechts'],['ar','Abstellraum durch die Tür'],['arTuer','Abstellraum Türwand'],['arOben','Abstellraum von oben']]
      .map(([k,n])=>'<button class="chip" data-cam="'+k+'">'+n+'</button>').join('')+'</div>'+
+   '<h3>Projekt 6 · Schiebetür zwischen Flur und Eingang</h3>'+
+   '<div class="chips">'+tb('sdOpen',SD.st.open)+'Tür offen</button>'+tb('sdMirror',SD.st.mirror)+'Spiegel zeigen</button>'+tb('sdOn',SD.st.on)+'Tür zeigen</button></div>'+
+   '<div id="sdSl"></div><h4>Ergebnis</h4><table class="res" id="sdOut"></table>'+
+   '<p class="note"><b>Idee:</b> Das Türblatt ist ein Stück Eiche, geölt, links und rechts mit natürlicher Baumkante. Es hängt flurseitig vor der Wand an zwei Laufrollen auf einer Schiene aus schwarzem Flachstahl und läuft nach rechts. Unten führt es ein kleiner Führungsnocken am Boden rechts neben der Öffnung, der in eine Nut im Türblatt greift. Flurseitig sitzt ein Griff aus Flachstahl, eingangsseitig eine Griffmulde.</p>'+
+   '<p class="note"><b>Gemessen:</b> Wand links neben der Öffnung 45 cm, Öffnung 1,00 m. Die Öffnung ist im Modell entsprechend verschoben. <b>Aus dem Foto geschätzt:</b> Höhe der Öffnung 2,01 m wie die anderen Türen, Sprechanlage, Schalter, Spiegel 45 × 144 cm. <b>Gesetzt:</b> mittlere Breite 110 cm, Baumkante ±3 cm, Dicke 5 cm, 6 cm über der Öffnung, 1,5 cm Abstand zur Wand.</p>'+
+   '<p class="note"><b>Bitte beachten:</b> Ein Brett aus einem Stück mit 1,1 m Breite braucht einen Stamm von gut 1,2 m Durchmesser. Das ist selten und teuer. Es muss technisch trocken sein (8–10 % Holzfeuchte) und braucht hinten eingelassene Gratleisten oder Flachstähle, damit es sich nicht wölbt. Wo die Baumkante schmal ist, bleibt seitlich ein Spalt, sie schließt also nicht dicht. Bei ca. 80 kg braucht es einen Beschlag für mindestens 100 kg und Halter, die in tragendes Holz der Wand geschraubt sind.</p>'+
    '<h3>Projekt 5 · Abstellraum (Technik)</h3>'+
    '<p class="note">Raum 1,09 × 1,78 m, Holzregale, Euroboxen als Schubladen auf Leisten. Ansichten oben: „Abstellraum Regal rechts“, „Abstellraum durch die Tür“, „Abstellraum Türwand“ und „Abstellraum von oben“.</p>'+
    '<div class="chips" role="group" aria-label="Modell">'+[['D','D: Regal rechts'],['A','A: Türwand'],['B','B: Maximal'],['C','C: Über dem Verteiler'],['aus','Nur Bestand']]
@@ -2138,6 +2242,8 @@ function renderPanelEG(){
     panel.querySelectorAll('[data-hv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));HS.build();egChanged();}));
   tog('kbPics',KB.st,'pics',KB.build);tog('kbBack',KB.st,'back',KB.build);tog('kbPull',KB.st,'pull',KB.build);
 tog('kbOn',KB.st,'on',KB.build);
+  sliderUI(document.getElementById('sdSl'),SD.sliderDefs,SD.S,()=>{SD.build();egChanged();});SD.report();
+  tog('sdOpen',SD.st,'open',SD.build);tog('sdMirror',SD.st,'mirror',SD.build);tog('sdOn',SD.st,'on',SD.build);
   sliderUI(document.getElementById('arSl'),AR.sliderDefs,AR.S,()=>{AR.build();egChanged();});AR.report();
   panel.querySelectorAll('[data-arv]').forEach(b=>b.addEventListener('click',()=>{AR.st.v=b.dataset.arv;
     panel.querySelectorAll('[data-arv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));AR.build();egChanged();}));
@@ -2245,7 +2351,7 @@ try{
     if(GARTEN.walkGround)SURF.push({poly:rect(-40,-20,60,38),zf:GARTEN.walkGround,lvl:'EG',out:true});} // draußen: Garten, Hof und Straße
 }catch(err){console.error('Garten konnte nicht geladen werden',err);GARTEN=null;}
 renderPanel();resize();setView('puppe');resize();
-window.__tour={GARTEN,cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,KB,AR,G};
+window.__tour={GARTEN,cam:camera,ctl:controls,state,player,setView,placePlayer,UNITS,canStand,groundAt,requestRender,keys,tryMove,WZ,KK,HS,KB,AR,SD,G};
 })();
 </script>
 </body>
